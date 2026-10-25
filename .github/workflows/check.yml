@@ -1,0 +1,25 @@
+name: CI — Quran Knowledge application
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Wrangler locally
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify application and bootstrap script
+        run: |
+          node --check src/index.mjs
+          node --check scripts/github-bootstrap.mjs
+          node --check public/app.js
+          node --check public/admin.js
+      - name: Run route and database tests
+        run: npm test

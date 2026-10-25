@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qst-living-knowledge-v1",
+  "account_id": "fb9597e74bae3ea18ad7bb013213d776",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-10-25",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "APP_NAME": "Quran • Seerah • Living Guidance",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "ADMIN_EMAIL": ""
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qst-knowledge-v1-db",
+      "database_id": "REPLACE_WITH_NEW_D1_DATABASE_UUID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

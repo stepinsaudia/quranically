@@ -1,0 +1,22 @@
+ISOLATED QURAN • SEERAH • LIVING GUIDANCE — CLOUDFLARE V1
+
+Target account: fb9597e74bae3ea18ad7bb013213d776
+New Worker:     qst-living-knowledge-v1
+New D1:         qst-knowledge-v1-db
+
+Nothing in this package is already deployed to your Cloudflare account.
+
+1. Open README_DEPLOYMENT.md and inspect new resource names.
+2. Open PowerShell in this folder; run:
+     npm install
+     npx wrangler login
+     npx wrangler whoami --account fb9597e74bae3ea18ad7bb013213d776
+3. Run once to create and seed the new, empty D1 only:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\DEPLOY_NEW_WORKER.ps1
+4. After successful setup and your deliberate decision to deploy this new Worker:
+     npx wrangler deploy
+5. Visit the ACTUAL new workers.dev URL returned by Wrangler.
+6. Admin is intentionally locked until Cloudflare Access is configured.
+
+Do NOT deploy this code to BIS ONE, Research Exchange, Madinah Dream,
+Second Passport, or any other existing Cloudflare resource.
