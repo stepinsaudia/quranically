@@ -1,0 +1,6 @@
+QURANICALLY FIRST DEPLOY AUTHORIZATION
+Approved by repository owner in ChatGPT conversation on 2026-10-27.
+Account: fb9597e74bae3ea18ad7bb013213d776
+Dedicated Worker: qst-living-knowledge-v1
+Dedicated D1: qst-knowledge-v1-db
+First run only. Never rerun after a partial failure without inspection.
