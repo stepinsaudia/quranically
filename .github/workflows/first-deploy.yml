@@ -1,6 +1,10 @@
 name: FIRST DEPLOY ONLY — new isolated Cloudflare Worker and D1
 run-name: Create NEW Quran Worker and D1 in locked account
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-first-deploy-authorization.txt'
   workflow_dispatch:
     inputs:
       confirmation:
@@ -14,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   first-deploy:
-    if: ${{ github.event.inputs.confirmation == 'CREATE NEW QST ONLY' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.confirmation == 'CREATE NEW QST ONLY') || (github.event_name == 'push' && github.event.head_commit.message == 'AUTHORIZE QURANICALLY FIRST DEPLOY 2026-10-27') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
