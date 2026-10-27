@@ -18,6 +18,15 @@ try{
   const data=await read('/api/admin/bootstrap',cookie);
   const groups=['journeys','evidence','sources','steps'];
   for(const group of groups)if(!Array.isArray(data[group]))throw Error('Missing Admin collection '+group);
+  // Verify each Admin module's own live route, not just the consolidated bootstrap.
+  for(const group of groups){
+    const endpoint=await read('/api/admin/'+group,cookie);
+    if(!Array.isArray(endpoint.records)||endpoint.records.length!==data[group].length)
+      throw Error('Module mismatch: '+group);
+  }
+  const history=await read('/api/admin/audit',cookie);
+  if(!Array.isArray(history.records))throw Error('Audit history endpoint unavailable');
+  console.log('Authenticated Admin modules: journeys, evidence, sources, steps, audit history — ALL PASS');
   const [journeys,evidence,sources,steps]=groups.map(k=>data[k]);
   const journeyMap=new Map(journeys.map(x=>[x.id,x])), sourceMap=new Map(sources.map(x=>[x.id,x]));
   const count=(a,p)=>a.filter(p).length;
