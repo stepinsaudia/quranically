@@ -25,6 +25,7 @@ const religious=await read('/api/encyclopedia?domain=quranic_themes');check(reli
 const article=await read('/api/encyclopedia/black-seed');
 check(article.res.status===200&&article.data?.sections?.length>=5&&article.data?.citations?.length>=2&&article.data?.related?.length>0,'Black-seed deep article, five sections, bibliography and cross-links');
 check(article.data.entry.review_status==='editorial_draft'&&article.data.citations.every(x=>x.verification_status==='pending'),'Unreviewed material honestly marked pending');
+check(article.data.passages?.length>0&&article.data.passages[0].arabic_excerpt.length>10,'Original Arabic quoted on-site and linked to exact bibliography');
 const existing=await read('/api/journeys');check(existing.res.status===200&&existing.data?.journeys?.length===4,'Prior guidance API and D1 preserved');
 const tibb=await read('/api/tibb');check(tibb.res.status===200&&tibb.data?.entries?.length===8,'Existing ingredient database preserved');
 const unauth=await read('/api/admin/encyclopedia_articles');check(unauth.res.status===401,'Anonymous callers cannot access Admin');
@@ -35,6 +36,7 @@ try{
  const boot=await read('/api/admin/bootstrap',cookie);
  check(boot.res.status===200&&boot.data?.encyclopedia_articles?.length===15&&boot.data?.encyclopedia_sections?.length>=70,'Canonical Admin owns same article corpus and ordered sections');
  check(boot.data?.encyclopedia_citations?.length>=30&&boot.data?.encyclopedia_links?.length>=15,'Admin bibliographies and cross-references connected');
+check(boot.data?.encyclopedia_passages?.length>=12,'Admin maintains transmitted Arabic separately from editorial explanations');
  const audit=await read('/api/admin/audit',cookie);
  check(audit.res.status===200&&Array.isArray(audit.data?.records),'Revision audit available');
 }finally{
