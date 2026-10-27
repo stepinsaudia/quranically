@@ -78,6 +78,67 @@ async function validateAccess(request,env){
     return {email};
   }catch(e){return {error:'Access token verification failed',status:403};}
 }
+// Native single-admin login. Only a derived PBKDF2 record is ever stored in Worker Secrets.
+const ADMIN_COOKIE='__Host-qst_admin';
+const SESSION_SECONDS=8*60*60;
+const nowSeconds=()=>Math.floor(Date.now()/1000);
+const toHex=u8=>Array.from(u8,x=>x.toString(16).padStart(2,'0')).join('');
+async function sha256Hex(value){return toHex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes.encode(value))));}
+async function passwordMatches(password,record){
+  const parts=String(record||'').split(':');
+  if(parts.length!==4||parts[0]!=='pbkdf2-sha256' || !/^[a-f0-9]{32}$/.test(parts[2]) || !/^[a-f0-9]{64}$/.test(parts[3]))return false;
+  const rounds=Number(parts[1]);if(!Number.isInteger(rounds)||rounds<210000||rounds>900000)return false;
+  const salt=Uint8Array.from(parts[2].match(/../g),x=>parseInt(x,16));
+  const key=await crypto.subtle.importKey('raw',bytes.encode(password),'PBKDF2',false,['deriveBits']);
+  const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:rounds,hash:'SHA-256'},key,256));
+  const expected=Uint8Array.from(parts[3].match(/../g),x=>parseInt(x,16));
+  let diff=0;for(let i=0;i<derived.length;i++)diff|=derived[i]^expected[i];return diff===0;
+}
+async function validateNativeAdmin(request,env){
+  if(!env.ADMIN_PASSWORD_RECORD)return {error:'Native administrator password has not been securely provisioned',status:503};
+  const cookie=request.headers.get('cookie')||'';
+  const token=(cookie.match(/(?:^|;\s*)__Host-qst_admin=([A-Za-z0-9_-]{40,90})/)||[])[1];
+  if(!token)return {error:'Admin sign-in required',status:401};
+  const tokenHash=await sha256Hex(token);
+  const session=await env.DB.prepare('SELECT expires_at FROM admin_sessions WHERE token_hash=?').bind(tokenHash).first();
+  if(!session||Number(session.expires_at)<=nowSeconds())return {error:'Admin session expired or invalid',status:401};
+  return {email:'Quranically administrator'};
+}
+async function validateEditor(request,env){
+  return env.ADMIN_PASSWORD_RECORD ? validateNativeAdmin(request,env) : validateAccess(request,env);
+}
+async function adminAuthAction(request,env,url){
+  const path=url.pathname;
+  if(request.method!=='POST')return json({error:'Method not allowed'},405);
+  if(!originValid(request))return json({error:'Origin verification failed'},403);
+  if(path==='/api/admin/logout'){
+    const actor=await validateNativeAdmin(request,env);
+    if(!actor.error){const token=((request.headers.get('cookie')||'').match(/(?:^|;\s*)__Host-qst_admin=([A-Za-z0-9_-]{40,90})/)||[])[1];if(token)await env.DB.prepare('DELETE FROM admin_sessions WHERE token_hash=?').bind(await sha256Hex(token)).run();}
+    return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json','set-cookie':`${ADMIN_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`,'cache-control':'no-store'}});
+  }
+  if(path!=='/api/admin/login')return json({error:'Unknown auth route'},404);
+  if(!env.ADMIN_PASSWORD_RECORD)return json({error:'Administrator login is not configured'},503);
+  let password='';try{const body=await parseBody(request);password=typeof body.password==='string'?body.password:'';}catch{return invalid('Invalid login request');}
+  if(password.length<1||password.length>256)return invalid('Invalid password length');
+  // D1-backed per-IP attempt limit; never store raw addresses or entered passwords.
+  const addr=request.headers.get('cf-connecting-ip')||'unknown';
+  const fingerprint=await sha256Hex('qst-admin-ip:'+addr);
+  const now=nowSeconds();
+  const attempt=await env.DB.prepare('SELECT failures,expires_at FROM admin_auth_attempts WHERE fingerprint=?').bind(fingerprint).first();
+  if(attempt&&Number(attempt.expires_at)>now&&Number(attempt.failures)>=8)return json({error:'Too many attempts. Try again later.'},429);
+  const good=await passwordMatches(password,env.ADMIN_PASSWORD_RECORD);
+  if(!good){
+    await env.DB.prepare('INSERT INTO admin_auth_attempts(fingerprint,failures,expires_at) VALUES(?,?,?) ON CONFLICT(fingerprint) DO UPDATE SET failures=CASE WHEN expires_at<? THEN 1 ELSE failures+1 END,expires_at=CASE WHEN expires_at<? THEN ? ELSE expires_at END').bind(fingerprint,1,now+900,now,now,now+900).run();
+    return json({error:'Incorrect password'},401);
+  }
+  await env.DB.prepare('DELETE FROM admin_auth_attempts WHERE fingerprint=?').bind(fingerprint).run();
+  const random=new Uint8Array(32);crypto.getRandomValues(random);
+  const token=Array.from(random,b=>String.fromCharCode(b)).join('');
+  const encoded=btoa(token).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const tokenHash=await sha256Hex(encoded);
+  await env.DB.prepare('INSERT INTO admin_sessions(token_hash,created_at,expires_at) VALUES(?,?,?)').bind(tokenHash,now,now+SESSION_SECONDS).run();
+  return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','set-cookie':`${ADMIN_COOKIE}=${encoded}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_SECONDS}`}});
+}
 // Do not allow cross-origin writes even with an authenticated browser session.
 function originValid(req){const o=req.headers.get('origin');return !!o&&o===new URL(req.url).origin;}
 async function parseBody(req){
@@ -157,10 +218,18 @@ export default {
   async fetch(request,env){
     const url=readUrl(request),path=url.pathname;
     try{
+      if(path==='/api/admin/login'||path==='/api/admin/logout')return await adminAuthAction(request,env,url);
       if(path==='/admin'||path==='/admin.html'||path.startsWith('/api/admin')){
-        const actor=await validateAccess(request,env);
+        const actor=await validateEditor(request,env);
         if(path.startsWith('/api/admin'))return adminApi(request,env,url,actor);
-        if(actor.error)return new Response(`<html><meta charset="utf-8"><title>Protected Admin</title><body style="font:16px system-ui;padding:3rem;max-width:700px"><h1>Editorial Admin — protected</h1><p>${actor.status===503?'Cloudflare Access must be configured before administration is available.':'Please sign in through the configured Cloudflare Access application.'}</p></body></html>`,{status:actor.status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});
+        if(actor.error){
+          if(path==='/admin'&&env.ASSETS){
+            const assetURL=new URL('/admin-login.html',url.origin);
+            const res=await env.ASSETS.fetch(new Request(assetURL,request));
+            return new Response(res.body,{status:res.status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
+          }
+          return new Response('Administrator sign-in required',{status:actor.status,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
+        }
         const assetURL=new URL('/admin.html',url.origin);return env.ASSETS.fetch(new Request(assetURL,request));
       }
       if(path.startsWith('/api/'))return await publicApi(request,env,url);
