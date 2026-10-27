@@ -9,7 +9,7 @@ const health=await get('/api/health');if(health.status!==200||(await health.json
 const loginPage=await get('/admin');if(loginPage.status!==200||!(await loginPage.text()).includes('Editorial sign in'))throw Error('Admin sign-in page unavailable');
 const before=await get('/api/admin/whoami');if(before.status!==401)throw Error('Unauthenticated editor API not denied');
 const login=await fetch(origin+'/api/admin/login',{method:'POST',headers,body:JSON.stringify({password}),signal:AbortSignal.timeout(20000)});
-if(login.status!==200)throw Error('Admin login failed with status '+login.status);
+if(login.status!==200){const brief=(await login.text()).slice(0,280);throw Error('Admin login failed with HTTP '+login.status+': '+brief);}
 const cookie=(login.headers.get('set-cookie')||'').split(';')[0];if(!cookie.startsWith('__Host-qst_admin='))throw Error('Session cookie missing');
 const who=await get('/api/admin/whoami',cookie);if(who.status!==200)throw Error('Signed-in editor API denied');
 const logout=await fetch(origin+'/api/admin/logout',{method:'POST',headers:{...headers,cookie},signal:AbortSignal.timeout(20000)});if(logout.status!==200)throw Error('Logout failed');
