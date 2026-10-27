@@ -19,7 +19,7 @@ const enumVals={
  source_type:['quran','hadith','seerah','tafsir','medical','classical'],
  use_policy:['approved_import','api_only','link_only','research_only'],
  evidence_type:['quran','seerah','sunnah','dua','tibb','clinical'],
- category:['food','care','practice','spiritual'],seller_eligible:['yes','no'],
+ seller_eligible:['yes','no'],
  review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
  verification_status:['pending','verified','rejected']
 };
@@ -41,6 +41,7 @@ function normalize(table,payload,method){
     if(typeof val!=='string'||val.length>(textLimit[k]||1200))throw new Error('Invalid '+k);
     const txt=val.trim();
     if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
+    if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
     if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
     if(['slug','journey_id','source_id','entry_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
