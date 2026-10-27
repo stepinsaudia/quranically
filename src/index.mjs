@@ -232,6 +232,29 @@ async function adminApi(request,env,url,identity){
     const refs=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_citations WHERE article_id=?').bind(id).first();
     if((sections?.n||0)<3||(refs?.n||0)<1)return invalid('Publication requires at least three sections and one traceable reference');
   }
+  if(entity==='encyclopedia_passages'){
+    // Prevent cross-article misattribution: an excerpt may cite only a
+    // bibliography record of its own article, of the same primary-text type.
+    const old=request.method==='POST'?null:await env.DB.prepare('SELECT article_id,citation_id,passage_type,status FROM encyclopedia_passages WHERE id=?').bind(id).first();
+    const articleId=values.article_id||old?.article_id;
+    const citationId=values.citation_id||old?.citation_id;
+    const kind=values.passage_type||old?.passage_type;
+    if(articleId&&citationId){
+      const source=await env.DB.prepare('SELECT article_id,citation_type FROM encyclopedia_citations WHERE id=?').bind(citationId).first();
+      if(!source||source.article_id!==articleId)return invalid('Passage source must belong to the same encyclopedia article');
+      if(kind&&source.citation_type!==kind)return invalid('Passage type must match its Quranic or Hadith citation');
+    }
+    const intended=values.status||old?.status||'draft';
+    if(intended==='published'&&(!articleId||!citationId))return invalid('Published passages require a linked article and source');
+  }
+  if(entity==='encyclopedia_citations'&&values.article_id&&request.method!=='POST'){
+    const used=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_passages WHERE citation_id=? AND article_id<>?').bind(id,values.article_id).first();
+    const allUsed=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_passages WHERE citation_id=?').bind(id).first();
+    if((allUsed?.n||0)>0){
+      const old=await env.DB.prepare('SELECT article_id FROM encyclopedia_citations WHERE id=?').bind(id).first();
+      if(old?.article_id!==values.article_id)return invalid('Cannot move a citation while original-text passages reference it');
+    }
+  }
   if(entity==='encyclopedia_links'&&values.article_id===values.target_article_id)return invalid('Cannot link an article to itself');
   const fields=Object.keys(values);const vals=Object.values(values);
   try{
