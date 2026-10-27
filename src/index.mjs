@@ -379,7 +379,7 @@ export default {
         const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
         return Response.redirect(new URL(target,url.origin),302);
       }
-      if(path==='/encyclopedia'||path==='/encyclopedia/'||/^\\/encyclopedia\\/[a-z0-9-]{1,85}\\/?$/.test(path)){
+      if(path==='/encyclopedia'||path==='/encyclopedia/'||(path.startsWith('/encyclopedia/')&&validId(path.slice('/encyclopedia/'.length).replace(/\/$/,'')))){
         // Dedicated human-readable article URL, served through the canonical encyclopedia shell.
         return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
       }
