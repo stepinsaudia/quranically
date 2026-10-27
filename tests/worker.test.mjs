@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -138,4 +138,59 @@ test('Native Admin exposes Tibb modules through canonical endpoint without givin
  const approved=await get(env,'/api/admin/tibb_offers/'+offerId,{method:'PUT',headers,body:JSON.stringify({verification_status:'verified',status:'published'})});
  assert.equal(approved.status,200);
  const publicList=(await (await get(env,'/api/tibb/offers/black-seed')).json()).offers;assert.equal(publicList.length,1);
+});
+
+test('encyclopedia has fifteen source-linked articles spanning five disciplines',async()=>{
+ const e=fixture();const articleCount=e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_articles').first().c;
+ assert.equal(articleCount,15);
+ assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_sections').first().c>=70);
+ assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_citations').first().c>=30);
+ const groups=await get(e,'/api/encyclopedia/subjects');assert.equal(groups.status,200);
+ const subjects=(await groups.json()).subjects;assert.equal(subjects.length,5);
+ const result=await get(e,'/api/encyclopedia?q=black%20seed');assert.equal(result.status,200);
+ assert.deepEqual((await result.json()).entries.map(x=>x.slug),['black-seed']);
+ const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
+ assert.equal((await med.json()).entries.length,8);
+ const s=await get(e,'/api/encyclopedia?letter=H');
+ assert((await s.json()).entries.some(x=>x.slug==='honey'));
+ assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
+});
+test('encyclopedia detail returns real sections, numbered bibliography and related reading',async()=>{
+ const e=fixture();const r=await get(e,'/api/encyclopedia/black-seed');assert.equal(r.status,200);
+ const x=await r.json();
+ assert(x.sections.length>=5);assert(x.citations.length>=2);
+ assert(x.citations.some(c=>c.citation_ref==='5688'&&c.citation_type==='hadith'));
+ assert(x.related.some(c=>c.slug==='healing-shifa'));
+ assert.equal(x.entry.review_status,'editorial_draft');
+ assert(x.sections.some(s=>s.section_type==='safety'));
+ assert.equal((await get(e,'/api/encyclopedia/missing-article')).status,404);
+ const html=await get(e,'/encyclopedia/black-seed');assert.equal(html.status,200);
+});
+test('encyclopedia article publication requires sources and sections; Admin audit is canonical',async()=>{
+ const e=fixture();const password='Encyclopedia-publishing-test-passphrase-2026';
+ const salt=new Uint8Array(16);salt.fill(0x3c);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=a=>Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');
+ e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(bits);
+ const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={origin:'https://test.local',cookie,'content-type':'application/json'};
+ const bootstrap=await get(e,'/api/admin/bootstrap',{headers});assert.equal(bootstrap.status,200);const state=await bootstrap.json();
+ assert.equal(state.encyclopedia_articles.length,15);
+ assert(state.encyclopedia_sections.length>=70);assert(state.encyclopedia_citations.length>=30);
+ const make=await get(e,'/api/admin/encyclopedia_articles',{method:'POST',headers,body:JSON.stringify({slug:'test-reference-entry',title:'A test reference entry',domain:'quranic_themes',entry_type:'concept',abstract:'An isolated test entry.',status:'draft'})});
+ assert.equal(make.status,200);const id=(await make.json()).id;
+ assert.equal((await get(e,'/api/encyclopedia/test-reference-entry')).status,404);
+ assert.equal((await get(e,'/api/admin/encyclopedia_articles/'+id,{method:'PUT',headers,body:JSON.stringify({status:'published'})})).status,400);
+ for(let i=1;i<=3;i++){
+  const section=await get(e,'/api/admin/encyclopedia_sections',{method:'POST',headers,body:JSON.stringify({article_id:id,heading:'Section '+i,section_type:'overview',body:'A sourced editorial paragraph for test publication gate.',sort_order:i})});
+  assert.equal(section.status,200);
+ }
+ const cite=await get(e,'/api/admin/encyclopedia_citations',{method:'POST',headers,body:JSON.stringify({article_id:id,citation_type:'quran',source_title:'The Quran',citation_ref:'2:153',source_url:'https://quran.com/2/153'})});
+ assert.equal(cite.status,200);
+ const pub=await get(e,'/api/admin/encyclopedia_articles/'+id,{method:'PUT',headers,body:JSON.stringify({status:'published'})});
+ assert.equal(pub.status,200);
+ assert.equal((await get(e,'/api/encyclopedia/test-reference-entry')).status,200);
+ const audit=await get(e,'/api/admin/audit',{headers});assert.equal(audit.status,200);
+ assert((await audit.json()).records.some(row=>row.record_id===id));
 });
