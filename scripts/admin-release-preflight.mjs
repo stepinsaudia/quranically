@@ -6,7 +6,7 @@ if(c.account_id!==expected.account||c.name!==expected.worker)throw Error('Wrong 
 if(c.d1_databases?.length!==1 || c.d1_databases[0].database_name!==expected.db || c.d1_databases[0].database_id!==expected.uuid)throw Error('Unexpected D1 binding, or existing D1 UUID not set');
 if(c.routes||c.route||c.zone_id)throw Error('Custom routes not permitted');
 const {ACCESS_TEAM_DOMAIN:domain,ACCESS_AUD:aud,ADMIN_EMAIL:email}=c.vars||{};
-if(!/^[a-z0-9.-]+\\.cloudflareaccess\\.com$/i.test(domain||''))throw Error('Missing or invalid Cloudflare Access team domain');
+if(!/^[a-z0-9.-]+\.cloudflareaccess\.com$/i.test(domain||''))throw Error('Missing or invalid Cloudflare Access team domain');
 if(typeof aud!=='string'||aud.length<20)throw Error('Missing Cloudflare Access app AUD');
-if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email||''))throw Error('Missing admin email allowlist');
+if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''))throw Error('Missing admin email allowlist');
 console.log('Admin activation gate PASS: only the existing Quranically Worker and D1; approved Access settings provided.');
