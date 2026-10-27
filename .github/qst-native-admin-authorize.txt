@@ -4,3 +4,5 @@ Production changes must stop before migration/deployment if the private GitHub A
 Second activation attempt after owner added QST_ADMIN_PASSWORD to GitHub repository secrets. Prior attempt stopped before any live change.
 
 Corrective release after live check identified HTTP 307 on protected Admin asset. The existing Admin password and dedicated D1 are already provisioned. Re-run safe idempotent migration and redeploy only the same Worker.
+
+Diagnostic corrective release: report only the native Admin login operation phase on failure; no secrets or personal data exposed.
