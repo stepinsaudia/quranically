@@ -1,0 +1,1 @@
+Run authentic Chromium 1440px desktop and 390px mobile screenshot checks against deployed Quranically homepage and article. Verify no horizontal overflow and browse canonical protected Admin without editing. No deployment or database changes.
