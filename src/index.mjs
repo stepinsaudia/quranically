@@ -8,18 +8,25 @@ const field={
   journeys:['slug','title','kicker','summary','category','tags','clinical_note','status'],
   sources:['title','organization','source_url','source_type','license_notes','use_policy','review_status'],
   evidence:['journey_id','source_id','evidence_type','title','reference','arabic','transliteration','meaning','explanation','source_url','audio_url','source_grade','review_note','review_status','publish_status','sort_order'],
-  steps:['journey_id','instruction','category','sort_order']
+  steps:['journey_id','instruction','category','sort_order'],
+  tibb_entries:['slug','title','arabic_name','scientific_name','category','tags','tradition_summary','reference_label','reference_url','health_context','safety_note','availability_note','seller_eligible','review_stage','status','sort_order'],
+  tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
  source_type:['quran','hadith','seerah','tafsir','medical','classical'],
  use_policy:['approved_import','api_only','link_only','research_only'],
- evidence_type:['quran','seerah','sunnah','dua','tibb','clinical']
+ evidence_type:['quran','seerah','sunnah','dua','tibb','clinical'],
+ category:['food','care','practice','spiritual'],seller_eligible:['yes','no'],
+ review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
+ verification_status:['pending','verified','rejected']
 };
-const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500};
+const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
+ tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
+ tibb_offers:['entry_id','seller_name','product_name','offer_url']};
+const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -34,8 +41,8 @@ function normalize(table,payload,method){
     if(typeof val!=='string'||val.length>(textLimit[k]||1200))throw new Error('Invalid '+k);
     const txt=val.trim();
     if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
-    if(['source_url','audio_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
-    if(['slug','journey_id','source_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
+    if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
+    if(['slug','journey_id','source_id','entry_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
   if(method==='POST'&&needed[table].some(k=>!output[k]))throw new Error('Missing required field');
@@ -222,6 +229,38 @@ async function publicApi(request,env,url){
     const evidence=(await env.DB.prepare("SELECT e.*,s.title AS source_title,s.organization AS source_organization,s.source_url AS source_home,s.use_policy AS reuse_policy FROM evidence e JOIN sources s ON e.source_id=s.id WHERE e.journey_id=? AND e.publish_status='published' ORDER BY e.sort_order,e.id").bind(journey.id).all()).results;
     const steps=(await env.DB.prepare('SELECT id,instruction,category,sort_order FROM steps WHERE journey_id=? ORDER BY sort_order,id').bind(journey.id).all()).results;
     return json({journey,evidence,steps,pilot_notice:'Content is a referenced editorial pilot awaiting independent scholarly and, where needed, medical review.'});
+  }
+
+  if(pathname==='/api/tibb'){
+    const q=(url.searchParams.get('q')||'').trim().slice(0,90);
+    const category=(url.searchParams.get('category')||'').trim();
+    if(category&& !['food','care','practice','spiritual'].includes(category))return invalid('Invalid category');
+    let query="SELECT id,slug,title,arabic_name,scientific_name,category,tags,tradition_summary,reference_label,review_stage,seller_eligible FROM tibb_entries WHERE status='published'";
+    const params=[];
+    if(category){query+=' AND category=?';params.push(category);}
+    if(q){
+      query+=" AND (title LIKE ? OR arabic_name LIKE ? OR scientific_name LIKE ? OR tags LIKE ? OR tradition_summary LIKE ? OR reference_label LIKE ?)";
+      const pattern='%'+q.replace(/[%_]/g,'')+'%';params.push(...Array(6).fill(pattern));
+    }
+    query+=' ORDER BY sort_order,title LIMIT 48';
+    const result=await env.DB.prepare(query).bind(...params).all();
+    return json({entries:result.results,q,category,notice:'Editorial source-linked pilot. Review pending is not clinical validation.'});
+  }
+  if(pathname.startsWith('/api/tibb/offers/')){
+    const slug=decodeURIComponent(pathname.slice('/api/tibb/offers/'.length));
+    if(!validId(slug))return invalid('Invalid entry slug');
+    const entry=await env.DB.prepare("SELECT id,seller_eligible FROM tibb_entries WHERE slug=? AND status='published'").bind(slug).first();
+    if(!entry)return json({error:'Not found'},404);
+    if(entry.seller_eligible!=='yes')return json({offers:[],notice:'Commercial listings are not applicable to this practice.'});
+    const offers=(await env.DB.prepare("SELECT seller_name,product_name,country,offer_url,price_note FROM tibb_offers WHERE entry_id=? AND status='published' AND verification_status='verified' ORDER BY seller_name LIMIT 20").bind(entry.id).all()).results;
+    return json({offers,notice:offers.length?'Offers are independent third-party sellers; not medical endorsements.':'No independently verified seller listings yet.'});
+  }
+  if(pathname.startsWith('/api/tibb/')){
+    const slug=decodeURIComponent(pathname.slice('/api/tibb/'.length));
+    if(!validId(slug))return invalid('Invalid entry slug');
+    const entry=await env.DB.prepare("SELECT * FROM tibb_entries WHERE slug=? AND status='published'").bind(slug).first();
+    if(!entry)return json({error:'Not found'},404);
+    return json({entry,notice:'Religious source and contemporary clinical evidence are separate. Educational content is not individual medical advice.'});
   }
   if(pathname==='/api/sources'){
     return json({sources:(await env.DB.prepare('SELECT id,title,organization,source_url,source_type,use_policy,review_status FROM sources ORDER BY title').all()).results});
