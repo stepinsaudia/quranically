@@ -4,3 +4,30 @@
 .editorial-notice{padding:11px 15px;margin:18px 0 0;background:#fffaf0;border:1px solid #e2cfa6;border-left:4px solid #b68a45;border-radius:6px;color:#5e4b38;font-size:12px;line-height:1.6}
 .editorial-notice:empty{display:none}
 .review-pill{display:inline-block;margin-left:5px;background:#fff1e3;color:#825032;border:1px solid #ead4ba}
+
+/* Integrated canonical article dossier: all linked records in one editorial workflow */
+.article-workspace{background:#fffdf8;border:1px solid #dbc6a9;border-top:4px solid #b28958;border-radius:9px;padding:27px;margin:18px 0 26px;box-shadow:0 12px 36px #38182c11;scroll-margin-top:22px}
+.article-workspace[hidden]{display:none}
+.workspace-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.workspace-eyebrow{font-size:10px;letter-spacing:.14em;color:#a27d58;font-weight:800}
+.workspace-top h3{font:500 29px/1.3 'Playfair Display',Georgia,serif;color:#481d33;margin:8px 0 4px}
+.workspace-top p{color:#806b66;max-width:620px;margin:0;font-size:12px}
+.workspace-top-right{display:flex;align-items:flex-end;flex-direction:column;gap:9px;flex-shrink:0}
+.workspace-top-right button{background:transparent;border:0;color:#89665e;font-weight:800;font-size:11px}
+.workspace-top-right a{background:#481d33;color:#fff;padding:10px 14px;border-radius:5px;font-size:11px;font-weight:800;text-decoration:none}
+.workspace-status{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 16px}.workspace-status span{border:1px solid #dfd0be;border-radius:4px;color:#695059;background:#fff;padding:4px 9px;font-size:10px;text-transform:capitalize}
+.workspace-status .workspace-pill{background:#f5eadb;color:#784d2f;font-weight:800}
+.workspace-review{padding:13px 16px;background:#f8f1e6;border-left:3px solid #bf9760;margin-bottom:20px}
+.workspace-review strong{color:#60402d;font-size:12px}.workspace-review p{font-size:11px;color:#826e63;margin:4px 0 0}
+.workspace-matrix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.workspace-panel{min-width:0;border:1px solid #e7dacc;background:#fffefa;border-radius:6px;padding:15px;display:flex;flex-direction:column;gap:10px}
+.workspace-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #ebe0d5;padding-bottom:9px}
+.workspace-panel-head strong{font-size:12px;color:#482c37}.workspace-panel-head span{color:#956f4c;font-weight:800}
+.workspace-panel-list{display:grid;gap:5px;flex:1}
+.workspace-panel-list button{border:0;background:#f9f5ed;color:#53404a;padding:7px 9px;text-align:left;border-radius:4px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workspace-panel-list button:hover{background:#f1dfc7}
+.workspace-panel-list small{color:#938379;font-size:10px}
+.workspace-add{border:1px solid #d9c3ad;color:#643c51;background:transparent;font-size:11px;font-weight:800;padding:9px;border-radius:4px;text-align:center}
+.admin-nav-label{font-size:9px;letter-spacing:.14em;color:#8f725f;font-weight:800;padding:12px 15px 0}
+.fields label:has(textarea[name="arabic_excerpt"]) textarea{font:24px/1.8 Amiri,serif;direction:rtl;text-align:right;min-height:160px}
+@media(max-width:800px){.workspace-matrix{grid-template-columns:1fr}.workspace-top{flex-direction:column}.workspace-top-right{align-items:flex-start;flex-direction:row;flex-wrap:wrap}}
