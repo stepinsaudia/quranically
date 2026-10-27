@@ -48,3 +48,37 @@ test('native admin rejects wrong passwords and rate-limits repeated attempts',as
   const blocked=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json','cf-connecting-ip':'192.0.2.7'},body:JSON.stringify({password})});
   assert.equal(blocked.status,429);
 });
+
+
+test('editorial create-edit-archive workflow is authenticated, audited and preserves public draft hiding',async()=>{
+  const e=fixture();
+  const password='Test-only-credential-for-isolated-editor-2026';
+  const salt=new Uint8Array(16);salt.fill(0x31);
+  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+  const digest=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+  const hex=a=>Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');
+  e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(digest);
+  const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+  assert.equal(login.status,200);
+  const cookie=login.headers.get('set-cookie').split(';')[0];
+  const headers={cookie,origin:'https://test.local','content-type':'application/json'};
+  const denied=await get(e,'/api/admin/journeys',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({slug:'unauthorized',title:'Unauthorized'})});
+  assert.equal(denied.status,401);
+  const crossOrigin=await get(e,'/api/admin/journeys',{method:'POST',headers:{...headers,origin:'https://untrusted.example'},body:JSON.stringify({slug:'cross-origin',title:'Blocked'})});
+  assert.equal(crossOrigin.status,403);
+  const created=await get(e,'/api/admin/journeys',{method:'POST',headers,body:JSON.stringify({slug:'test-path',title:'Test-only pathway',status:'draft'})});
+  assert.equal(created.status,200);
+  const createdId=(await created.json()).id;
+  assert.equal((await get(e,'/api/journey/test-path')).status,404);
+  const changed=await get(e,'/api/admin/journeys/'+createdId,{method:'PUT',headers,body:JSON.stringify({title:'Test-only updated pathway'})});
+  assert.equal(changed.status,200);
+  const stored=e.DB.prepare('SELECT title,status FROM journeys WHERE id=?').bind(createdId).first();
+  assert.equal(stored.title,'Test-only updated pathway');
+  assert.equal(stored.status,'draft');
+  const archived=await get(e,'/api/admin/journeys/'+createdId,{method:'PUT',headers,body:JSON.stringify({status:'archived'})});
+  assert.equal(archived.status,200);
+  assert.equal(e.DB.prepare('SELECT status FROM journeys WHERE id=?').bind(createdId).first().status,'archived');
+  assert.equal((await get(e,'/api/journey/test-path')).status,404);
+  const audit=(await (await get(e,'/api/admin/audit',{headers:{cookie}})).json()).records;
+  assert.equal(audit.filter(row=>row.record_id===createdId).length,3);
+});
