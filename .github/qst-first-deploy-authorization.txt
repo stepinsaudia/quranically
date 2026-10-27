@@ -4,3 +4,6 @@ Account: fb9597e74bae3ea18ad7bb013213d776
 Dedicated Worker: qst-living-knowledge-v1
 Dedicated D1: qst-knowledge-v1-db
 First run only. Never rerun after a partial failure without inspection.
+
+Second attempt authorized after GitHub Repository secret was configured on 2026-10-27.
+Previous run 40411584731 failed before Cloudflare API calls because token was empty.
