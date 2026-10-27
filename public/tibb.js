@@ -32,6 +32,7 @@ async function open(slug,updateHistory=true){
   +'<h2 id="detailTitle">'+esc(x.title)+'</h2><div class="detail-ar" lang="ar" dir="rtl">'+esc(x.arabic_name)+'</div>'
   +(x.scientific_name?'<p class="minor">'+esc(x.scientific_name)+'</p>':'')
   +'<div class="notice">'+ic('shield')+' Source-linked educational record · '+esc(x.review_stage.replaceAll('_',' '))+'. Religious-source review and clinical validation are distinct.</div>'
+  +'<div class="section"><h3>Original source excerpt</h3>'+(x.source_arabic?'<blockquote class="source-arabic" dir="rtl" lang="ar">'+esc(x.source_arabic)+'</blockquote>':'<p class="minor">Arabic excerpt pending source review.</p>')+(x.source_meaning?'<p>'+esc(x.source_meaning)+'</p>':'')+'<p class="minor">Short excerpt and original editorial explanation; inspect the complete cited context.</p></div>'
   +'<div class="section"><h3>What the source describes</h3><p>'+esc(x.tradition_summary)+'</p><p><strong>Reference:</strong> '+esc(x.reference_label)+'</p>'
   +(href?'<a class="sourcelink" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">Inspect original source '+ic('external')+'</a>':'')+'</div>'
   +'<div class="section"><h3>Contemporary evidence & interpretation</h3><p>'+esc(x.health_context)+'</p><p class="minor">Not a medical efficacy rating. No diagnosis, dosage or individual treatment instruction is supplied.</p></div>'
