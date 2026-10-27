@@ -48,7 +48,7 @@ function sectionHTML(s,i){
   +s.body.split(/\n\n+/).filter(Boolean).map(p=>'<p>'+esc(p)+'</p>').join('')+'</section>';
 }
 function citationHTML(c,i){
- const url=/^https:\/\/[^\s"<>]+$/.test(c.source_url||'')?c.source_url:'';
+ let url='';try{const parsed=new URL(c.source_url||'');if(parsed.protocol==='https:')url=parsed.href;}catch{}
  return '<div class="bib-row"><span class="bib-number">'+String(i+1).padStart(2,'0')+'.</span><div>'
  +'<strong>'+esc(c.source_title)+'</strong><div class="ref">'+esc(typeNames[c.citation_type]||c.citation_type)+' / '+esc(c.citation_ref)+'</div>'
  +(c.source_note?'<p>'+esc(c.source_note)+'</p>':'')
@@ -97,14 +97,15 @@ $('copyArticle').addEventListener('click',()=>{
  const url=location.href;navigator.clipboard?.writeText(url).then(()=>toast('Article link copied')).catch(()=>toast('Copy this page address from your browser'));
 });
 $('mobileMenu').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('expanded'));
+function activeSlug(){const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='encyclopedia'&&/^[a-z0-9-]{1,85}$/.test(parts[1])?parts[1]:null;}
 window.addEventListener('popstate',()=>{
- const match=location.pathname.match(/^\/encyclopedia\/([a-z0-9-]+)\/?$/);
- if(match){openArticle(match[1],false);}
+ const match=activeSlug();
+ if(match){openArticle(match,false);}
  else{
   const qs=new URLSearchParams(location.search);filters.domain=titles[qs.get('domain')]?qs.get('domain'):'';filters.q=qs.get('q')||'';filters.letter='';showIndex();loadSubjects();
  }
 });
-const deep=location.pathname.match(/^\/encyclopedia\/([a-z0-9-]+)\/?$/);
+const deep=activeSlug();
 loadSubjects();renderAlphabet();
-if(deep){openArticle(deep[1],false);}else{showIndex();}
+if(deep){openArticle(deep,false);}else{showIndex();}
 })();
