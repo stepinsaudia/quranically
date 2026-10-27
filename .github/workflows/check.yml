@@ -33,3 +33,5 @@ jobs:
           node-version: '22'
       - name: Verify live frontend, API, database and Admin protection (GET only)
         run: node scripts/live-smoke.mjs
+      - name: Diagnose native Admin live routing (GET only)
+        run: node scripts/native-admin-probe.mjs
