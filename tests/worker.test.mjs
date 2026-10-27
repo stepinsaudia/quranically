@@ -196,3 +196,27 @@ test('encyclopedia article publication requires sources and sections; Admin audi
  const audit=await get(e,'/api/admin/audit',{headers});assert.equal(audit.status,200);
  assert((await audit.json()).records.some(row=>row.record_id===id));
 });
+
+test("encyclopedia Admin rejects cross-article or mismatched Qur'an-Hadith excerpts",async()=>{
+ const e=fixture();
+ const password='Cited-text-integrity-testing-secret-2026';
+ const salt=new Uint8Array(16);salt.fill(0x52);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const data=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=a=>Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');
+ e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(data);
+ const origin='https://test.local';
+ const lr=await get(e,'/api/admin/login',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({password})});assert.equal(lr.status,200);
+ const cookie=lr.headers.get('set-cookie').split(';')[0];
+ const headers={origin,cookie,'content-type':'application/json'};
+ async function save(body){return get(e,'/api/admin/encyclopedia_passages',{method:'POST',headers,body:JSON.stringify(body)});}
+ const wrongArticle=await save({article_id:'honey',citation_id:'black-seed-r1',passage_type:'hadith',arabic_excerpt:'Test excerpt for integrity only',status:'published'});
+ assert.equal(wrongArticle.status,400);
+ const wrongType=await save({article_id:'honey',citation_id:'honey-r1',passage_type:'hadith',arabic_excerpt:'Test excerpt for integrity only',status:'published'});
+ assert.equal(wrongType.status,400);
+ const valid=await save({article_id:'honey',citation_id:'honey-r1',passage_type:'quran',arabic_excerpt:'Test excerpt for integrity only',status:'draft'});
+ assert.equal(valid.status,200);
+ const moved=await get(e,'/api/admin/encyclopedia_citations/honey-r1',{method:'PUT',headers,body:JSON.stringify({article_id:'black-seed'})});
+ assert.equal(moved.status,400);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) c FROM encyclopedia_passages WHERE article_id='honey'").first().c,2);
+});
