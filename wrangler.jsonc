@@ -20,7 +20,7 @@
     {
       "binding": "DB",
       "database_name": "qst-knowledge-v1-db",
-      "database_id": "REPLACE_WITH_NEW_D1_DATABASE_UUID",
+      "database_id": "6c7c8edb-e20c-4354-9d69-0bea89badfd9",
       "migrations_dir": "migrations"
     }
   ]
