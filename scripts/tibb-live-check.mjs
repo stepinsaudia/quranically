@@ -20,7 +20,7 @@ console.log('PASS live medicine catalog: '+x.length+' entries');
 const search=await get('/api/tibb?q=black%20seed');if(search.r.status!==200||search.data.entries.length!==1||search.data.entries[0].slug!=='black-seed')throw Error('Search incorrect');
 const classified=await get('/api/tibb?category=food');if(classified.r.status!==200||classified.data.entries.some(e=>e.category!=='food'))throw Error('Category filtering incorrect');
 console.log('PASS medicine search and filters');
-const detail=await get('/api/tibb/black-seed');if(detail.r.status!==200||!detail.data?.entry?.reference_url?.includes('bukhari:5688')||!detail.data?.entry?.safety_note)throw Error('Missing original reference or caution');
+const detail=await get('/api/tibb/black-seed');if(detail.r.status!==200||!detail.data?.entry?.reference_url?.includes('bukhari:5688')||!detail.data?.entry?.safety_note||!detail.data?.entry?.source_arabic||!detail.data?.entry?.source_meaning)throw Error('Missing original reference or caution');
 const sellers=await get('/api/tibb/offers/black-seed');if(sellers.r.status!==200||!Array.isArray(sellers.data?.offers))throw Error('Seller route failed');
 if(sellers.data.offers.length)throw Error('Unexpected published seller offer in pilot');
 const practice=await get('/api/tibb/offers/ruqyah');if(practice.r.status!==200||practice.data.offers.length!==0)throw Error('Ineligible practice has seller offers');
