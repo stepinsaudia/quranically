@@ -28,6 +28,8 @@ for(const size of [{name:'desktop',width:1440,height:980},{name:'mobile',width:3
  await auditPage(page,size.name+' article',{selector:'.article-section',minimum:5});
  const citationCount=await page.locator('#articleCitations .bib-row').count();
  if(citationCount<2)throw Error('Bibliography missing on '+size.name);
+ const passages=await page.locator('#primaryExcerpts:not([hidden]) .arabic-source').count();
+ if(passages<1)throw Error('Source-linked original Arabic section missing on '+size.name);
  await page.screenshot({path:'artifacts/black-seed-article-'+size.name+'.png',fullPage:true});
  await page.close();
 }
@@ -43,6 +45,18 @@ const artCount=await admin.locator('#records .record').count();
 if(artCount!==15)throw Error('Browser Admin shows '+artCount+' articles, expected 15');
 await auditPage(admin,'canonical desktop Admin',{selector:'#records .record',minimum:15});
 await admin.screenshot({path:'artifacts/canonical-admin-desktop.png',fullPage:true});
+await admin.locator('button[data-action="workspace"]').first().click();
+await admin.locator('#articleWorkspace:not([hidden]) .workspace-panel').first().waitFor({timeout:10000});
+if(await admin.locator('#articleWorkspace .workspace-panel').count()!==4)throw Error('Canonical dossier must show sections, bibliography, Arabic and cross-references');
+await auditPage(admin,'connected editorial dossier',{selector:'#articleWorkspace .workspace-panel',minimum:4});
+await admin.screenshot({path:'artifacts/canonical-admin-dossier-desktop.png',fullPage:true});
+await admin.locator('#articleWorkspace button[data-work-action="add"][data-entity="encyclopedia_passages"]').click();
+if(await admin.locator('#editor:not([hidden])').count()!==1)throw Error('Connected dossier cannot open original Arabic editor');
+const articleId=await admin.locator('#fields select[name="article_id"]').inputValue();
+if(!articleId)throw Error('Source editor lost selected article reference');
+console.log('PASS interconnected Admin dossier and source form; no record changes');
+await admin.locator('#closeEdit').click();
+
 await admin.locator('button[data-tab="encyclopedia_sections"]').click();
 await admin.locator('#records .record').first().waitFor({timeout:12000});
 if(await admin.locator('#records .record').count()<70)throw Error('Admin section records missing');
