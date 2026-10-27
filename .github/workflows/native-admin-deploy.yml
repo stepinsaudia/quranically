@@ -25,6 +25,20 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Automated tests
         run: npm test
+      - name: Require private Admin password BEFORE any live changes
+        env:
+          QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Cloudflare credential missing; no changes made'; exit 1; }
+          node --input-type=module -e '
+            const p=process.env.QST_ADMIN_PASSWORD||"";
+            if(p.length<20||p.length>128||p.trim()!==p||/[\\n\\r]/.test(p)){
+              console.error("QST_ADMIN_PASSWORD secret missing or invalid; no changes made");
+              process.exit(1);
+            }
+            console.log("Private Admin password is configured.");
+          '
       - name: Apply native Admin session migration to existing D1 only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -40,7 +54,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
           QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
-        run: node scripts/make-native-admin-record.mjs | npx wrangler secret put ADMIN_PASSWORD_RECORD
+        run: |
+          set -euo pipefail
+          node scripts/make-native-admin-record.mjs | npx wrangler secret put ADMIN_PASSWORD_RECORD
       - name: Check live Admin sign-in and sign-out
         env:
           QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
