@@ -10,9 +10,13 @@ const field={
   evidence:['journey_id','source_id','evidence_type','title','reference','arabic','transliteration','meaning','explanation','source_url','audio_url','source_grade','review_note','review_status','publish_status','sort_order'],
   steps:['journey_id','instruction','category','sort_order'],
   tibb_entries:['slug','title','arabic_name','scientific_name','category','tags','tradition_summary','reference_label','reference_url','source_arabic','source_meaning','health_context','safety_note','availability_note','seller_eligible','review_stage','status','sort_order'],
+  encyclopedia_articles:['slug','title','arabic_title','subtitle','domain','entry_type','abstract','identity_text','alternate_names','editorial_note','review_status','status','sort_order'],
+  encyclopedia_sections:['article_id','heading','section_type','body','sort_order'],
+  encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url','source_note','verification_status','sort_order'],
+  encyclopedia_links:['article_id','target_article_id','relation_label','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -25,8 +29,12 @@ const enumVals={
 };
 const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
+ encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
+ encyclopedia_sections:['article_id','heading','section_type','body'],
+ encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url'],
+ encyclopedia_links:['article_id','target_article_id'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800};
+const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -40,10 +48,17 @@ function normalize(table,payload,method){
     }
     if(typeof val!=='string'||val.length>(textLimit[k]||1200))throw new Error('Invalid '+k);
     const txt=val.trim();
-    if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
+    const localEnums={
+      encyclopedia_articles:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],entry_type:['ingredient','practice','devotion','concept','historical','guidance'],review_status:['editorial_draft','source_checked','scholar_reviewed','dual_reviewed']},
+      encyclopedia_sections:{section_type:['overview','scripture','transmission','historical','interpretation','science','safety','practice','methodology']},
+      encyclopedia_citations:{citation_type:['quran','hadith','clinical','reference','classical'],verification_status:['pending','source_checked','expert_checked']}
+    };
+    if(localEnums[table]?.[k]){
+      if(!localEnums[table][k].includes(txt))throw new Error('Invalid '+k);
+    }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
     if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
-    if(['slug','journey_id','source_id','entry_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
+    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
   if(method==='POST'&&needed[table].some(k=>!output[k]))throw new Error('Missing required field');
@@ -178,7 +193,7 @@ async function adminApi(request,env,url,identity){
   if(request.method==='GET'){
     if(entity==='whoami')return json({email:identity.email,protected:true});
     if(entity==='bootstrap'){
-      const all=await Promise.all(Object.keys(field).map(async n=>[n,(await env.DB.prepare(`SELECT * FROM ${n} ORDER BY ${n==='steps'?'sort_order':'updated_at DESC'} LIMIT 300`).all()).results]));
+      const all=await Promise.all(Object.keys(field).map(async n=>{const order=['steps','encyclopedia_sections','encyclopedia_citations','encyclopedia_links'].includes(n)?'sort_order,id':'updated_at DESC';return [n,(await env.DB.prepare(`SELECT * FROM ${n} ORDER BY ${order} LIMIT 300`).all()).results];}));
       return json(Object.fromEntries(all));
     }
     if(entity==='audit')return json({records:(await env.DB.prepare('SELECT * FROM audit_log ORDER BY changed_at DESC LIMIT 150').all()).results});
@@ -208,6 +223,13 @@ async function adminApi(request,env,url,identity){
       if(!offerUrl||!allowedUrl(offerUrl))return invalid('A valid HTTPS seller URL is required');
     }
   }
+  if(entity==='encyclopedia_articles'&&(values.status==='published')){
+    if(request.method==='POST')return invalid('Create the article as draft and add sections and citations before publication');
+    const sections=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_sections WHERE article_id=?').bind(id).first();
+    const refs=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_citations WHERE article_id=?').bind(id).first();
+    if((sections?.n||0)<3||(refs?.n||0)<1)return invalid('Publication requires at least three sections and one traceable reference');
+  }
+  if(entity==='encyclopedia_links'&&values.article_id===values.target_article_id)return invalid('Cannot link an article to itself');
   const fields=Object.keys(values);const vals=Object.values(values);
   try{
     if(request.method==='POST'){
@@ -217,7 +239,7 @@ async function adminApi(request,env,url,identity){
       if(!route[1])return invalid('Record ID required');
       const before=await env.DB.prepare(`SELECT id FROM ${entity} WHERE id=?`).bind(id).first();
       if(!before)return json({error:'Record not found'},404);
-      const hasUpdated=['sources','journeys','evidence'].includes(entity);
+      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles'].includes(entity);
       await env.DB.prepare(`UPDATE ${entity} SET ${fields.map(k=>k+'=?').join(',')}${hasUpdated?",updated_at=datetime('now')":''} WHERE id=?`).bind(...vals,id).run();
       await audit(env.DB,identity.email,'update',entity,id);
     }
@@ -248,6 +270,38 @@ async function publicApi(request,env,url){
     return json({journey,evidence,steps,pilot_notice:'Content is a referenced editorial pilot awaiting independent scholarly and, where needed, medical review.'});
   }
 
+  if(pathname==='/api/encyclopedia/subjects'){
+    const groups=(await env.DB.prepare("SELECT domain,COUNT(*) AS entries FROM encyclopedia_articles WHERE status='published' GROUP BY domain ORDER BY domain").all()).results;
+    return json({subjects:groups,review_policy:'Content is editorially sourced; independent expert verification is pending unless explicitly shown.'});
+  }
+  if(pathname==='/api/encyclopedia'){
+    const q=(url.searchParams.get('q')||'').trim().slice(0,100);
+    const domain=(url.searchParams.get('domain')||'').trim();
+    const letter=(url.searchParams.get('letter')||'').trim().toUpperCase();
+    if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid encyclopedia subject');
+    if(letter&&!/^[A-Z]$/.test(letter))return invalid('Invalid alphabetical index');
+    let query="SELECT id,slug,title,arabic_title,subtitle,domain,entry_type,abstract,alternate_names,review_status,updated_at FROM encyclopedia_articles WHERE status='published'";
+    const params=[];
+    if(domain){query+=' AND domain=?';params.push(domain);}
+    if(letter){query+=' AND UPPER(SUBSTR(title,1,1))=?';params.push(letter);}
+    if(q){query+=' AND (title LIKE ? OR arabic_title LIKE ? OR subtitle LIKE ? OR alternate_names LIKE ? OR abstract LIKE ?)';const pat='%'+q.replace(/[%_]/g,'')+'%';params.push(pat,pat,pat,pat,pat);}
+    query+=' ORDER BY title ASC LIMIT 120';
+    const entries=(await env.DB.prepare(query).bind(...params).all()).results;
+    return json({entries,filters:{q,domain,letter},notice:'Source-linked encyclopedia under editorial review. Do not equate citation with clinical approval.'});
+  }
+  if(pathname.startsWith('/api/encyclopedia/')){
+    const slug=decodeURIComponent(pathname.slice('/api/encyclopedia/'.length));
+    if(!validId(slug))return invalid('Invalid encyclopedia entry');
+    const entry=await env.DB.prepare("SELECT * FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first();
+    if(!entry)return json({error:'Entry not published'},404);
+    const [sections,citations,links]=await Promise.all([
+      env.DB.prepare('SELECT id,heading,section_type,body,sort_order FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
+      env.DB.prepare('SELECT id,citation_type,source_title,citation_ref,source_url,source_note,verification_status,sort_order FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
+      env.DB.prepare("SELECT l.relation_label,a.slug,a.title,a.domain FROM encyclopedia_links l JOIN encyclopedia_articles a ON a.id=l.target_article_id WHERE l.article_id=? AND a.status='published' ORDER BY l.sort_order,l.id").bind(entry.id).all()
+    ]);
+    if(!sections.results.length||!citations.results.length)return json({error:'Encyclopedia entry incomplete'},503);
+    return json({entry,sections:sections.results,citations:citations.results,related:links.results,editorial_notice:'Primary source references, interpretation and contemporary medical evidence are separate layers. Scholar and clinical review statuses are not inferred.'});
+  }
   if(pathname==='/api/tibb'){
     const q=(url.searchParams.get('q')||'').trim().slice(0,90);
     const category=(url.searchParams.get('category')||'').trim();
@@ -319,6 +373,10 @@ export default {
           return new Response('Administrator sign-in required',{status:actor.status,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
         }
         return await serveProtectedAdminAsset(request,env,'/admin');
+      }
+      if(path==='/encyclopedia'||path==='/encyclopedia/'||/^\\/encyclopedia\\/[a-z0-9-]{1,85}\\/?$/.test(path)){
+        // Dedicated human-readable article URL, served through the canonical encyclopedia shell.
+        return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
       }
       if(path.startsWith('/api/'))return await publicApi(request,env,url);
       // Never serve admin HTML directly without Access checking.
