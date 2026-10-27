@@ -1,0 +1,1 @@
+Authorized by the Quranically owner: apply migrations 0004/0005 only to existing D1 qst-knowledge-v1-db (6c7c8edb-e20c-4354-9d69-0bea89badfd9), redeploy only existing Worker qst-living-knowledge-v1 in account fb9597e74bae3ea18ad7bb013213d776; run public and authenticated Admin acceptance. No DNS, custom domains, other Workers, seller publication or unrelated D1 changes.
