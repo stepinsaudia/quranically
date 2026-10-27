@@ -61,13 +61,18 @@ async function openArticle(slug,writeHistory=true){
  if(writeHistory)history.pushState({article:slug},'',linkFor(slug));
  window.scrollTo({top:0,behavior:'instant'});
  try{
- const {entry,sections,citations,related}=await api('/api/encyclopedia/'+encodeURIComponent(slug));selectedEntry=entry;
+ const {entry,sections,citations,related,passages=[]}=await api('/api/encyclopedia/'+encodeURIComponent(slug));selectedEntry=entry;
  const domain=titles[entry.domain]||entry.domain;
  $('crumbSubject').textContent=entry.title;
  $('articleSeries').textContent='QURANICALLY / '+domain.toUpperCase()+' / REFERENCE ARTICLE';
  $('articleTitle').textContent=entry.title;$('articleArabic').textContent=entry.arabic_title;
  $('articleSubtitle').textContent=entry.subtitle;$('articleAbstract').textContent=entry.abstract;
  $('articleMeta').innerHTML='<span>'+esc(domain)+'</span><span>'+esc(entry.review_status.replaceAll('_',' '))+'</span><span>'+sections.length+' sections</span><span>'+citations.length+' references</span>';
+ const panel=$('primaryExcerpts');
+ panel.hidden=passages.length===0;
+ $('primaryExcerptContent').innerHTML=passages.map((p,i)=>'<figure class="transmitted-text"><blockquote class="arabic-source" lang="ar" dir="rtl">'+esc(p.arabic_excerpt)+'</blockquote>'
+   +'<figcaption><span class="transmission-kind">'+esc(p.passage_type==='quran'?'Quranic excerpt':'Hadith excerpt')+' · '+esc(p.citation_ref)+'</span>'
+   +'<p>'+esc(p.editorial_meaning)+'</p><small>'+esc(p.context_note)+' · Review: '+esc(p.review_status.replaceAll('_',' '))+'</small></figcaption></figure>').join('');
  $('articleSections').innerHTML=sections.map(sectionHTML).join('');
  $('tocNav').innerHTML=sections.map((s,i)=>'<a href="#section-'+i+'">'+String(i+1).padStart(2,'0')+' '+esc(s.heading)+'</a>').join('')+'<a href="#bibliography">Bibliography & provenance</a>';
  $('articleCitations').innerHTML=citations.map(citationHTML).join('');
