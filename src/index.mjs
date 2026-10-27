@@ -9,7 +9,7 @@ const field={
   sources:['title','organization','source_url','source_type','license_notes','use_policy','review_status'],
   evidence:['journey_id','source_id','evidence_type','title','reference','arabic','transliteration','meaning','explanation','source_url','audio_url','source_grade','review_note','review_status','publish_status','sort_order'],
   steps:['journey_id','instruction','category','sort_order'],
-  tibb_entries:['slug','title','arabic_name','scientific_name','category','tags','tradition_summary','reference_label','reference_url','health_context','safety_note','availability_note','seller_eligible','review_stage','status','sort_order'],
+  tibb_entries:['slug','title','arabic_name','scientific_name','category','tags','tradition_summary','reference_label','reference_url','source_arabic','source_meaning','health_context','safety_note','availability_note','seller_eligible','review_stage','status','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
 const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers'};
@@ -26,7 +26,7 @@ const enumVals={
 const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200};
+const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
