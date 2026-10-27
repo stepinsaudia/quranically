@@ -1,0 +1,1 @@
+Owner authorized continuation of Quranically Admin QA. Read-only audit; no data changes, Worker deployment or database migration.
