@@ -31,14 +31,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Cloudflare credential missing; no changes made'; exit 1; }
-          node --input-type=module -e '
-            const p=process.env.QST_ADMIN_PASSWORD||"";
-            if(p.length<20||p.length>128||p.trim()!==p||/[\\n\\r]/.test(p)){
-              console.error("QST_ADMIN_PASSWORD secret missing or invalid; no changes made");
-              process.exit(1);
-            }
-            console.log("Private Admin password is configured.");
-          '
+          node scripts/make-native-admin-record.mjs > /dev/null
+          echo 'Private Admin credential validated. No Cloudflare changes yet.'
       - name: Apply native Admin session migration to existing D1 only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
