@@ -1,0 +1,21 @@
+name: AUDIT QURANICALLY LIVE ADMIN — read-only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/admin-readonly-audit-trigger.txt'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit live Admin records and citations without changing data
+        env:
+          QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
+        run: node scripts/admin-content-audit.mjs
