@@ -1,7 +1,7 @@
 // Read-only public checks plus a login / session / logout roundtrip; does not mutate content.
 const origin='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
 const headers={origin,'content-type':'application/json'};
-const password=process.env.QST_ADMIN_PASSWORD;
+const password=(process.env.QST_ADMIN_PASSWORD || '').trim();
 if(!password || password.length<20)throw Error('Missing administrator password in GitHub Secret');
 const get=async(path,cookie='')=>fetch(origin+path,{headers:cookie?{cookie}:{},signal:AbortSignal.timeout(20000)});
 const homepage=await get('/');if(homepage.status!==200)throw Error('Public homepage unavailable');
