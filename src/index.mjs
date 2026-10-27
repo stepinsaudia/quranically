@@ -118,7 +118,7 @@ async function adminAuthAction(request,env,url){
   }
   if(path!=='/api/admin/login')return json({error:'Unknown auth route'},404);
   if(!env.ADMIN_PASSWORD_RECORD)return json({error:'Administrator login is not configured'},503);
-  let password='';try{const body=await parseBody(request);password=typeof body.password==='string'?body.password:'';}catch{return invalid('Invalid login request');}
+  let password='';try{const body=await parseBody(request);password=typeof body.password==='string'?body.password.trim():'';}catch{return invalid('Invalid login request');}
   if(password.length<1||password.length>256)return invalid('Invalid password length');
   // D1-backed per-IP attempt limit; never store raw addresses or entered passwords.
   // Report only a non-sensitive operation code if the backing service rejects login.
