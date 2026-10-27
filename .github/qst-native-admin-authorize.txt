@@ -1,0 +1,2 @@
+Quranically only: deploy native Admin to existing Worker qst-living-knowledge-v1 and existing D1 qst-knowledge-v1-db. Authorized by user in this ChatGPT turn.
+Production changes must stop before migration/deployment if the private GitHub Actions QST_ADMIN_PASSWORD or CLOUDFLARE_API_TOKEN secret is missing.
