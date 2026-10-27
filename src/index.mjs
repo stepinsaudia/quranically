@@ -374,6 +374,11 @@ export default {
         }
         return await serveProtectedAdminAsset(request,env,'/admin');
       }
+      if(path==='/tibb'||path==='/tibb/'||path==='/tibb.html'){
+        const entry=(url.searchParams.get('entry')||'').trim();
+        const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
+        return Response.redirect(new URL(target,url.origin),302);
+      }
       if(path==='/encyclopedia'||path==='/encyclopedia/'||/^\\/encyclopedia\\/[a-z0-9-]{1,85}\\/?$/.test(path)){
         // Dedicated human-readable article URL, served through the canonical encyclopedia shell.
         return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
