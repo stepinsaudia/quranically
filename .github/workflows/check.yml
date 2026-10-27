@@ -21,6 +21,8 @@ jobs:
           node --check scripts/github-bootstrap.mjs
           node --check public/app.js
           node --check public/admin.js
+          node --check public/tibb.js
+          node --check scripts/tibb-live-check.mjs
       - name: Run route and database tests
         run: npm test
 
