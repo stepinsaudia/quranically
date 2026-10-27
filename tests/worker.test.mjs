@@ -19,9 +19,9 @@ test('native password login yields protected session, allows authorized edit, an
   const e=fixture();const password='A-good-long-and-unique-test-password-2026';
   const salt=new Uint8Array(16);salt.fill(0x4a);
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
-  const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:220000,hash:'SHA-256'},key,256));
+  const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
   const hex=u=>Array.from(u,x=>x.toString(16).padStart(2,'0')).join('');
-  e.ADMIN_PASSWORD_RECORD=`pbkdf2-sha256:220000:${hex(salt)}:${hex(derived)}`;
+  e.ADMIN_PASSWORD_RECORD=`pbkdf2-sha256:100000:${hex(salt)}:${hex(derived)}`;
   const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json','cf-connecting-ip':'192.0.2.8'},body:JSON.stringify({password})});
   assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
   assert(login.headers.get('set-cookie').includes('HttpOnly'));
@@ -41,9 +41,9 @@ test('native admin rejects wrong passwords and rate-limits repeated attempts',as
   const e=fixture();const password='A-good-long-and-unique-test-password-2026';
   const salt=new Uint8Array(16);salt.fill(0x4a);
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
-  const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:220000,hash:'SHA-256'},key,256));
+  const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
   const hex=u=>Array.from(u,x=>x.toString(16).padStart(2,'0')).join('');
-  e.ADMIN_PASSWORD_RECORD=`pbkdf2-sha256:220000:${hex(salt)}:${hex(derived)}`;
+  e.ADMIN_PASSWORD_RECORD=`pbkdf2-sha256:100000:${hex(salt)}:${hex(derived)}`;
   for(let i=0;i<8;i++){const r=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json','cf-connecting-ip':'192.0.2.7'},body:JSON.stringify({password:'wrong'})});assert.equal(r.status,401)}
   const blocked=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json','cf-connecting-ip':'192.0.2.7'},body:JSON.stringify({password})});
   assert.equal(blocked.status,429);
