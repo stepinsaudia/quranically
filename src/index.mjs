@@ -121,23 +121,37 @@ async function adminAuthAction(request,env,url){
   let password='';try{const body=await parseBody(request);password=typeof body.password==='string'?body.password:'';}catch{return invalid('Invalid login request');}
   if(password.length<1||password.length>256)return invalid('Invalid password length');
   // D1-backed per-IP attempt limit; never store raw addresses or entered passwords.
+  // Report only a non-sensitive operation code if the backing service rejects login.
+  let authPhase='request-fingerprint';
+  try {
   const addr=request.headers.get('cf-connecting-ip')||'unknown';
   const fingerprint=await sha256Hex('qst-admin-ip:'+addr);
   const now=nowSeconds();
+  authPhase='attempt-read';
   const attempt=await env.DB.prepare('SELECT failures,expires_at FROM admin_auth_attempts WHERE fingerprint=?').bind(fingerprint).first();
   if(attempt&&Number(attempt.expires_at)>now&&Number(attempt.failures)>=8)return json({error:'Too many attempts. Try again later.'},429);
+  authPhase='password-verify';
   const good=await passwordMatches(password,env.ADMIN_PASSWORD_RECORD);
   if(!good){
+    authPhase='failed-attempt-write';
     await env.DB.prepare('INSERT INTO admin_auth_attempts(fingerprint,failures,expires_at) VALUES(?,?,?) ON CONFLICT(fingerprint) DO UPDATE SET failures=CASE WHEN expires_at<? THEN 1 ELSE failures+1 END,expires_at=CASE WHEN expires_at<? THEN ? ELSE expires_at END').bind(fingerprint,1,now+900,now,now,now+900).run();
     return json({error:'Incorrect password'},401);
   }
+  authPhase='reset-attempt';
   await env.DB.prepare('DELETE FROM admin_auth_attempts WHERE fingerprint=?').bind(fingerprint).run();
+  authPhase='session-token';
   const random=new Uint8Array(32);crypto.getRandomValues(random);
   const token=Array.from(random,b=>String.fromCharCode(b)).join('');
   const encoded=btoa(token).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
   const tokenHash=await sha256Hex(encoded);
+  authPhase='session-write';
   await env.DB.prepare('INSERT INTO admin_sessions(token_hash,created_at,expires_at) VALUES(?,?,?)').bind(tokenHash,now,now+SESSION_SECONDS).run();
   return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','set-cookie':`${ADMIN_COOKIE}=${encoded}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${SESSION_SECONDS}`}});
+  } catch(err) {
+    // Never expose the raw exception, password, or token to callers or logs.
+    console.error('qst-admin-signin-error',authPhase,err?.name||'Error');
+    return json({error:'Administrator login temporarily unavailable',code:authPhase},503);
+  }
 }
 // Do not allow cross-origin writes even with an authenticated browser session.
 function originValid(req){const o=req.headers.get('origin');return !!o&&o===new URL(req.url).origin;}
