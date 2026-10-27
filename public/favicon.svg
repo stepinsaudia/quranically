@@ -1,7 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-<title>Quranically</title>
-<rect width="64" height="64" rx="15" fill="#45182f"/>
-<path d="M32 5 40 18 55 20 46 33 48 48 33 46 22 56 18 41 6 32 19 24 21 9 32 16Z" fill="none" stroke="#d7b77e" stroke-width="1.8"/>
-<path d="M13 28c8-4 14-3 19 1 5-4 11-5 19-1v20c-8-4-14-3-19 1-5-4-11-5-19-1Z" fill="#55243a" stroke="#f1d7a4" stroke-width="2"/>
-<path d="M32 29v20M17 33c5-2 8-1 11 1m9 0c3-2 6-3 11-1" fill="none" stroke="#d9b880" stroke-width="1.7" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="qt">
+<title id="qt">Quranically — Q monogram with an open book</title>
+<rect x="0" y="0" width="64" height="64" rx="14" fill="#38192d"/>
+<rect x="5.6" y="5.6" width="52.8" height="52.8" rx="9.7" fill="none" stroke="#a98555" stroke-width=".9"/>
+<circle cx="30" cy="29.8" r="17.3" fill="none" stroke="#e2bd7d" stroke-width="3.1"/>
+<path d="M40 40 52 52" fill="none" stroke="#e2bd7d" stroke-width="4" stroke-linecap="square"/>
+<path d="M18 27.5c4.7-2.9 8.6-2.5 12 .2 3.4-2.7 7.3-3.1 12-.2V39c-4.7-2.6-8.6-2.5-12 .2-3.4-2.7-7.3-2.8-12-.2V27.5Z" fill="#38192d" stroke="#f5d6a2" stroke-width="1.4" stroke-linejoin="round"/>
+<path d="M30 27.7v11.5M21 31.5c2.8-1 5-1.1 7 .1m4 0c2-1.2 4.2-1.1 7-.1" fill="none" stroke="#f5d6a2" stroke-width=".9" stroke-linecap="round"/>
 </svg>
