@@ -87,7 +87,7 @@ async function sha256Hex(value){return toHex(new Uint8Array(await crypto.subtle.
 async function passwordMatches(password,record){
   const parts=String(record||'').split(':');
   if(parts.length!==4||parts[0]!=='pbkdf2-sha256' || !/^[a-f0-9]{32}$/.test(parts[2]) || !/^[a-f0-9]{64}$/.test(parts[3]))return false;
-  const rounds=Number(parts[1]);if(!Number.isInteger(rounds)||rounds<210000||rounds>900000)return false;
+  const rounds=Number(parts[1]);if(!Number.isInteger(rounds)||rounds!==100000)return false;
   const salt=Uint8Array.from(parts[2].match(/../g),x=>parseInt(x,16));
   const key=await crypto.subtle.importKey('raw',bytes.encode(password),'PBKDF2',false,['deriveBits']);
   const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:rounds,hash:'SHA-256'},key,256));
