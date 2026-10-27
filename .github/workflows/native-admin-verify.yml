@@ -1,0 +1,23 @@
+name: VERIFY QURANICALLY NATIVE ADMIN — no deployment
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-native-admin-verify.txt'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only production Admin route diagnostics
+        run: node scripts/native-admin-probe.mjs
+      - name: Verify real private Admin login, session and logout
+        env:
+          QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
+        run: node scripts/native-admin-live-check.mjs
