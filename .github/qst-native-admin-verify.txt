@@ -1,0 +1,1 @@
+Read-only production route check plus secured login/session/logout verification. Do not deploy or modify Worker configuration.
