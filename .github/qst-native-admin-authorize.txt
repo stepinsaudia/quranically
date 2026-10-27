@@ -2,3 +2,5 @@ Quranically only: deploy native Admin to existing Worker qst-living-knowledge-v1
 Production changes must stop before migration/deployment if the private GitHub Actions QST_ADMIN_PASSWORD or CLOUDFLARE_API_TOKEN secret is missing.
 
 Second activation attempt after owner added QST_ADMIN_PASSWORD to GitHub repository secrets. Prior attempt stopped before any live change.
+
+Corrective release after live check identified HTTP 307 on protected Admin asset. The existing Admin password and dedicated D1 are already provisioned. Re-run safe idempotent migration and redeploy only the same Worker.
