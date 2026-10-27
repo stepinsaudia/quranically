@@ -22,7 +22,7 @@ async function refresh(){try{const d=await api('/api/admin/bootstrap');state=d;
   const awaitingEvidence=(d.evidence||[]).filter(x=>x.publish_status==='published'&&x.review_status==='editorial_pending').length;
   const awaitingSources=(d.sources||[]).filter(x=>x.review_status!=='reviewed').length;
   const awaitingTibb=(d.tibb_entries||[]).filter(x=>x.status==='published'&&x.review_stage==='pending').length;
-  $('editorialNotice').textContent=awaitingEvidence||awaitingSources
+  $('editorialNotice').textContent=awaitingEvidence||awaitingSources||awaitingTibb
     ?awaitingEvidence+' published evidence record(s) await qualified review; '+awaitingSources+' source record(s) need editorial review; '+awaitingTibb+' medicine entry/entries await independent review. Published does not mean independently verified.'
     :'No pending review statuses found. Verify supporting documentation before presenting content as approved.';
   show();msg('');}catch(e){msg('Could not load protected records: '+e.message);}}
