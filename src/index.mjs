@@ -192,6 +192,22 @@ async function adminApi(request,env,url,identity){
   catch(err){return invalid(String(err.message||err));}
   const id=route[1]||crypto.randomUUID();
   if(!validId(id))return invalid('Invalid record ID');
+  // A commercial listing may be public only after explicit independent
+  // verification and only for a seller-eligible ingredient—not for procedures
+  // or devotional practices. The public API applies the same filter.
+  if(entity==='tibb_offers'){
+    const previous=request.method==='POST'?null:await env.DB.prepare('SELECT entry_id,verification_status,status FROM tibb_offers WHERE id=?').bind(id).first();
+    const targetEntry=values.entry_id||previous?.entry_id;
+    const targetVerification=values.verification_status||previous?.verification_status||'pending';
+    const targetStatus=values.status||previous?.status||'draft';
+    if(targetStatus==='published'){
+      if(targetVerification!=='verified')return invalid('Seller verification required before publishing');
+      const parent=await env.DB.prepare('SELECT seller_eligible,status FROM tibb_entries WHERE id=?').bind(targetEntry).first();
+      if(!parent||parent.seller_eligible!=='yes'||parent.status!=='published')return invalid('Offers require a published seller-eligible ingredient');
+      const offerUrl=values.offer_url||(request.method==='POST'?'':(await env.DB.prepare('SELECT offer_url FROM tibb_offers WHERE id=?').bind(id).first())?.offer_url);
+      if(!offerUrl||!allowedUrl(offerUrl))return invalid('A valid HTTPS seller URL is required');
+    }
+  }
   const fields=Object.keys(values);const vals=Object.values(values);
   try{
     if(request.method==='POST'){
