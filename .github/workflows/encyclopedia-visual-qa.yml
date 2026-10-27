@@ -1,0 +1,32 @@
+name: QURANICALLY BROWSER QA — Desktop and Mobile
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-encyclopedia-visual-qa-trigger.txt'
+permissions:
+  contents: read
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser automation
+        run: |
+          npm install --no-save --ignore-scripts --no-audit playwright
+          npx playwright install --with-deps chromium
+      - name: Capture real site and test visual bounds and Admin
+        env:
+          QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
+        run: node scripts/encyclopedia-visual-qa.mjs
+      - name: Preserve original browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-encyclopedia-browser-qa
+          path: artifacts/*.png
+          if-no-files-found: warn
