@@ -214,6 +214,26 @@ async function publicApi(request,env,url){
   }
   return json({error:'Unknown API route'},404);
 }
+// Cloudflare Static Assets redirects *.html to extensionless paths. Follow only
+// whitelisted asset redirects inside the trusted ASSETS binding, never through
+// the public Worker route (which would create an Admin login redirect loop).
+async function serveProtectedAdminAsset(request,env,assetPath){
+  const origin=new URL(request.url).origin;
+  for(let i=0;i<3;i++){
+    const res=await env.ASSETS.fetch(new Request(new URL(assetPath,origin),request));
+    if([301,302,307,308].includes(res.status)){
+      const loc=res.headers.get('location');
+      if(!loc)return new Response('Admin asset redirect unavailable',{status:503});
+      const next=new URL(loc,origin);
+      if(next.origin!==origin||!['/admin','/admin.html','/admin-login','/admin-login.html'].includes(next.pathname))
+        return new Response('Invalid Admin asset redirect',{status:503});
+      assetPath=next.pathname;
+      continue;
+    }
+    return new Response(res.body,{status:res.status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
+  }
+  return new Response('Admin asset redirect loop',{status:503});
+}
 export default {
   async fetch(request,env){
     const url=readUrl(request),path=url.pathname;
@@ -224,13 +244,11 @@ export default {
         if(path.startsWith('/api/admin'))return adminApi(request,env,url,actor);
         if(actor.error){
           if(path==='/admin'&&env.ASSETS){
-            const assetURL=new URL('/admin-login.html',url.origin);
-            const res=await env.ASSETS.fetch(new Request(assetURL,request));
-            return new Response(res.body,{status:res.status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
+            return await serveProtectedAdminAsset(request,env,'/admin-login');
           }
           return new Response('Administrator sign-in required',{status:actor.status,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
         }
-        const assetURL=new URL('/admin.html',url.origin);return env.ASSETS.fetch(new Request(assetURL,request));
+        return await serveProtectedAdminAsset(request,env,'/admin');
       }
       if(path.startsWith('/api/'))return await publicApi(request,env,url);
       // Never serve admin HTML directly without Access checking.
