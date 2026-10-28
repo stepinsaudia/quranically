@@ -1,0 +1,1 @@
+Read-only QA of deployed Quranically existing Cloudflare Worker on desktop and mobile. No database writes, Worker deploys or credential changes.
