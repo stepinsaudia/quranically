@@ -1,0 +1,95 @@
+name: QURANICALLY — existing Worker visual review
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-visual-review-authorize.txt'
+permissions:
+  contents: read
+concurrency:
+  group: quranically-native-admin
+  cancel-in-progress: false
+jobs:
+  review:
+    if: ${{ github.event.head_commit.message == 'AUTHORIZE QURANICALLY WORKER VISUAL REVIEW' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out tested canonical review commit
+        uses: actions/checkout@v4
+        with:
+          ref: 6ebf59f362a390a00ce73b8f457460d9a91582a4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm only existing Quranically Worker and D1
+        run: node scripts/native-admin-preflight.mjs
+      - name: Install controlled dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
+      - name: Test pinned review commit
+        run: |
+          npm test
+          node --check src/index.mjs
+          node --check public/encyclopedia.js
+          node --check public/admin.js
+          node --check public/site-chrome.js
+          node --check public/media-admin.js
+      - name: Verify private Cloudflare deployment permission
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "No Cloudflare token configured; live Worker remains untouched."
+            exit 1
+          fi
+      - name: Confirm current remote D1 and capture private pre-review backup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations list qst-knowledge-v1-db --remote
+          umask 077
+          npx wrangler d1 export qst-knowledge-v1-db --remote --output=/tmp/quranically-review-backup.sql >/dev/null
+          test -s /tmp/quranically-review-backup.sql
+          echo "Private D1 backup captured in ephemeral runner (not uploaded)."
+      - name: Apply only additive canonical migrations to existing D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: npx wrangler d1 migrations apply qst-knowledge-v1-db --remote
+      - name: Deploy the existing Quranically Worker (no second Worker)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: npx wrangler deploy
+      - name: Read-only live deployment acceptance
+        run: |
+          node --input-type=module <<'JS'
+          const origin='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
+          const grab=async p=>{
+            const r=await fetch(origin+p,{headers:{accept:'application/json'},signal:AbortSignal.timeout(20000)});
+            if(!r.ok)throw Error(p+': HTTP '+r.status);
+            return r;
+          };
+          const home=await (await grab('/')).text();
+          if(!home.includes('quranically-theme.css')||!home.includes('site-chrome.js'))throw Error('New shared frontend missing');
+          const chrome=await (await grab('/api/site-chrome')).json();
+          if((chrome.homepage_cards||[]).length!==5||(chrome.panels||[]).length!==3)throw Error('Canonical site content not present');
+          const disc=await (await grab('/api/discipline-pages')).json();
+          if((disc.pages||[]).length!==5||(disc.pathways||[]).length<20)throw Error('Discipline pages/pathways incomplete');
+          const answer=await (await grab('/api/encyclopedia/answer?domain=prophetic_medicine&q=ginger')).json();
+          if(answer.outcome!=='full_article_answer')throw Error('Prophetic Medicine on-page answer failed');
+          const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
+          if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
+          for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
+            const r=await grab('/encyclopedia?domain='+domain);
+            const html=await r.text();
+            if(!html.includes('disciplineLanding'))throw Error('Discipline frontend missing: '+domain);
+          }
+          console.log('LIVE REVIEW PASS — '+origin);
+          JS
+      - name: Discard ephemeral backup
+        if: always()
+        run: rm -f /tmp/quranically-review-backup.sql
