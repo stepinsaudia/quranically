@@ -8,7 +8,7 @@
 
 | Public area | URL / API | Current status |
 | --- | --- | --- |
-| Encyclopedia home and A–Z index | `/`, `/encyclopedia` | Live; 15 original indexed starter articles |
+| Encyclopedia home and A–Z index | `/`, `/encyclopedia` | Live; 17 original indexed starter articles |
 | Permanent encyclopedia articles | `/encyclopedia/:slug` | Live; primary excerpts, ordered sections, bibliographies, related topics |
 | Five subject collections | `/encyclopedia?domain=...` | Live; Quranic themes, Sunnah, Seerah, Prophetic Medicine, guidance |
 | Full Quran chapter reader | `/study.html` | 114-chapter selector; same-origin attributed external text provider |
@@ -38,6 +38,23 @@ Existing Cloudflare resources, **do not rename**:
 - Account: `fb9597e74bae3ea18ad7bb013213d776`
 - Worker: `qst-living-knowledge-v1`
 - D1: `qst-knowledge-v1-db`
+
+## Lean live source federation (V3)
+
+Quranically now has two independent search tiers:
+
+1. **Editorial encyclopedia**: 17 published introductory articles with on-site sections, source IDs, bibliography, original text excerpts, cross-references and qualified-review flags in canonical D1. Published does not imply expert approval.
+2. **External source discovery**: `/api/source-discovery?q=...&domain=...` searches source indexes *only on demand*, from the Worker backend. Live UmmahAPI search covers its claimed 6,236 Quranic verses, 36,000+ Hadiths and supplications. The API returns small, attributed excerpts, provider references, link-to-original and `upstream_unreviewed` markers. These are not promoted to editorial articles without checking.
+
+To keep the system lean:
+- Queries are limited and validated, parallel provider requests are bounded to nine seconds, and only the small result set is cached at the edge for 30 minutes. No full Hadith or Quran copy is stored in D1.
+- A scheduled Cloudflare Worker check runs once daily at **04:17 UTC**. It probes only lightweight metadata endpoints for UmmahAPI and HadeethEnc, storing the last status and UTC check time in the tiny `source_connector_checks` table. The check never saves religious text or visitors' searches.
+- `/api/source-connectors` and **Admin → Connected Source APIs** reveal provider status and permissions. Results from secondary indexes explicitly remain awaiting independent source validation.
+- **Sunnah.com, Dorar and Quran Foundation** require authorized API credentials or production permission; they are listed as access required, not falsely shown as connected. **NCBI/PubMed** requires registered operator/contact compliance and separate research-rights review before automatic searches are activated.
+- HadeethEnc has specific content attribution, version and non-modification conditions. It is currently probed for health; no full text is republished under an assumed blanket license.
+- Third-party service outages yield an explicit unavailable status and no invented source records.
+
+The editor should periodically review provenance and reports before converting candidate source matches into approved reference articles. No automated fatwa, medical cure claim or commercial medicine endorsement is permitted.
 
 ## Source integrity and scope
 
@@ -71,7 +88,7 @@ Never run the first-deploy bootstrap on existing resources. Cloudflare token rem
 - Independent qualified scholar review of Arabic passages, hadith authenticity context, interpretive claims, and citations.
 - Expert medical appraisal of health-related research, safety and regulatory content.
 - Rights-checked primary Quran text, translations, recitations, and approved full word-by-word API data.
-- A substantial verified corpus beyond 15 pilot articles, with a sustainable editorial and source-refresh workflow.
+- A substantial verified corpus beyond 17 pilot articles, with a sustainable editorial and source-refresh workflow.
 - Seller onboarding, actual programme/contract verification, market availability, and consumer safeguards before monetization.
 
 **Production software acceptance is not equivalent to encyclopedic content completeness.**
