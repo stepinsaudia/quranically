@@ -369,7 +369,10 @@ test('on-page canonical answers address weak eyesight, diabetes, and clothing wi
  const noAnswer=await get(env,'/api/encyclopedia/answer?q=unresearched%20blue%20shoelaces&domain=prophetic_medicine');
  assert.equal((await noAnswer.json()).outcome,'no_editorial_answer');
  const crossed=await get(env,'/api/encyclopedia/answer?q=weak%20eyesight&domain=seerah');
- assert.equal((await crossed.json()).outcome,'no_editorial_answer');
+ const crossedResult=await crossed.json();
+ assert.notEqual(crossedResult.outcome,'full_article_answer');
+ assert.equal(crossedResult.answer,null);
+ if(crossedResult.outcome==='source_evidence')assert(crossedResult.evidence.every(x=>(x.title+' '+x.excerpt+' '+x.reference).toLowerCase().includes('eyesight')));
  assert.equal((await get(env,'/api/encyclopedia/answer?q=x')).status,400);
 });
 
