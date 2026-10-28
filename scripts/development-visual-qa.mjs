@@ -27,6 +27,17 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
     await page.locator('#results .entry-row').first().waitFor({timeout:15000});
     await page.waitForFunction(()=>[...document.querySelectorAll('.qst-home-discipline img')].length===5&&[...document.querySelectorAll('.qst-home-discipline img')].every(i=>i.complete&&i.naturalWidth>0),{timeout:16000});
    }
+   if(name==='home'&&size.id==='mobile'){
+    const heroImage=await page.locator('#indexView .intro-manuscript .qst-managed-hero-image');
+    if(await heroImage.count()!==1||!(await heroImage.isVisible()))throw Error('Mobile cinematic hero image is hidden');
+   }
+   if(['quran','hadith','seerah','tibb','guidance'].includes(name)){
+    const expectedNav={quran:null,hadith:'Hadith & Sunnah',seerah:'Seerah',tibb:'Prophetic Medicine',guidance:null}[name];
+    if(expectedNav){
+      const current=await page.locator('.qst-shell-nav a.qst-active').allTextContents();
+      if(!current.some(x=>x.trim()===expectedNav))throw Error('Incorrect active discipline navigation '+JSON.stringify(current));
+    }
+   }
    if(['quran','hadith','seerah','tibb','guidance'].includes(name)){
     await page.waitForFunction(()=>{const i=document.querySelector('.discipline-art img');return !!i&&i.complete&&i.naturalWidth>0;},{timeout:16000});
    }
