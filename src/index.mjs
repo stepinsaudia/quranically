@@ -279,6 +279,31 @@ async function publicApi(request,env,url){
     catch(e){return json({status:'database_not_ready',service:'qst-living-knowledge-v1'},503);}
   }
   if(request.method!=='GET')return json({error:'Method not allowed'},405);
+  // One controlled, same-origin Quran reading route for the canonical reader.
+  // Upstream editions remain attributed; no external response is silently
+  // promoted to an editorially verified Quranically transcription.
+  if(pathname.startsWith('/api/quran/surah/')){
+    const raw=pathname.slice('/api/quran/surah/'.length);
+    if(!/^(?:[1-9]|[1-9][0-9]|1(?:0[0-9]|1[0-4]))$/.test(raw))return invalid('Chapter must be between 1 and 114');
+    const chapter=Number(raw);
+    const ids=['quran-uthmani','en.transliteration','en.pickthall'];
+    const upstream='https://api.alquran.cloud/v1/surah/'+chapter+'/editions/'+ids.join(',');
+    try{
+      const res=await fetch(upstream,{headers:{accept:'application/json'},signal:AbortSignal.timeout(12000),cf:{cacheEverything:true,cacheTtl:3600}});
+      if(!res.ok)return json({error:'Quran text provider unavailable',source:'Al Quran Cloud'},502);
+      const txt=await res.text();
+      if(txt.length>1000000)return json({error:'Upstream Quran response exceeded safety limit'},502);
+      const rawData=JSON.parse(txt);
+      if(rawData.code!==200||!Array.isArray(rawData.data)||rawData.data.length!==3)throw Error('Provider response invalid');
+      const count=rawData.data[0]?.ayahs?.length||0;
+      if(!count||count>286)throw Error('Verse count invalid');
+      for(const [i,edition] of rawData.data.entries()){
+        if(!Array.isArray(edition.ayahs)||edition.ayahs.length!==count||Number(edition.number)!==chapter)throw Error('Edition alignment invalid');
+        if(i===0&&edition.ayahs.some((a,j)=>typeof a.text!=='string'||!a.text.trim()||Number(a.numberInSurah)!==j+1))throw Error('Primary Arabic verses invalid');
+      }
+      return new Response(JSON.stringify({code:200,data:rawData.data,provenance:{provider:'Al Quran Cloud / Islamic Network',edition_ids:ids,review_status:'External source; independent Quranically editorial verification pending'}}),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=900','x-content-type-options':'nosniff'}});
+    }catch{return json({error:'Quran provider unavailable or returned incomplete chapter data',source:'Al Quran Cloud',source_url:'https://alquran.cloud/api'},502);}
+  }
   if(pathname==='/api/journeys'){
     const q=(url.searchParams.get('q')||'').trim().slice(0,100);
     let results;
