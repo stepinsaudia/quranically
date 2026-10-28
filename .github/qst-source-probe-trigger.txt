@@ -1,0 +1,1 @@
+Check public UmmahAPI Quran, Hadith and Dua search response shapes. Do not deploy, mutate production, publish religious text or expose private credentials.
