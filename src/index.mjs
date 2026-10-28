@@ -279,6 +279,17 @@ async function publicApi(request,env,url){
     catch(e){return json({status:'database_not_ready',service:'qst-living-knowledge-v1'},503);}
   }
   if(request.method!=='GET')return json({error:'Method not allowed'},405);
+  if(pathname==='/api/quran/chapters'){
+    try{
+      const r=await fetch('https://api.alquran.cloud/v1/surah',{headers:{accept:'application/json'},signal:AbortSignal.timeout(10000),cf:{cacheEverything:true,cacheTtl:86400}});
+      if(!r.ok)throw Error('provider');
+      const data=await r.json();
+      if(data.code!==200||!Array.isArray(data.data)||data.data.length!==114)throw Error('invalid chapter list');
+      const chapters=data.data.map(x=>({number:Number(x.number),englishName:String(x.englishName||'').slice(0,100),name:String(x.name||'').slice(0,120),numberOfAyahs:Number(x.numberOfAyahs)}));
+      if(chapters.some((x,i)=>x.number!==i+1||x.numberOfAyahs<1||x.numberOfAyahs>286))throw Error('Invalid chapter metadata');
+      return new Response(JSON.stringify({chapters,provider:'Al Quran Cloud'}),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=3600'}});
+    }catch{return json({error:'Chapter index temporarily unavailable',provider:'Al Quran Cloud'},502);}
+  }
   // One controlled, same-origin Quran reading route for the canonical reader.
   // Upstream editions remain attributed; no external response is silently
   // promoted to an editorially verified Quranically transcription.
