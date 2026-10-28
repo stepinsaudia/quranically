@@ -175,7 +175,7 @@ $('printArticle').addEventListener('click',()=>window.print());
 $('copyArticle').addEventListener('click',()=>{
  const url=location.href;navigator.clipboard?.writeText(url).then(()=>toast('Article link copied')).catch(()=>toast('Copy this page address from your browser'));
 });
-$('mobileMenu').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('expanded'));
+// Global mobile navigation lives in the canonical server-rendered header.
 function activeSlug(){const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='encyclopedia'&&/^[a-z0-9-]{1,85}$/.test(parts[1])?parts[1]:null;}
 window.addEventListener('popstate',()=>{
  const match=activeSlug();
