@@ -1,0 +1,21 @@
+name: QURANICALLY LIVE ANSWERS — read-only check
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-answer-verify-trigger.txt'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate real complete answers and canonical protected Admin
+        env:
+          QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
+        run: node scripts/answer-live-check.mjs
