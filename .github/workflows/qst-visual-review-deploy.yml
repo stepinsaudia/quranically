@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: ffa13085cc6b83c195cfba90a0666e4df64fc21f
+          ref: 0c183174dfcf351a45e0aad5b7daaa7ab8e456a2
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
