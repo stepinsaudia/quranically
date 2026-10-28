@@ -27,8 +27,10 @@ export function sourceTerm(q){
 function queryPlans(q){
  const tokens=meaningfulTerms(q);
  if(!tokens.length)return [];
+ const fallback={clothing:'garment',honesty:'truthful',hijrah:'migration',prayer:'pray',diabetes:'diabetic',remedies:'healing',fasting:'fast',patience:'patient',anger:'angry'};
  const terms=[tokens.slice(0,3).join(' '),tokens[0]];
  if(tokens.length>1)terms.push(tokens[tokens.length-1]);
+ if(fallback[tokens[0]])terms.push(fallback[tokens[0]]);
  return [...new Set(terms.filter(Boolean))].slice(0,3);
 }
 // Exact query phrase matching was excluding useful evidence even when a provider
@@ -89,6 +91,7 @@ export async function liveSourceSearch(q,domain=''){
    tried++;
    try{
     const data=await fetchBounded(origin+group.endpoint(search));
+    status='available';
     const arr=data[group.field];
     if(!Array.isArray(arr))throw Error('provider_schema');
     total=Math.max(total,Number(data.total_found??data.results_count??arr.length)||0);
@@ -105,7 +108,7 @@ export async function liveSourceSearch(q,domain=''){
  }));
  const raw=all.flatMap(g=>g.records);
  const evidence=rankSourceEvidence(raw,q,9);
- return {term,results:evidence,providers:all.map(({id,status,total,queries})=>({id,status,match_count:total,queries})),fetched_at:new Date().toISOString(),review_notice:'Source-linked provider excerpts only; neither scholarly authentication nor clinical effectiveness is established.'};
+ return {term,results:evidence,providers:all.map(({id,status,total,queries})=>({id,status,match_count:total,queries})),fetched_at:new Date().toISOString(),review_notice:'Provider records are not Quranically-verified scholarly rulings or medical evidence of effectiveness.'};
 }
 export const CONNECTORS=[
  {id:'ummah_quran',title:'Qur’an verse index',source:'UmmahAPI',mode:'live_search',coverage:'Provider Qur’an search index',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/api/docs'},
