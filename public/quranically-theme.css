@@ -61,3 +61,22 @@ nav button.active,nav button:hover{background:#1c1d1e!important;color:#fff!impor
  .masthead{min-height:65px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* One shared compact cinematic discipline template. All prose/image data comes from D1. */
+.discipline-landing{margin-top:4px;margin-bottom:20px}
+.discipline-hero{display:grid;grid-template-columns:1.15fr .85fr;min-height:265px;border-radius:14px;overflow:hidden;background:#151617;color:#fff;position:relative}
+.discipline-copy{padding:37px clamp(23px,4vw,52px);z-index:1;display:flex;flex-direction:column;align-items:flex-start}
+.discipline-eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;color:#f9b24e}
+.discipline-copy h2{font:600 clamp(29px,3.5vw,44px)/1.12 Georgia,serif;letter-spacing:-.025em;max-width:650px;margin:12px 0;color:#fff}
+.discipline-copy p{font-size:13px;line-height:1.65;max-width:560px;color:#f2efeb;margin:0 0 17px}
+.discipline-explore{display:inline-flex;align-items:center;gap:10px;padding:9px 13px;background:#f5a52e;color:#161616;border-radius:7px;font-size:11px;font-weight:750}
+.discipline-art{min-height:265px;overflow:hidden;background:radial-gradient(circle at 60% 50%,#b0742b55,#211c18 60%,#111 100%);display:grid;place-items:center}
+.discipline-art img{display:block;width:100%;height:100%;object-fit:cover}
+.discipline-art-frame{width:min(80%,280px);height:75%;display:grid;place-items:center;border:1px solid #e5b06277;position:relative;color:#ffca83;text-align:center;padding:20px}
+.discipline-art-frame:before{content:'';position:absolute;inset:12px;border:1px solid #e5b06233}
+.discipline-art-frame span{font-family:Georgia,serif;font-size:25px;line-height:1.2}
+.discipline-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid #e9e8e4}
+.discipline-tabs a{border:1px solid #e8e6e2;border-radius:24px;padding:7px 13px;background:#fff;color:#343331;font-weight:700;font-size:11px}
+.discipline-tabs a:hover{background:#fff0d8;border-color:#f5a52e}
+body[data-discipline] .index-intro{display:none}
+@media(max-width:720px){.discipline-hero{grid-template-columns:1fr}.discipline-copy{padding:27px 23px}.discipline-art{min-height:155px;max-height:155px}.discipline-copy h2{font-size:30px}}
