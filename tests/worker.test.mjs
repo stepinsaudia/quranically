@@ -258,7 +258,7 @@ test('canonical article SEO and XML sitemap use only published D1 entries',async
  assert(html.includes('rel="canonical"'));
  assert(html.includes('/encyclopedia/black-seed'));
  assert(html.includes('application/ld+json'));
- assert(html.includes('editorial'));
+ assert(html.includes('Sahih al-Bukhari'));
  const sitemap=await get(env,'/sitemap.xml');
  assert.equal(sitemap.status,200);
  const xml=await sitemap.text();
