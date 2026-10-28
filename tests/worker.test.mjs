@@ -426,3 +426,17 @@ test('supplication discovery is available consistently in all five disciplines',
   assert.equal(seen.filter(x=>x.includes('/api/duas/search')).length,5);
  }finally{globalThis.fetch=old;}
 });
+
+test('answer matching does not confuse accidental topic substrings',async()=>{
+ const env=fixture();
+ // Existing indexed topics remain addressable through complete aliases.
+ for(const [q,domain,slug] of [
+  ['clothing for men','seerah','mens-clothing-prophetic-era'],
+  ['diabetes','prophetic_medicine','diabetes-and-prophetic-medicine'],
+  ['weak eyesight','prophetic_medicine','weak-eyesight-prophetic-medicine']
+ ]){
+  const data=await (await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain}))).json();
+  assert.equal(data.outcome,'full_article_answer',q);
+  assert.equal(data.answer.slug,slug,q);
+ }
+});
