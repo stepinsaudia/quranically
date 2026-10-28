@@ -45,7 +45,13 @@ async function liveSources(q,domain){
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
   const data=await api('/api/source-discovery?'+params);
   if(mySeq!==sourceSequence)return;
-  const items=Array.isArray(data.results)?data.results:[];
+  // Provider snippets must directly contain every meaningful query word.
+  // A keyword-index hit alone is not evidence about the user's actual concern.
+  const words=q.toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>3&&!['have','with','about','please','prophetic','medicine','there','what','want'].includes(w));
+  const items=(Array.isArray(data.results)?data.results:[]).filter(x=>{
+    const body=(x.title+' '+x.excerpt+' '+x.reference).toLowerCase();
+    return words.length>0&&words.every(w=>body.includes(w));
+  }).slice(0,5);
   $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
   const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
   $('sourceResultState').textContent=total+' indexed source match(es) shown · fetched '+new Date(data.fetched_at).toLocaleString()+
@@ -53,19 +59,29 @@ async function liveSources(q,domain){
     (total===0?' · Search again with one clear subject word.':'');
  }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
 }
+let refreshSequence=0;
 async function refresh(){
+ const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
  const heading=filters.domain?titles[filters.domain]:'All reference entries';
  $('indexHeading').textContent=heading;
  $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':'Follow subject pathways, alphabetic entries and cross-references.';
  $('loading').textContent='Retrieving referenced entries…';$('resultCount').textContent='Searching…';$('results').innerHTML='';renderAlphabet();
- liveSources(filters.q,filters.domain);
+ sourceSequence++;$('federatedResults').hidden=true;
+ const answerTask=window.QuranicallyAnswers.show(filters.q,filters.domain);
  try{
   const data=await api('/api/encyclopedia'+(params.size?'?'+params:''));
+  if(seq!==refreshSequence)return;
   $('resultCount').textContent=data.entries.length+' ARTICLE'+(data.entries.length===1?'':'S');
-  $('results').innerHTML=data.entries.map(entryCard).join('')||'<div class="loading">No entries match these filters. Try the A–Z index or browse a different discipline.</div>';
+  $('results').innerHTML=data.entries.map(entryCard).join('')||'<div class="loading">No matching indexed articles. The answer search above is checked separately.</div>';
   $('loading').textContent='';
- }catch(e){$('loading').textContent=e.message;}
+ }catch(e){if(seq===refreshSequence)$('loading').textContent=e.message;}
+ const matched=await answerTask;
+ if(seq!==refreshSequence)return;
+ if(matched){
+  $('indexHeading').textContent='Additional encyclopedia results';
+  $('indexSubtitle').textContent='The complete contextual response appears above. References and further reading follow.';
+ }else if(filters.q){liveSources(filters.q,filters.domain);}
 }
 const typeNames={quran:'Quranic text',hadith:'Hadith collection',clinical:'Medical evidence',reference:'Reference corpus',classical:'Classical scholarship'};
 function sectionHTML(s,i){
@@ -119,7 +135,7 @@ $('encyclopediaSearch').addEventListener('submit',event=>{
    }
  }
  filters.q=entered;filters.letter='';
- history.pushState({},'',indexLink());refresh();document.getElementById('indexView').scrollIntoView({behavior:'smooth'});
+ history.pushState({},'',indexLink());refresh();document.getElementById('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});
 });
 $('subjects').addEventListener('click',event=>{
  const b=event.target.closest('button[data-domain]');if(!b)return;filters.domain=b.dataset.domain;filters.letter='';filters.q='';$('query').value='';
