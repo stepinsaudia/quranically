@@ -77,6 +77,32 @@ function convert(group,records){
   return {provider:'UmmahAPI / Du‘a search',kind:'dua',reference:short(x.source,100),title:short(x.title,120),excerpt:short(x.translation,270),source_url:origin+'/api/duas/'+id,review_status:'upstream_unreviewed'};
  }).filter(Boolean);
 }
+async function researchSearch(q){
+ const topic=sourceTerm(q);
+ if(!topic||topic.length<3)return {id:'europe_pmc',status:'no_subject',records:[],total:0,queries:0};
+ try{
+  const target=new URL('https://www.ebi.ac.uk/europepmc/webservices/rest/search');
+  target.search=new URLSearchParams({query:topic,format:'json',pageSize:'6',resultType:'lite'});
+  const response=await fetch(target.href,{headers:{accept:'application/json'},signal:AbortSignal.timeout(6500),cf:{cacheEverything:true,cacheTtl:1800}});
+  if(!response.ok)throw Error('research_http_'+response.status);
+  if(Number(response.headers.get('content-length')||0)>350000)throw Error('research_size');
+  const raw=await response.text();if(raw.length>350000)throw Error('research_size');
+  const json=JSON.parse(raw),list=json.resultList?.result;
+  if(!Array.isArray(list))throw Error('research_schema');
+  const records=list.slice(0,6).map(r=>{
+   const source=String(r.source||'').replace(/[^A-Z]/g,''),id=String(r.id||'').replace(/[^a-zA-Z0-9]/g,'');
+   if(!source||!id||!r.title)return null;
+   const journal=short(r.journalTitle||'Research publication',90),year=String(r.pubYear||'').slice(0,4);
+   const title=short(r.title,230);
+   return {provider:'Europe PMC / biomedical bibliography',kind:'research',reference:source+':'+id,
+    title,excerpt:'Research citation: '+title+' — '+journal+(year?' ('+year+')':'')+'. The record alone does not establish treatment efficacy.',
+    source_url:'https://europepmc.org/article/'+source+'/'+id,review_status:'clinical_assessment_pending',
+    evidence_scope:'bibliographic_only_not_treatment_endorsement'};
+  }).filter(Boolean);
+  return {id:'europe_pmc',status:'available',records,total:Number(json.hitCount||0),queries:1};
+ }catch{return {id:'europe_pmc',status:'temporarily_unavailable',records:[],total:null,queries:1};}
+}
+
 export async function liveSourceSearch(q,domain=''){
  const plans=queryPlans(q),term=sourceTerm(q);
  if(!plans.length)return {term,results:[],providers:[],fetched_at:new Date().toISOString()};
@@ -106,6 +132,7 @@ export async function liveSourceSearch(q,domain=''){
   }
   return {id:group.id,status,records:[...unique.values()],total,queries:tried};
  }));
+ if(domain==='prophetic_medicine')all.push(await researchSearch(q));
  const raw=all.flatMap(g=>g.records);
  const evidence=rankSourceEvidence(raw,q,9);
  return {term,results:evidence,providers:all.map(({id,status,total,queries})=>({id,status,match_count:total,queries})),fetched_at:new Date().toISOString(),review_notice:'Provider records are not Quranically-verified scholarly rulings or medical evidence of effectiveness.'};
@@ -118,5 +145,5 @@ export const CONNECTORS=[
  {id:'sunnah_com',title:'Sunnah.com',source:'Sunnah.com',mode:'access_required',coverage:'API key approval required',verification:'permission_pending',source_url:'https://sunnah.com/developers'},
  {id:'dorar',title:'Dorar Hadith Encyclopedia',source:'Dorar.net',mode:'access_required',coverage:'Provider token required',verification:'permission_pending',source_url:'https://dorar.net/api-services/hadith'},
  {id:'quran_foundation',title:'Quran Foundation Content & Search',source:'Quran Foundation',mode:'access_required',coverage:'Licensed Qur’an content/search; production permissions required',verification:'permission_pending',source_url:'https://api-docs.quran.com/'},
- {id:'pubmed',title:'PubMed research index',source:'NCBI / NIH',mode:'not_connected',coverage:'Clinical research indexing not yet connected to Quranically',verification:'independent_medical_review_required',source_url:'https://pubmed.ncbi.nlm.nih.gov/'}
+ {id:'europe_pmc',title:'Biomedical publication index',source:'Europe PMC / EMBL-EBI',mode:'live_search',coverage:'Real bibliographic paper search only; claims require full clinical appraisal',verification:'independent_medical_review_required',source_url:'https://europepmc.org/RestfulWebService'}
 ];
