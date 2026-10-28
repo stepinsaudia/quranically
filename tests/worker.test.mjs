@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -689,4 +689,25 @@ test('each discipline has Admin-managed real topic pathways, not dead search lab
   assert.equal(env.DB.prepare("SELECT COUNT(*) c FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first().c,1,'Missing source-linked pathway: '+slug);
  }
  assert.equal((await get(env,'/api/admin/discipline_pathways')).status,503);
+});
+
+test('four additional Tibb food reports explain actual source text without claiming cures',async()=>{
+ const env=fixture();
+ const cases=[
+  ['vinegar','vinegar','muslim:2052a'],
+  ['gourd','gourd-prophetic-food','bukhari:5436'],
+  ['snake cucumber','cucumber-fresh-dates','bukhari:5440'],
+  ['ginger','ginger-quranic-description','76/17']
+ ];
+ for(const [q,slug,ref] of cases){
+   const result=await (await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'prophetic_medicine'}))).json();
+   assert.equal(result.outcome,'full_article_answer',q);
+   assert.equal(result.answer.slug,slug,q);
+   assert(result.answer.sections.some(x=>x.section_type==='safety'),q);
+   assert(result.answer.citations.some(x=>x.source_url.includes(ref)),q);
+   assert.equal(result.answer.review_status,'editorial_draft');
+   assert(!result.answer.abstract.includes('clinically proven'));
+ }
+ const med=(await (await get(env,'/api/encyclopedia?domain=prophetic_medicine')).json()).entries;
+ assert(med.length>=15);
 });
