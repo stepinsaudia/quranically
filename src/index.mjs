@@ -397,7 +397,7 @@ async function publicApi(request,env,url){
     }
     // A question about two named subjects should not collapse to the first
     // article. Assemble distinguishable, sourced records from the SAME D1 CMS.
-    const comparisonRequested=/\\b(?:and|versus|vs\\.?|compare|difference between)\\b/i.test(q);
+    const comparisonRequested=/\b(?:and|versus|vs\.?|compare|difference between)\b/i.test(q);
     if(comparisonRequested){
       const named=records.map(a=>{
         const names=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(x=>x.length>=4);
