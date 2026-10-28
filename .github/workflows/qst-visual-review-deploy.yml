@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: 6ebf59f362a390a00ce73b8f457460d9a91582a4
+          ref: 1496bfddf8d4f092c88d06137971ff5b089a2691
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -31,6 +31,7 @@ jobs:
         run: |
           npm test
           node --check src/index.mjs
+          node --check src/site-shell.mjs
           node --check public/encyclopedia.js
           node --check public/admin.js
           node --check public/site-chrome.js
@@ -75,6 +76,9 @@ jobs:
           };
           const home=await (await grab('/')).text();
           if(!home.includes('quranically-theme.css')||!home.includes('site-chrome.js'))throw Error('New shared frontend missing');
+          if((home.match(/<header class="qst-shell-header"/g)||[]).length!==1||!home.includes('data-canonical-shell="server"'))throw Error('Canonical header not present in initial HTML');
+          if(home.includes('<header class="header">')||home.includes('<nav class="global-nav">'))throw Error('Legacy header still leaking into HTML');
+          if((home.match(/<footer class="qst-shell-footer"/g)||[]).length!==1)throw Error('Canonical footer absent');
           const chrome=await (await grab('/api/site-chrome')).json();
           if((chrome.homepage_cards||[]).length!==5||(chrome.panels||[]).length!==3)throw Error('Canonical site content not present');
           const disc=await (await grab('/api/discipline-pages')).json();
