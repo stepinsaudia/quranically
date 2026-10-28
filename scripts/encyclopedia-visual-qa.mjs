@@ -31,6 +31,14 @@ for(const size of [{name:'desktop',width:1440,height:980},{name:'mobile',width:3
  const passages=await page.locator('#primaryExcerpts:not([hidden]) .arabic-source').count();
  if(passages<1)throw Error('Source-linked original Arabic section missing on '+size.name);
  await page.screenshot({path:'artifacts/black-seed-article-'+size.name+'.png',fullPage:true});
+ await page.goto(origin+'/study.html?surah=114&ayah=6',{waitUntil:'domcontentloaded',timeout:35000});
+ await page.locator('#qr-verse-5 .qrArabic').waitFor({timeout:32000});
+ const arabic=await page.locator('#qr-verse-5 .qrArabic').innerText();
+ if(arabic.trim().length<3)throw Error('Quran reader failed to render original verse text at '+size.name);
+ const chapter=await page.locator('#qrSurahTitle').innerText();
+ if(!chapter.toLowerCase().includes('nas'))throw Error('Quran Reader deep link selected wrong chapter: '+chapter);
+ await auditPage(page,size.name+' Quran Reader deep link',{selector:'.qrAyah',minimum:6});
+ await page.screenshot({path:'artifacts/quran-reader-'+size.name+'.png',fullPage:true});
  await page.close();
 }
 const admin=await browser.newPage({viewport:{width:1440,height:900}});
