@@ -712,3 +712,29 @@ test('four additional Tibb food reports explain actual source text without claim
  const med=(await (await get(env,'/api/encyclopedia?domain=prophetic_medicine')).json()).entries;
  assert(med.length>=15);
 });
+
+test('authenticated editor can change discipline pathway destination without creating a dead link',async()=>{
+ const env=fixture(),password='Pathway-admin-test-2026-credential';
+ const salt=new Uint8Array(16).fill(0x19);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const digest=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ env.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(digest);
+ const login=await get(env,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const records=(await (await get(env,'/api/admin/discipline_pathways',{headers:{cookie}})).json()).records;
+ const row=records.find(x=>x.domain==='prophetic_medicine');
+ assert(row);
+ const headers={cookie,origin:'https://test.local','content-type':'application/json'};
+ const edit=await get(env,'/api/admin/discipline_pathways/'+row.id,{method:'PUT',headers,body:JSON.stringify({label:'Verified black seed entry',href:'/encyclopedia/black-seed'})});
+ assert.equal(edit.status,200);
+ const page=(await (await get(env,'/api/discipline-pages')).json()).pathways.find(x=>x.id===row.id);
+ assert.equal(page.label,'Verified black seed entry');
+ const blocked=await get(env,'/api/admin/discipline_pathways/'+row.id,{method:'PUT',headers,body:JSON.stringify({href:'javascript:alert(1)'})});
+ assert.equal(blocked.status,400);
+ const draft=await get(env,'/api/admin/discipline_pathways/'+row.id,{method:'PUT',headers,body:JSON.stringify({status:'draft'})});
+ assert.equal(draft.status,200);
+ const hidden=(await (await get(env,'/api/discipline-pages')).json()).pathways;
+ assert(!hidden.some(x=>x.id===row.id));
+});
