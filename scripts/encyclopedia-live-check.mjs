@@ -25,10 +25,10 @@ check(surahLast.res.status===200&&surahLast.data?.data?.[0]?.ayahs?.length===6,'
 const reader=await read('/study.html');check(reader.res.status===200&&reader.raw.includes('QURANICALLY'),'Quran Reader preserved');
 const guidance=await read('/guidance');check(guidance.res.status===200&&guidance.raw.includes('When life feels overwhelming'),'Original guided journeys preserved');
 const old=await read('/tibb');check(old.res.status===200&&old.res.url.includes('/encyclopedia?domain=prophetic_medicine'),'Legacy Tibb URL points to canonical encyclopedia');
-const assets=await Promise.all([read('/encyclopedia.js'),read('/encyclopedia.css'),read('/favicon.svg')]);
+const assets=await Promise.all([read('/encyclopedia.js'),read('/answer.js'),read('/encyclopedia.css'),read('/favicon.svg')]);
 check(assets.every(x=>x.res.status===200),'Encyclopedia JS, CSS and vector brand assets delivered');
 const subjects=await read('/api/encyclopedia/subjects');check(subjects.res.status===200&&subjects.data?.subjects?.length===5,'Five live encyclopedia disciplines');
-const catalog=await read('/api/encyclopedia');check(catalog.res.status===200&&catalog.data?.entries?.length===17,'Seventeen editorial entry points plus live federated sources');
+const catalog=await read('/api/encyclopedia');check(catalog.res.status===200&&catalog.data?.entries?.length===18,'Eighteen canonical reference articles');
 const byName=await read('/api/encyclopedia?q=talbina');check(byName.res.status===200&&byName.data?.entries?.[0]?.slug==='talbina','Search for historic medicine terms');
 const medical=await read('/api/encyclopedia?domain=prophetic_medicine');check(medical.res.status===200&&medical.data?.entries?.length===9,'Nine editorial Prophetic Medicine entries');
 const religious=await read('/api/encyclopedia?domain=quranic_themes');check(religious.res.status===200&&religious.data?.entries?.length>=2,'Quranic concepts indexed separately');
@@ -36,6 +36,16 @@ const diabetes=await read('/api/encyclopedia?domain=prophetic_medicine&q=diabete
 check(diabetes.res.status===200&&diabetes.data?.entries?.some(x=>x.slug==='diabetes-and-prophetic-medicine'),'Previously empty diabetes search now has sourced editorial reference');
 const clothing=await read('/api/encyclopedia?domain=seerah&q=clothing%20for%20men');
 check(clothing.res.status===200&&clothing.data?.entries?.some(x=>x.slug==='mens-clothing-prophetic-era'),'Previously empty men clothing Seerah search now has sourced entry');
+for(const item of [
+ {q:'i have weak eyesight',domain:'prophetic_medicine',slug:'weak-eyesight-prophetic-medicine'},
+ {q:'diabetes',domain:'prophetic_medicine',slug:'diabetes-and-prophetic-medicine'},
+ {q:'clothing for men',domain:'seerah',slug:'mens-clothing-prophetic-era'}
+]){
+ const response=await read('/api/encyclopedia/answer?'+new URLSearchParams({q:item.q,domain:item.domain}));
+ check(response.res.status===200&&response.data?.outcome==='full_article_answer'&&response.data.answer?.slug===item.slug&&response.data.answer.sections?.length>=5&&response.data.answer.citations?.length>=3,'Live complete on-page response: '+item.q);
+}
+const noRelevant=await read('/api/encyclopedia/answer?q=unresearched%20purple%20shoelaces&domain=prophetic_medicine');
+check(noRelevant.res.status===200&&noRelevant.data?.outcome==='no_editorial_answer','Unknown query does not hallucinate sources or claim an answer');
 const remote=await read('/api/source-discovery?q=clothing%20for%20men&domain=seerah');
 check(remote.res.status===200&&remote.data?.results?.some(x=>x.kind==='hadith')&&remote.data?.providers?.some(x=>x.id==='hadith_collections'&&x.status==='available'),'Federated on-demand search reaches independent Hadith collections');
 const connectors=await read('/api/source-connectors');
@@ -52,7 +62,7 @@ check(login.status===200,'Verified private native Admin login');
 const cookie=(login.headers.get('set-cookie')||'').split(';')[0];check(cookie.startsWith('__Host-qst_admin='),'Secure session cookie');
 try{
  const boot=await read('/api/admin/bootstrap',cookie);
- check(boot.res.status===200&&boot.data?.encyclopedia_articles?.length===17&&boot.data?.encyclopedia_sections?.length>=70,'Canonical Admin owns same article corpus and ordered sections');
+ check(boot.res.status===200&&boot.data?.encyclopedia_articles?.length===18&&boot.data?.encyclopedia_sections?.length>=70,'Canonical Admin owns same article corpus and ordered sections');
  check(boot.data?.encyclopedia_citations?.length>=30&&boot.data?.encyclopedia_links?.length>=15,'Admin bibliographies and cross-references connected');
 check(boot.data?.encyclopedia_passages?.length>=12,'Admin maintains transmitted Arabic separately from editorial explanations');
  const audit=await read('/api/admin/audit',cookie);
