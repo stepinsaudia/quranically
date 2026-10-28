@@ -53,8 +53,9 @@ function entryCard(x,i){
 function renderProviderResult(x){
   const external=String(x.source_url||'');
   let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
-  return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
+  return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':x.kind==='research'?'Biomedical bibliography':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
     +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
+    +(x.kind==='research'?'<small class="research-caveat">Bibliographic reference only · clinical effectiveness and safety not established</small>':'')
     +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
 }
 let sourceSequence=0;
