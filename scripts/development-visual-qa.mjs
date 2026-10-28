@@ -23,6 +23,13 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
    if(!response||response.status()>=400)throw Error('HTTP '+(response?.status()??'none'));
    if(min>0)await page.locator(selector).first().waitFor({timeout:17000});
    if(min>0&&await page.locator(selector).count()<min)throw Error('Incomplete view '+selector);
+   if(name==='home'){
+    await page.locator('#results .entry-row').first().waitFor({timeout:15000});
+    await page.waitForFunction(()=>[...document.querySelectorAll('.qst-home-discipline img')].length===5&&[...document.querySelectorAll('.qst-home-discipline img')].every(i=>i.complete&&i.naturalWidth>0),{timeout:16000});
+   }
+   if(['quran','hadith','seerah','tibb','guidance'].includes(name)){
+    await page.waitForFunction(()=>{const i=document.querySelector('.discipline-art img');return !!i&&i.complete&&i.naturalWidth>0;},{timeout:16000});
+   }
    const layout=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,title:document.title}));
    if(layout.scroll>layout.w+6)throw Error('Horizontal overflow '+layout.scroll+' vs '+layout.w);
    if(name!=='admin'){
