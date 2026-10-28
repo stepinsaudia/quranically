@@ -1,0 +1,63 @@
+/* Quranically visual system V1 — reference-inspired, original editorial UI.
+   Shared skin only: retains canonical routes, content, API and Admin wiring. */
+:root{
+ --q-orange:#f5a52e;--q-orange-deep:#b96b00;--q-ink:#17191b;--q-charcoal:#141516;
+ --q-ivory:#fffdfa;--q-cream:#f7f6f3;--q-line:#e9e8e4;
+ --aubergine:#17191b;--aubergine-deep:#101112;--ink:#17191b;
+ --warm:#faf9f6;--paper:#fffdfa;--muted:#656769;--gold:#f5a52e;
+ --gold-light:#ffc46a;--blue:#986014;--line:#e9e8e4;--surface:#f7f6f3;
+ --shadow:0 14px 34px rgba(15,15,15,.07);
+ --wine:#17191b;--ivory:#fffdfa;--jade:#ba730c;--deep:#191919;--forest:#161719;--pale:#f8f6f1;
+}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{background:var(--q-ivory);color:var(--q-ink);font-size:14px;line-height:1.65}
+button,input,textarea,select{font-size:inherit}
+:where(a,button,input,textarea,select):focus-visible{outline:2px solid #c57600;outline-offset:3px}
+.brand-rule,.top-line{height:3px!important;background:var(--q-orange)!important}
+.header,.global-nav,header{background:#fff!important;border-color:var(--q-line)!important}
+.masthead{min-height:70px}.global-nav-inner{min-height:43px}
+.identity strong,.results h2,.entry-row h3,.intro-copy h1,.work h2,aside h1{color:var(--q-ink)!important}
+.identity small,.edition span,.overline,.side-label,.eyebrow{color:#996111!important}
+.global-nav-inner a.current,.global-nav-inner a:hover{border-bottom-color:var(--q-orange)!important;color:var(--q-ink)!important}
+.index-intro{min-height:330px;border-radius:16px;border-color:var(--q-line);background:linear-gradient(115deg,#fff 0%,#faf9f5 75%)}
+.intro-copy{padding:clamp(28px,3vw,47px)}
+.intro-copy h1{font-family:Manrope,'DM Sans',sans-serif!important;font-size:clamp(34px,3.3vw,51px);font-weight:750!important;line-height:1.11;letter-spacing:-.055em}
+.intro-copy h1 em{color:var(--q-orange-deep)!important;font-style:normal;font-weight:750}
+.intro-copy>p:not(.overline){line-height:1.68}
+.intro-manuscript{min-height:320px;background:radial-gradient(circle at 65% 30%,#343534 0%,#151617 65%,#0b0c0d 100%)}
+.intro-manuscript:before{border-color:#f5a52e44}
+.folio-frame{height:285px;border-color:#f5a52eaa;color:#ffd18b}
+.folio-top,.folio-caption{color:#ffd18b}.folio-ornament{height:160px;width:160px}.folio-ornament svg{stroke:#f7aa35}
+.search-strip{background:#faf9f7;border-color:var(--q-line);margin-top:24px}
+.search-frame{min-height:100px}
+.search-frame form{border-color:#dedfdf;border-radius:10px;box-shadow:0 4px 15px #00000008}
+.search-frame form button,.primary{background:var(--q-orange)!important;color:#191919!important;border-radius:7px}
+.search-frame form button:hover,.primary:hover{background:#fbb64f!important}
+.reference-work{gap:26px;padding-block:34px 55px}
+.subject-controls button.active{background:#fff4e3;border-left-color:var(--q-orange);color:var(--q-ink)}
+.subject-controls button:hover{background:#f9f8f4}
+.results h2{font-family:Manrope,'DM Sans',sans-serif!important;font-weight:720!important;font-size:clamp(23px,2vw,29px);letter-spacing:-.035em}
+.entry-row{padding:18px 0}
+.entry-row h3{font-family:Manrope,'DM Sans',sans-serif!important;font-weight:680!important;font-size:19px;letter-spacing:-.025em}
+.entry-domain{color:#a96911}.entry-row .description{line-height:1.64}
+.alphabet button.selected{background:var(--q-ink)}
+.qa-kicker,.section-count,.article-series{color:#a9680a!important}
+.inline-answer{border-color:var(--q-line)!important}
+.qa-passage,.qa-part,.provider-hit,.rail-card,.document-card{border-color:var(--q-line)!important}
+.article-intro h1{letter-spacing:-.045em}
+.admin-top{background:var(--q-charcoal)!important;border-bottom:3px solid var(--q-orange)!important}
+.admin-top a{color:var(--q-orange)!important}
+aside{background:#faf9f7}
+nav button.active,nav button:hover{background:#1c1d1e!important;color:#fff!important}
+.work{background:#fffdfa}
+:where(.card,.rail-card,.provider-hit,.document-card){box-shadow:none}
+@media(min-resolution:2dppx){.folio-ornament svg{shape-rendering:geometricPrecision}}
+@media(max-width:760px){
+ .shell{width:min(calc(100% - 30px),1320px)}
+ .index-intro{min-height:0}.intro-copy{padding:28px 22px}
+ .intro-copy h1{font-size:clamp(30px,8vw,43px)}
+ .search-frame{min-height:0;padding-block:17px}
+ .reference-work{padding-block:24px}
+ .masthead{min-height:65px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
