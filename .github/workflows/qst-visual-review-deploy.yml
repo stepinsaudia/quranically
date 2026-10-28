@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: b11696b78923da2db0b947af36f4c8af0ea29ee7
+          ref: ffa13085cc6b83c195cfba90a0666e4df64fc21f
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -33,6 +33,8 @@ jobs:
           node --check src/index.mjs
           node --check src/site-shell.mjs
           node --check src/source-discovery.mjs
+          node --check src/hadeethenc-library.mjs
+          node --check public/source-shelves.js
           node --check public/answer.js
           node --check public/encyclopedia.js
           node --check public/admin.js
@@ -94,6 +96,18 @@ jobs:
             if(probe.results.some(x=>!x.source_url||!x.excerpt))throw Error('Unattributed external source record: '+domain);
             if(domain==='prophetic_medicine'&&!probe.providers.some(x=>x.id==='europe_pmc'))throw Error('Missing medical bibliography provider status');
             console.log('LIVE SOURCE FETCH',domain,probe.results.length,'records; statuses',probe.providers.map(p=>p.id+':'+p.status).join(','));
+          }
+          for(const domain of ['sunnah','seerah','prophetic_medicine','living_guidance']){
+            const shelves=await (await grab('/api/source-shelves?domain='+domain)).json();
+            if(shelves.source!=='canonical_d1'||!shelves.shelves?.length)throw Error('Missing canonical source shelves for '+domain);
+            const featured=shelves.shelves[0];
+            const params=new URLSearchParams({domain,shelf:featured.id});
+            const library=await (await grab('/api/source-shelves/records?'+params)).json();
+            if(library.status!=='available'||!library.records?.length)throw Error('Live HadeethEnc category unavailable for '+domain+' / '+featured.heading);
+            const id=library.records[0].id;
+            const detail=await (await grab('/api/source-shelves/detail?id='+id)).json();
+            if(detail.status!=='available'||!detail.passage||!detail.source_url)throw Error('Publisher detail unavailable for '+id);
+            console.log('LIVE PUBLISHER LIBRARY',domain,'shelves',shelves.shelves.length,'reports',library.records.length,'detail',id);
           }
           const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
           if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
