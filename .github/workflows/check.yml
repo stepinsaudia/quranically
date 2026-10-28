@@ -23,6 +23,7 @@ jobs:
           node --check public/admin.js
           node --check public/tibb.js
           node --check public/encyclopedia.js
+          node --check public/answer.js
           node --check scripts/encyclopedia-live-check.mjs
           node --check scripts/tibb-live-check.mjs
       - name: Run route and database tests
