@@ -142,7 +142,7 @@ test('Native Admin exposes Tibb modules through canonical endpoint without givin
 
 test('encyclopedia has source-linked articles spanning five disciplines',async()=>{
  const e=fixture();const articleCount=e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_articles').first().c;
- assert.equal(articleCount,18);
+ assert(articleCount>=23);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_sections').first().c>=70);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_citations').first().c>=30);
  const groups=await get(e,'/api/encyclopedia/subjects');assert.equal(groups.status,200);
