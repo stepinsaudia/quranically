@@ -201,6 +201,41 @@ async function adminApi(request,env,url,identity){
   if(identity.error)return json({error:identity.error},identity.status);
   const route=url.pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
   const entity=route[0]||'bootstrap';
+
+  if(entity==='media'){
+    if(request.method==='GET'){
+      const rows=(await env.DB.prepare("SELECT id,alt_text,mime_type,byte_size,status,created_at FROM media_assets ORDER BY created_at DESC LIMIT 120").all()).results;
+      return json({records:rows,notice:'Limited, Admin-uploaded WebP assets in canonical D1. Maximum 450 KB per file.'});
+    }
+    if(!originValid(request))return json({error:'Cross-origin edit blocked'},403);
+    if(request.method==='POST'&&route[1]==='upload'){
+      if((request.headers.get('content-type')||'').split(';')[0]!=='image/webp')return invalid('Optimised WebP image required');
+      const length=Number(request.headers.get('content-length')||'0');
+      if(length>450000)return invalid('WebP image exceeds 450 KB');
+      const payload=new Uint8Array(await request.arrayBuffer());
+      if(payload.byteLength<32||payload.byteLength>450000)return invalid('WebP image must be between 32 bytes and 450 KB');
+      if(String.fromCharCode(...payload.subarray(0,4))!=='RIFF'||String.fromCharCode(...payload.subarray(8,12))!=='WEBP')return invalid('Invalid WebP signature');
+      const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM media_assets WHERE status='active'").first();
+      if(Number(count?.n||0)>=100)return invalid('The managed image quota is full. Archive unused assets first.');
+      const alt=String(request.headers.get('x-image-alt')||'').trim().slice(0,180);
+      const id='m-'+crypto.randomUUID();
+      await env.DB.prepare("INSERT INTO media_assets(id,alt_text,mime_type,byte_size,payload) VALUES(?,?,?,?,?)").bind(id,alt,'image/webp',payload.byteLength,payload).run();
+      await audit(env.DB,identity.email,'upload','media_assets',id);
+      return json({ok:true,id,url:new URL('/media/'+id+'.webp',url.origin).href,byte_size:payload.byteLength});
+    }
+    if(request.method==='PUT'&&route[1]){
+      if(!validId(route[1]))return invalid('Invalid image ID');
+      const body=await parseBody(request);
+      if(body.status!=='archived'&&body.status!=='active')return invalid('Invalid image status');
+      const found=await env.DB.prepare('SELECT id FROM media_assets WHERE id=?').bind(route[1]).first();
+      if(!found)return json({error:'Media record not found'},404);
+      await env.DB.prepare("UPDATE media_assets SET status=?,updated_at=datetime('now') WHERE id=?").bind(body.status,route[1]).run();
+      await audit(env.DB,identity.email,'update','media_assets',route[1]);
+      return json({ok:true,id:route[1]});
+    }
+    return json({error:'Unsupported media action'},405);
+  }
+
   if(request.method==='GET'){
     if(entity==='whoami')return json({email:identity.email,protected:true});
     if(entity==='bootstrap'){
@@ -655,6 +690,14 @@ export default {
           return new Response('Administrator sign-in required',{status:actor.status,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
         }
         return await serveProtectedAdminAsset(request,env,'/admin');
+      }
+      if(path.startsWith('/media/')){
+        const match=/^\\/media\\/([a-z0-9-]{3,85})\\.webp$/.exec(path);
+        if(!match)return new Response('Not found',{status:404});
+        const row=await env.DB.prepare("SELECT payload FROM media_assets WHERE id=? AND status='active'").bind(match[1]).first();
+        if(!row)return new Response('Not found',{status:404});
+        const binary=row.payload instanceof Uint8Array?row.payload:Uint8Array.from(row.payload||[]);
+        return new Response(binary,{headers:{'content-type':'image/webp','cache-control':'public,max-age=300','x-content-type-options':'nosniff','cross-origin-resource-policy':'same-origin'}});
       }
       if(path==='/robots.txt'){
         return new Response('User-agent: *\\nDisallow: /admin\\nDisallow: /api/admin/\\nSitemap: '+url.origin+'/sitemap.xml\\n',{headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=3600'}});
