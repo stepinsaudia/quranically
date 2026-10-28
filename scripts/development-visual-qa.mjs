@@ -26,6 +26,8 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
    const layout=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,title:document.title}));
    if(layout.scroll>layout.w+6)throw Error('Horizontal overflow '+layout.scroll+' vs '+layout.w);
    if(name!=='admin'){
+    await page.locator('.qst-shell-header').waitFor({timeout:15000});
+    await page.locator('.qst-shell-footer').waitFor({timeout:15000});
     if(await page.locator('.qst-shell-header').count()!==1)throw Error('Missing canonical header');
     if(await page.locator('.qst-shell-footer').count()!==1)throw Error('Missing canonical footer');
    }
