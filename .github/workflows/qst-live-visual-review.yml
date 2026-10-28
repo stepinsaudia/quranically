@@ -65,6 +65,15 @@ jobs:
                   }else{
                     await page.locator('.discipline-hero').waitFor({timeout:16000});
                   }
+                  if(['hadith','seerah','tibb','guidance'].includes(name)){
+                    await page.locator('#sourceShelves:visible').waitFor({timeout:16000});
+                    await page.locator('#shelfTabs [data-shelf]').first().waitFor({timeout:16000});
+                    await page.locator('#shelfRecords [data-report]').first().waitFor({timeout:18000});
+                    await page.locator('#shelfRecords [data-report]').first().click();
+                    await page.locator('#shelfDetail h4').waitFor({timeout:18000});
+                    const detail=await page.locator('#shelfDetail').innerText();
+                    if(!detail.includes('Publisher explanation')||!detail.includes('Inspect official publisher record'))throw Error('Full provider text/explanation missing');
+                  }
                   await page.waitForTimeout(1100);
                 }
                 const data=await page.evaluate(()=>({
