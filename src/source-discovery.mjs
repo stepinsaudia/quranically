@@ -111,7 +111,7 @@ export async function liveSourceSearch(q,domain=''){
   {id:'hadith_collections',endpoint:t=>'/api/hadith/search?q='+encodeURIComponent(t)+'&limit=12',field:'hadiths',limit:12},
   {id:'duas',endpoint:t=>'/api/duas/search?q='+encodeURIComponent(t),field:'results',limit:8}
  ];
- const all=await Promise.all(groups.map(async group=>{
+ const tasks=groups.map(async group=>{
   const unique=new Map();let status='available',total=0,tried=0;
   for(const search of plans.slice(0,2)){
    tried++;
@@ -131,8 +131,9 @@ export async function liveSourceSearch(q,domain=''){
    }catch(e){status='temporarily_unavailable';if(tried===1)continue;}
   }
   return {id:group.id,status,records:[...unique.values()],total,queries:tried};
- }));
- if(domain==='prophetic_medicine')all.push(await researchSearch(q));
+ });
+ if(domain==='prophetic_medicine')tasks.push(researchSearch(q));
+ const all=await Promise.all(tasks);
  const raw=all.flatMap(g=>g.records);
  const evidence=rankSourceEvidence(raw,q,9);
  return {term,results:evidence,providers:all.map(({id,status,total,queries})=>({id,status,match_count:total,queries})),fetched_at:new Date().toISOString(),review_notice:'Provider records are not Quranically-verified scholarly rulings or medical evidence of effectiveness.'};
