@@ -968,3 +968,30 @@ test('the canonical publisher UI permits more than 8 records and always offers s
   assert(source.includes('id="shelfCategories"'));
  }
 });
+
+test('successful publisher reports are cacheable, missing reports are not cached',async()=>{
+ const env=fixture(),oldFetch=globalThis.fetch,oldCaches=globalThis.caches,stored=new Map();
+ let fetched=0;
+ try{
+  globalThis.caches={default:{
+   match:async request=>stored.get(request.url)?.clone()||undefined,
+   put:async(request,response)=>{stored.set(request.url,response.clone());}
+  }};
+  globalThis.fetch=async url=>{
+   fetched++;
+   const id=new URL(String(url)).searchParams.get('id');
+   if(id==='2962')return new Response(JSON.stringify({id,title:'Publisher report',hadeeth:'Source wording',explanation:'Publisher interpretation'}));
+   return new Response('Unavailable',{status:503});
+  };
+  const first=await get(env,'/api/source-shelves/detail?id=2962');
+  const second=await get(env,'/api/source-shelves/detail?id=2962');
+  assert.equal(first.status,200);
+  assert.equal(second.status,200);
+  assert.equal(second.headers.get('cache-control'),'public, max-age=3600');
+  assert.equal(fetched,1,'Publisher should not receive repeated requests for the same successful record');
+  const failed=await (await get(env,'/api/source-shelves/detail?id=9999')).json();
+  assert.equal(failed.status,'temporarily_unavailable');
+  await get(env,'/api/source-shelves/detail?id=9999');
+  assert.equal(fetched,3,'Unavailable publisher records must not be cached as success');
+ }finally{globalThis.fetch=oldFetch;if(oldCaches===undefined)delete globalThis.caches;else globalThis.caches=oldCaches;}
+});
