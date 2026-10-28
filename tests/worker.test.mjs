@@ -523,20 +523,20 @@ test('public page templates include the shared canonical shell asset',()=>{
 
 test('canonical header and footer exist in first HTML response; no old markup, double header or hidden swap',async()=>{
  const env=fixture();
- for(const [path,file] of [['/','index.html'],['/encyclopedia?domain=seerah','encyclopedia.html'],['/study.html','study.html'],['/guidance','guidance.html']]){
+ for(const [route,file] of [['/','index.html'],['/encyclopedia?domain=seerah','encyclopedia.html'],['/study.html','study.html'],['/guidance','guidance.html']]){
   env.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public',file),'utf8'),{status:200,headers:{'content-type':'text/html'}});
   const sample=fs.readFileSync(path.join(root,'public',file),'utf8');
-  try{await renderCanonicalShell(env,new URL('https://test.local'+path),new Response(sample,{headers:{'content-type':'text/html'}}));}catch(e){throw new Error('SSR direct error '+path+': '+e.message);}
-  const response=await get(env,path);
-  assert.equal(response.status,200,path);
+  try{await renderCanonicalShell(env,new URL('https://test.local'+route),new Response(sample,{headers:{'content-type':'text/html'}}));}catch(e){throw new Error('SSR direct error '+route+': '+e.message);}
+  const response=await get(env,route);
+  assert.equal(response.status,200,route);
   const html=await response.text();
-  assert.equal((html.match(/<header class="qst-shell-header"/g)||[]).length,1,path);
-  assert.equal((html.match(/<footer class="qst-shell-footer"/g)||[]).length,1,path);
-  assert(!html.includes('<!--QST_CANONICAL_HEADER-->'),path);
-  assert(!html.includes('<header class="header">'),path);
-  assert(!html.includes('<header class="site-header">'),path);
-  assert(!html.includes('<nav class="global-nav">'),path);
-  assert(html.includes('data-canonical-shell="server"'),path);
+  assert.equal((html.match(/<header class="qst-shell-header"/g)||[]).length,1,route);
+  assert.equal((html.match(/<footer class="qst-shell-footer"/g)||[]).length,1,route);
+  assert(!html.includes('<!--QST_CANONICAL_HEADER-->'),route);
+  assert(!html.includes('<header class="header">'),route);
+  assert(!html.includes('<header class="site-header">'),route);
+  assert(!html.includes('<nav class="global-nav">'),route);
+  assert(html.includes('data-canonical-shell="server"'),route);
   assert.equal(response.headers.get('cache-control'),'no-store');
  }
  env.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public','index.html'),'utf8'),{status:200,headers:{'content-type':'text/html'}});
