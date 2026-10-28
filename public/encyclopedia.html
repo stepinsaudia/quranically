@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/encyclopedia.css"><script src="/answer.js" defer></script><script src="/encyclopedia.js" defer></script>
 <link rel="stylesheet" href="/quranically-theme.css">
 <script src="/site-chrome.js" defer></script>
+<script src="/source-shelves.js" defer></script>
 </head><body>
 <svg class="defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 <symbol id="e-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="7.6"/><path d="m16.6 16.6 5.1 5.1"/></symbol>
@@ -38,6 +39,14 @@
 <aside class="subjects" id="subjectSidebar"><div class="side-label">BROWSE BY DISCIPLINE</div><div class="subject-controls" id="subjects"></div><div class="side-rule"></div><div class="side-label">METHOD & TRANSPARENCY</div><p class="side-explain">Religious texts are cited as religious evidence. Historical interpretation and modern clinical findings must be evaluated separately.</p><a href="#methodology" class="method-link">Read editorial methodology <svg><use href="#e-chevron"/></svg></a></aside>
 <div class="results">
 <section id="inlineAnswer" class="inline-answer" hidden aria-label="Quranically source-grounded answer"><div id="inlineAnswerBody" aria-live="polite"></div></section>
+<section id="sourceShelves" class="source-shelves" hidden aria-label="Browse authentic publisher categories">
+<div class="source-shelves-heading"><p class="overline">LIVE CURATED SOURCE COLLECTIONS / PUBLISHER INDEX</p><h3>Explore the original reference library</h3><p>Real HadeethEnc categories, selected in Quranically Admin. Read the report and the publisher’s explanation on this page. These records do not carry independent Quranically scholarly or clinical approval.</p></div>
+<nav id="shelfTabs" class="source-shelf-tabs" aria-label="Official source categories"></nav>
+<div id="shelfStatus" class="source-shelf-status" role="status" aria-live="polite"></div>
+<div id="shelfRecords" class="source-shelf-records"></div>
+<article id="shelfDetail" class="source-shelf-detail" hidden></article>
+<div class="source-shelf-credit">Publisher: <a href="https://hadeethenc.com/en/home" target="_blank" rel="noopener noreferrer">HadeethEnc</a> · Data retrieved live · Bibliographic and interpretation status shown separately</div>
+</section>
 <section id="federatedResults" class="federated-results" hidden aria-labelledby="federatedTitle">
  <div class="federated-heading"><p class="overline">CONNECTED SOURCE LIBRARY / LIVE DISCOVERY</p><h3 id="federatedTitle">Beyond the editorial articles</h3><p>Live searchable Qur’anic, Hadith and Du‘a references, plus a separate biomedical publication index for Prophetic Medicine. Source excerpts are <strong>not</strong> authenticated rulings or proven medical treatments.</p></div>
  <div id="sourceResultState" role="status" class="source-result-state"></div>
