@@ -1,5 +1,5 @@
 import {liveSourceSearch,rankSourceEvidence,CONNECTORS} from './source-discovery.mjs';
-import {curatedHadithList,curatedHadithDetail} from './hadeethenc-library.mjs';
+import {curatedHadithList,curatedHadithDetail,publisherCategoryTree} from './hadeethenc-library.mjs';
 import {renderCanonicalShell} from './site-shell.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -395,14 +395,29 @@ async function publicApi(request,env,url){
     const rows=(await env.DB.prepare("SELECT id,domain,heading,provider_category_id,sort_order FROM source_shelves WHERE status='published' AND domain=? ORDER BY sort_order,id LIMIT 16").bind(domain).all()).results;
     return json({domain,provider:'HadeethEnc',shelves:rows,source:'canonical_d1',notice:'Curated publisher categories are not the same as reviewed Quranically articles.'});
   }
+  if(pathname==='/api/source-shelves/tree'){
+    const domain=(url.searchParams.get('domain')||'').trim();
+    if(!['sunnah','seerah','prophetic_medicine','living_guidance'].includes(domain))return invalid('Invalid knowledge discipline');
+    const rows=(await env.DB.prepare("SELECT id,heading,provider_category_id FROM source_shelves WHERE domain=? AND status='published' ORDER BY sort_order,id LIMIT 16").bind(domain).all()).results;
+    const tree=await publisherCategoryTree(rows.map(x=>x.provider_category_id));
+    return json({domain,roots:rows.map(x=>({shelf:x.id,category_id:String(x.provider_category_id),heading:x.heading})),...tree,source:'hadeethenc_official_categories'});
+  }
   if(pathname==='/api/source-shelves/records'){
     const domain=(url.searchParams.get('domain')||'').trim();
     const shelfId=(url.searchParams.get('shelf')||'').trim();
     const page=Number(url.searchParams.get('page')||'1');
-    if(!['sunnah','seerah','prophetic_medicine','living_guidance'].includes(domain)||!/^[-a-z0-9]{3,85}$/.test(shelfId)||!Number.isSafeInteger(page)||page<1||page>20)return invalid('Invalid source collection request');
+    const subcategory=(url.searchParams.get('category')||'').trim();
+    if(!['sunnah','seerah','prophetic_medicine','living_guidance'].includes(domain)||!/^[-a-z0-9]{3,85}$/.test(shelfId)||!Number.isSafeInteger(page)||page<1||page>2000||subcategory&&!/^\d{1,6}$/.test(subcategory))return invalid('Invalid source collection request');
     const shelf=await env.DB.prepare("SELECT id,domain,heading,provider_category_id FROM source_shelves WHERE status='published' AND domain=? AND id=?").bind(domain,shelfId).first();
     if(!shelf)return json({error:'Published source shelf not found'},404);
-    const results=await curatedHadithList(shelf.provider_category_id,page);
+    let categoryId=Number(shelf.provider_category_id);
+    if(subcategory&&subcategory!==String(categoryId)){
+      const tree=await publisherCategoryTree([categoryId]);
+      if(tree.status!=='available')return json({error:'Category membership could not be verified against the publisher'},503);
+      if(!tree.categories.some(x=>x.id===subcategory&&x.shelf_root===String(categoryId)))return invalid('Category is not within the published collection');
+      categoryId=Number(subcategory);
+    }
+    const results=await curatedHadithList(categoryId,page);
     return json({domain,shelf:{id:shelf.id,heading:shelf.heading,provider_category_id:shelf.provider_category_id},...results,
       notice:'These are direct published-provider records, not independent Quranically authentication or medical treatment guidance.'});
   }
