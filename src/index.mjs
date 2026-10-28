@@ -431,6 +431,33 @@ async function publicApi(request,env,url){
       }
       if(score>0&&(!best||score>best.score))best={article:a,score,method};
     }
+    // Controlled related-topic recognition, used only if exact article matching
+    // fails. Two distinct meaningful concepts must match the same sourced record.
+    if(!best){
+      const generic=new Set(['islam','islamic','prophet','muhammad','messenger','hadith','quran','qur','says','say','tells','teach','teaches','did','does']);
+      const expansions={
+        trading:'trade',commerce:'trade',commercial:'trade',business:'trade',merchant:'trade',merchants:'trade',selling:'trade',buying:'trade',buyer:'trade',seller:'trade',
+        honesty:'honest',honestly:'honest',truthful:'honest',truthfulness:'honest',transparency:'honest',transparent:'honest',
+        deception:'fraud',deceptive:'fraud',deceiving:'fraud',cheating:'fraud',cheat:'fraud',deceit:'fraud',
+        justice:'fair',fairness:'fair',ethical:'ethic',ethics:'ethic',
+        remedies:'remedy',herbs:'remedy',supplements:'supplement',medical:'medicine',
+        risks:'risk',safe:'safety'
+      };
+      const canon=t=>expansions[t]||t;
+      const subjectTerms=[...new Set(queryTokens.filter(t=>!generic.has(t)).map(canon))];
+      if(subjectTerms.length>=2&&subjectTerms.length<=6){
+        let related=null;
+        for(const a of records){
+          const head=new Set(normalize([a.title,a.alternate_names].join(' ')).split(' ').map(canon));
+          const body=new Set(normalize([a.title,a.alternate_names,a.subtitle,a.abstract].join(' ')).split(' ').map(canon));
+          const matched=subjectTerms.filter(t=>body.has(t)),headMatched=matched.filter(t=>head.has(t));
+          if(matched.length!==subjectTerms.length||!headMatched.length)continue;
+          const score=25*matched.length+10*headMatched.length;
+          if(!related||score>related.score)related={article:a,score,method:'related_subject'};
+        }
+        if(related)best=related;
+      }
+    }
     // A question about two named subjects should not collapse to the first
     // article. Assemble distinguishable, sourced records from the SAME D1 CMS.
     const comparisonRequested=/\b(?:and|versus|vs\.?|compare|difference between)\b/i.test(q);
