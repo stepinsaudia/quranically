@@ -649,3 +649,10 @@ test('unphrased, legitimate questions resolve related canonical evidence without
  const nonsense=await (await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('unrelated purple antennas')+'&domain=sunnah')).json();
  assert.notEqual(nonsense.outcome,'full_article_answer');
 });
+
+test('homepage retains a discipline container so shared scripts cannot dereference null',()=>{
+ for(const page of ['index.html','encyclopedia.html']){
+  const html=fs.readFileSync(path.join(root,'public',page),'utf8');
+  assert(html.includes('id="disciplineLanding"'),page);
+ }
+});
