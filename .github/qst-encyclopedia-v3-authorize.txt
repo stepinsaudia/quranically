@@ -11,3 +11,5 @@ Search relevance correction: exact title hits must rank before source, chapter, 
 Owner-authorized canonical source-federation release: daily metadata-only connector health, live bounded Quran/Hadith/Dua provider search with provenance, separate editorial content, and two evidence-anchored pilot articles from user's failed searches. Apply additive migrations 0011 and 0012 to existing qst-knowledge-v1-db, deploy only qst-living-knowledge-v1. No external provider data mirrored and no unreviewed material promoted to approved. Execute live acceptance.
 
 Post-federation Admin refinement: expose source connector API permissions and freshness ledger within the existing canonical Editorial Desk. No additional migration or third-party data ingestion; deploy same Worker only and rerun full acceptance.
+
+Owner-requested canonical on-page answering correction: fix weak eyesight search and preserve diabetes and men's clothing full answers from same live D1 reference corpus. Run migration 0013 on existing qst-knowledge-v1-db; deploy same existing qst-living-knowledge-v1 Worker; require CI and live acceptance, with no other account resources or domains altered.
