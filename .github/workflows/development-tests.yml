@@ -32,6 +32,8 @@ jobs:
           node --check src/index.mjs
           node --check src/site-shell.mjs
           node --check src/source-discovery.mjs
+          node --check src/hadeethenc-library.mjs
+          node --check public/source-shelves.js
           node --check public/answer.js
           node --check public/encyclopedia.js
           node --check public/admin.js
