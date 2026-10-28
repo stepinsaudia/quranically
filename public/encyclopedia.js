@@ -7,21 +7,27 @@ const domains=[['','All disciplines'],...Object.entries(titles)];
 let filters={domain:new URLSearchParams(location.search).get('domain')||'',q:new URLSearchParams(location.search).get('q')||'',letter:''};
 if(!titles[filters.domain])filters.domain='';
 let selectedEntry=null;
-const disciplineMeta={
- quranic_themes:{eyebrow:'01 / REVELATION',title:'Divine guidance, for every step.',intro:'Explore Qur’anic themes, verse-linked commentary, and the meanings of revelation through an identifiable source record.',tabs:['Surah Index','Tafsir','Themes','Translations','Recitations'],focus:'Explore the Qur’an',tone:'quran'},
- sunnah:{eyebrow:'02 / TRANSMISSION',title:'The Prophet’s Sunnah, carefully sourced.',intro:'Read narrations with their collections, reported grading and explanations. Source attribution is not a substitute for qualified hadith review.',tabs:['Collections','Topics','Authenticity','Daily Sunnah','Scholars'],focus:'Explore the Hadith',tone:'hadith'},
- seerah:{eyebrow:'03 / HISTORY',title:'A remarkable life. A lasting legacy.',intro:'Discover the life, journey and character of Prophet Muhammad ﷺ through historical context and identifiable transmitted reports.',tabs:['Timeline','Key Events','Places','People','Daily Life'],focus:'Explore the Seerah',tone:'seerah'},
- prophetic_medicine:{eyebrow:'04 / HEALING TRADITIONS',title:'Prophetic Medicine, understood in context.',intro:'Explore foods, ingredients, practices and healing narrations while clearly distinguishing Islamic tradition from modern clinical evidence.',tabs:['Ingredients','Health Concerns','Traditional Practices','Research','Safety'],focus:'Explore Tibb al-Nabawi',tone:'tibb'},
- living_guidance:{eyebrow:'05 / APPLICATION',title:'Islamic knowledge for everyday life.',intro:'Understand questions of faith, worship, family and ethical conduct with sourced explanations and appropriate scholarly distinctions.',tabs:['Faith','Worship','Family','Business','Character'],focus:'Explore living guidance',tone:'guidance'}
-};
+const disciplineTones={quranic_themes:'quran',sunnah:'hadith',seerah:'seerah',prophetic_medicine:'tibb',living_guidance:'guidance'};
+let disciplinePages={};
 function renderDiscipline(){
- const d=disciplineMeta[filters.domain],el=$('disciplineLanding');
+ const d=disciplinePages[filters.domain],el=$('disciplineLanding');
  if(!d){el.hidden=true;el.innerHTML='';document.body.removeAttribute('data-discipline');return;}
- document.body.dataset.discipline=d.tone;
+ const tone=disciplineTones[filters.domain];
+ document.body.dataset.discipline=tone;
+ const tabs=String(d.pathway_labels||'').split('|').map(t=>t.trim()).filter(Boolean).slice(0,8);
+ const img=d.hero_image_url&&/^https:\/\//.test(d.hero_image_url)?d.hero_image_url:'';
  el.hidden=false;
- el.innerHTML='<div class="discipline-hero discipline-'+d.tone+'"><div class="discipline-copy"><span class="discipline-eyebrow">'+esc(d.eyebrow)+'</span><h2>'+esc(d.title)+'</h2><p>'+esc(d.intro)+'</p><a class="discipline-explore" href="#indexHeading">'+esc(d.focus)+' <span aria-hidden="true">→</span></a></div><div class="discipline-art" aria-hidden="true"><div class="discipline-art-frame"><span>'+esc(d.eyebrow.split(' / ')[1])+'</span></div></div></div><nav class="discipline-tabs" aria-label="'+esc(titles[filters.domain])+' pathways">'+d.tabs.map(t=>'<a href="#indexHeading" data-topic="'+esc(t)+'">'+esc(t)+'</a>').join('')+'</nav>';
+ el.innerHTML='<div class="discipline-hero discipline-'+tone+'"><div class="discipline-copy"><span class="discipline-eyebrow">'+esc(d.eyebrow)+'</span><h2>'+esc(d.heading)+'</h2><p>'+esc(d.introduction)+'</p><a class="discipline-explore" href="#indexHeading">Browse reference articles <span aria-hidden="true">→</span></a></div><div class="discipline-art" aria-hidden="true">'+(img?'<img src="'+esc(img)+'" alt="'+esc(d.hero_image_alt||'')+'" loading="lazy">':'<div class="discipline-art-frame"><span>'+esc((d.eyebrow||'KNOWLEDGE').split(' / ').pop())+'</span></div>')+'</div></div><nav class="discipline-tabs" aria-label="'+esc(titles[filters.domain])+' pathways">'+tabs.map(t=>'<a href="#indexHeading" data-topic="'+esc(t)+'">'+esc(t)+'</a>').join('')+'</nav>';
 }
-
+async function loadDisciplinePages(){
+ try{
+  const data=await api('/api/discipline-pages');
+  disciplinePages=Object.fromEntries((data.pages||[]).map(d=>[d.id,d]));
+  renderDiscipline();
+ }catch(e){
+  const el=$('disciplineLanding');el.hidden=true;el.innerHTML='';
+ }
+}
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;setTimeout(()=>t.hidden=true,2600);}
 async function api(url){const r=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(18000)});let o;try{o=await r.json()}catch{throw Error('The reference service is unavailable.')}if(!r.ok)throw Error(o.error||'Reference request failed');return o;}
 function indexLink(){const u=new URL('/encyclopedia',location.origin);if(filters.domain)u.searchParams.set('domain',filters.domain);if(filters.q)u.searchParams.set('q',filters.q);return u.pathname+u.search;}
@@ -179,6 +185,6 @@ window.addEventListener('popstate',()=>{
  }
 });
 const deep=activeSlug();
-loadSubjects();renderAlphabet();
+loadSubjects();loadDisciplinePages();renderAlphabet();
 if(deep){openArticle(deep,false);}else{showIndex();}
 })();
