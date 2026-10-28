@@ -1,7 +1,7 @@
 // Quranically's bounded, attributed live source lookup.
 // Live source evidence is never promoted to a scholarly verdict or clinical conclusion.
 const origin='https://ummahapi.com';
-const stop=new Set(['i','me','my','we','us','our','the','a','an','of','in','on','and','or','to','from','with','about','for','are','was','were','is','be','it','its','this','that','they','them','their','have','has','had','what','which','why','when','where','who','how','can','could','would','should','does','did','do','tell','please','give','show','explain','want','need','help','according','islam','islamic','prophetic','prophet','muhammad','medicine','seerah','biography','sunnah','hadith','quran','quranic','life','men','women','people','used','use','using']);
+const stop=new Set(['i','me','my','we','us','our','the','a','an','of','in','on','and','or','to','from','with','about','for','are','was','were','is','be','it','its','this','that','they','them','their','have','has','had','what','which','why','when','where','who','how','can','could','would','should','does','did','do','tell','please','give','show','explain','want','need','help','according','islam','islamic','prophetic','prophet','muhammad','medicine','seerah','biography','sunnah','hadith','quran','quranic','life','men','women','people','used','use','using','weak']);
 const aliases=new Map(Object.entries({
   clothes:'clothing',cloth:'clothing',garments:'clothing',garment:'clothing',dress:'clothing',dressed:'clothing',wear:'clothing',wore:'clothing',wearing:'clothing',attire:'clothing',robes:'clothing',robe:'clothing',
   fast:'fasting',fasts:'fasting',sawm:'fasting',ramadan:'ramadan',
