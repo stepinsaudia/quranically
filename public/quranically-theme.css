@@ -210,3 +210,8 @@ body:has(.qst-home-card-grid) .index-intro{margin-top:20px}
 .qa-passage>div{color:#17191b}
 .qa-bibliography li a,.qa-foot a{color:#92580c}
 .article-section h2,.article-intro h1{color:#17191b!important}
+
+/* Editors preview the same locked image crop before saving to public D1. */
+.admin-image-preview{margin-top:9px;width:min(100%,400px);aspect-ratio:1.85;border:1px solid #e7e5df;border-radius:9px;overflow:hidden;background:#f3f1ed}
+.admin-image-preview[hidden]{display:none}
+.admin-image-preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
