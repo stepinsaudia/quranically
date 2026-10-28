@@ -149,6 +149,9 @@ test('encyclopedia has fifteen source-linked articles spanning five disciplines'
  const subjects=(await groups.json()).subjects;assert.equal(subjects.length,5);
  const result=await get(e,'/api/encyclopedia?q=black%20seed');assert.equal(result.status,200);
  assert.deepEqual((await result.json()).entries.map(x=>x.slug),['black-seed']);
+ const direct=await get(e,'/api/encyclopedia?q=talbina');
+ assert.equal(direct.status,200);
+ assert.equal((await direct.json()).entries[0].slug,'talbina');
  const citationSearch=await get(e,'/api/encyclopedia?q=5688');assert.equal(citationSearch.status,200);
  assert((await citationSearch.json()).entries.some(x=>x.slug==='black-seed'));
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
