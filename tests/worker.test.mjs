@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -535,4 +535,28 @@ test('multi-topic questions compose substantive separately cited references on-s
  assert.notEqual(noCross.outcome,'multi_article_answer');
  const clean=await (await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('Black seed')+'&domain=prophetic_medicine')).json();
  assert.equal(clean.outcome,'full_article_answer');
+});
+
+test('newly indexed knowledge answers cover all five disciplines with independent references',async()=>{
+ const env=fixture();
+ const cases=[
+ ['quranic_themes','trade in Quran','quran-commerce-ethics'],
+ ['sunnah','truthfulness trade','truthful-trade-sunnah'],
+ ['seerah','market in seerah','prophetic-market-conduct'],
+ ['prophetic_medicine','medicine safety','traditional-remedies-safety'],
+ ['living_guidance','business ethics','islamic-business-ethics']
+ ];
+ for(const [domain,q,slug] of cases){
+  const response=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({domain,q}));
+  assert.equal(response.status,200,domain);
+  const data=await response.json();
+  assert.equal(data.outcome,'full_article_answer',domain);
+  assert.equal(data.answer.slug,slug,domain);
+  assert(data.answer.sections.length>=5,domain);
+  assert(data.answer.citations.length>=2,domain);
+  assert(data.answer.citations.every(c=>c.source_url.startsWith('https://')),domain);
+  assert.equal(data.answer.review_status,'editorial_draft');
+ }
+ const total=env.DB.prepare('SELECT COUNT(*) AS c FROM encyclopedia_articles').first().c;
+ assert(total>=23,'All five disciplines expanded without dropping earlier articles');
 });
