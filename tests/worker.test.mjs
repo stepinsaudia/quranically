@@ -247,3 +247,37 @@ test('Quran same-origin chapter API validates source alignment and rejects inven
   assert.equal((await get(env,'/api/quran/surah/1')).status,502);
  }finally{globalThis.fetch=original;}
 });
+
+test('canonical article SEO and XML sitemap use only published D1 entries',async()=>{
+ const env=fixture();
+ env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Quranically | The Islamic Reference Encyclopedia</title><meta name="description" content="Editorial encyclopedia"></head><body><div id="articleView"></div></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ const detail=await get(env,'/encyclopedia/black-seed');
+ assert.equal(detail.status,200);
+ const html=await detail.text();
+ assert(html.includes('<title>Black Seed | Quranically'));
+ assert(html.includes('rel="canonical"'));
+ assert(html.includes('/encyclopedia/black-seed'));
+ assert(html.includes('application/ld+json'));
+ assert(html.includes('editorial'));
+ const sitemap=await get(env,'/sitemap.xml');
+ assert.equal(sitemap.status,200);
+ const xml=await sitemap.text();
+ assert(xml.includes('<urlset'));
+ assert(xml.includes('/encyclopedia/black-seed'));
+ assert(xml.includes('/study.html'));
+ const robots=await (await get(env,'/robots.txt')).text();
+ assert(robots.includes('Disallow: /api/admin/'));
+ env.DB.prepare("UPDATE encyclopedia_articles SET status='draft' WHERE slug='black-seed'").run();
+ assert.equal((await get(env,'/encyclopedia/black-seed')).status,404);
+ assert(!(await (await get(env,'/sitemap.xml')).text()).includes('/encyclopedia/black-seed'));
+});
+test('Quran chapter list is validated before it is displayed',async()=>{
+ const env=fixture();const original=globalThis.fetch;
+ try{
+  globalThis.fetch=async()=>new Response(JSON.stringify({code:200,data:Array.from({length:114},(_,i)=>({number:i+1,numberOfAyahs:i===1?286:7,englishName:'Chapter '+(i+1),name:'سورة'}))}),{status:200});
+  const r=await get(env,'/api/quran/chapters');assert.equal(r.status,200);
+  const response=await r.json();assert.equal(response.chapters.length,114);
+  globalThis.fetch=async()=>new Response(JSON.stringify({code:200,data:[]}),{status:200});
+  assert.equal((await get(env,'/api/quran/chapters')).status,502);
+ }finally{globalThis.fetch=original;}
+});
