@@ -30,7 +30,7 @@ check(assets.every(x=>x.res.status===200),'Encyclopedia JS, CSS and vector brand
 const subjects=await read('/api/encyclopedia/subjects');check(subjects.res.status===200&&subjects.data?.subjects?.length===5,'Five live encyclopedia disciplines');
 const catalog=await read('/api/encyclopedia');check(catalog.res.status===200&&catalog.data?.entries?.length===18,'Eighteen canonical reference articles');
 const byName=await read('/api/encyclopedia?q=talbina');check(byName.res.status===200&&byName.data?.entries?.[0]?.slug==='talbina','Search for historic medicine terms');
-const medical=await read('/api/encyclopedia?domain=prophetic_medicine');check(medical.res.status===200&&medical.data?.entries?.length===9,'Nine editorial Prophetic Medicine entries');
+const medical=await read('/api/encyclopedia?domain=prophetic_medicine');check(medical.res.status===200&&medical.data?.entries?.length===10,'Ten editorial Prophetic Medicine entries');
 const religious=await read('/api/encyclopedia?domain=quranic_themes');check(religious.res.status===200&&religious.data?.entries?.length>=2,'Quranic concepts indexed separately');
 const diabetes=await read('/api/encyclopedia?domain=prophetic_medicine&q=diabetes');
 check(diabetes.res.status===200&&diabetes.data?.entries?.some(x=>x.slug==='diabetes-and-prophetic-medicine'),'Previously empty diabetes search now has sourced editorial reference');
