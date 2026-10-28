@@ -132,3 +132,13 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 @media(max-width:620px){.qst-home-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.qst-card-copy{padding:11px;min-height:120px}.qst-card-copy strong{font-size:12px}.qst-card-placeholder span{font-size:16px}}
 @media(max-width:420px){.qst-home-card-grid{grid-template-columns:1fr 1fr}.qst-card-media{aspect-ratio:1.4/1}}
 @media(prefers-reduced-motion:reduce){.qst-home-discipline{transition:none}}
+
+/* Canonical side-by-side evidence comparison: identical reading and attribution grammar. */
+.qa-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start;margin:22px 0}
+.qa-compare-article{min-width:0;padding:23px;background:#fff;border:1px solid #e7e5e0;border-radius:12px}
+.qa-compare-article h3{font:650 23px/1.25 Georgia,serif;margin:8px 0 13px}
+.qa-compare-article .qa-part{margin:12px 0;border-bottom:1px solid #e9e8e3;padding-bottom:12px}
+.qa-compare-article .qa-part h4{font:750 14px/1.5 Manrope,sans-serif}
+.qa-compare-article .qa-part p{font:400 12px/1.72 Manrope,sans-serif}
+.qa-compare-article .qa-bibliography{overflow-wrap:anywhere}
+@media(max-width:820px){.qa-compare-grid{grid-template-columns:1fr;gap:14px}.qa-compare-article{padding:18px}}
