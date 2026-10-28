@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -439,4 +439,19 @@ test('answer matching does not confuse accidental topic substrings',async()=>{
   assert.equal(data.outcome,'full_article_answer',q);
   assert.equal(data.answer.slug,slug,q);
  }
+});
+
+test('canonical Admin-driven discipline landing pages are read from D1',async()=>{
+ const env=fixture();
+ const res=await get(env,'/api/discipline-pages');assert.equal(res.status,200);
+ const data=await res.json();assert.equal(data.source,'canonical_d1');
+ assert.equal(data.pages.length,5);
+ assert(data.pages.every(p=>p.heading&&p.introduction&&p.pathway_labels));
+ env.DB.prepare("UPDATE discipline_pages SET heading='A new canonical title' WHERE id='seerah'").run();
+ const updated=await (await get(env,'/api/discipline-pages')).json();
+ assert.equal(updated.pages.find(p=>p.id==='seerah').heading,'A new canonical title');
+ env.DB.prepare("UPDATE discipline_pages SET status='draft' WHERE id='seerah'").run();
+ const hidden=await (await get(env,'/api/discipline-pages')).json();
+ assert.equal(hidden.pages.some(p=>p.id==='seerah'),false);
+ assert.equal((await get(env,'/api/admin/discipline_pages')).status,503);
 });
