@@ -352,6 +352,54 @@ async function publicApi(request,env,url){
     if(cache)await cache.put(requestKey,response.clone());
     return response;
   }
+  // Full on-page answer, built entirely from the SAME canonical published
+  // encyclopedia articles, sections and bibliography that Admin edits.
+  // This is controlled retrieval, never fabricated 'AI' medical or religious advice.
+  if(pathname==='/api/encyclopedia/answer'){
+    const q=(url.searchParams.get('q')||'').trim().slice(0,110);
+    const domain=(url.searchParams.get('domain')||'').trim();
+    if(q.length<2)return invalid('Ask a question with at least two characters');
+    const domains=['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'];
+    if(domain&&!domains.includes(domain))return invalid('Invalid subject');
+    const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').replace(/\s+/g,' ').trim();
+    const stop=new Set(['i','have','a','an','the','is','are','my','me','with','about','tell','can','you','please','what','how','do','to','in','on','of','for','and','prophetic','medicine','seerah','biography','please','want','need','help']);
+    const meaningful=value=>normalize(value).split(' ').filter(t=>t.length>2&&!stop.has(t));
+    const query=normalize(q),queryTokens=meaningful(q);
+    const records=(await env.DB.prepare("SELECT * FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).results;
+    let best=null;
+    for(const a of records){
+      const aliases=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(Boolean);
+      let score=0,method='';
+      for(const alias of aliases){
+        const tokens=meaningful(alias);
+        if(!tokens.length)continue;
+        let n=0;
+        if(query===alias){n=150+Math.min(20,tokens.length*3);}
+        else if(query.includes(alias)&&tokens.length>1){n=115+Math.min(20,tokens.length*2);}
+        else if(alias.includes(query)&&queryTokens.length>1){n=75;}
+        else if(queryTokens.length&&tokens.length){
+          const hits=queryTokens.filter(t=>tokens.includes(t));
+          if(hits.length===queryTokens.length&&hits.length>=2)n=70;
+          else if(queryTokens.length===1&&hits.length===1&&tokens.length===1)n=55;
+        }
+        if(n>score){score=n;method=n>=100?'direct_subject':n>=70?'phrase_match':'subject_match';}
+      }
+      if(score>0&&(!best||score>best.score))best={article:a,score,method};
+    }
+    if(!best)return json({outcome:'no_editorial_answer',query:q,domain,notice:'No matching full encyclopedia article has been reviewed for this question. Unrelated source excerpts are deliberately omitted.',answer:null});
+    const entry=best.article;
+    const [sections,citations,links,passages]=await Promise.all([
+      env.DB.prepare('SELECT heading,section_type,body,sort_order FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
+      env.DB.prepare('SELECT citation_type,source_title,citation_ref,source_url,source_note,verification_status,sort_order FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
+      env.DB.prepare("SELECT l.relation_label,a.slug,a.title FROM encyclopedia_links l JOIN encyclopedia_articles a ON a.id=l.target_article_id WHERE l.article_id=? AND a.status='published' ORDER BY l.sort_order,l.id").bind(entry.id).all(),
+      env.DB.prepare("SELECT passage_type,arabic_excerpt,editorial_meaning,review_status FROM encyclopedia_passages WHERE article_id=? AND status='published' ORDER BY sort_order,id").bind(entry.id).all()
+    ]);
+    if(sections.results.length<3||!citations.results.length)return json({outcome:'no_editorial_answer',query:q,domain,notice:'This topic does not yet have enough attributable sections for a full answer.',answer:null});
+    return json({outcome:'full_article_answer',query:q,match:best.method,
+      answer:{id:entry.id,slug:entry.slug,title:entry.title,arabic_title:entry.arabic_title,domain:entry.domain,abstract:entry.abstract,review_status:entry.review_status,updated_at:entry.updated_at,
+        sections:sections.results,citations:citations.results,related:links.results,passages:passages.results},
+      provenance:'Live, canonical D1 encyclopedia article; source texts and interpretations are not independently expert-approved unless explicitly indicated.'});
+  }
   if(pathname==='/api/encyclopedia/subjects'){
     const groups=(await env.DB.prepare("SELECT domain,COUNT(*) AS entries FROM encyclopedia_articles WHERE status='published' GROUP BY domain ORDER BY domain").all()).results;
     return json({subjects:groups,review_policy:'Content is editorially sourced; independent expert verification is pending unless explicitly shown.'});
