@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci
+      - run: npm install --no-package-lock
       - name: Worker unit and isolated database migration tests
         run: npm test
       - name: Static JavaScript syntax checks
@@ -30,3 +30,5 @@ jobs:
           node --check src/source-discovery.mjs
           node --check public/answer.js
           node --check public/encyclopedia.js
+          node --check public/admin.js
+          node --check public/site-chrome.js
