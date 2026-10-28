@@ -36,6 +36,18 @@ async function load(){
    old.innerHTML='<div class="qst-footer-inner"><div class="qst-foot-intro"><a class="qst-foot-brand" href="/"><img src="/favicon.svg" alt="" width="33" height="33"><span>'+esc(footer.heading||'Quranically')+'</span></a><p>'+esc(footer.body||footer.subtitle)+'</p></div>'+columns+'</div><div class="qst-footer-bottom"><span>'+esc(footer.subtitle||'The Islamic Reference Encyclopedia')+'</span><span>'+esc(footer.kicker||'Knowledge · Evidence · Context')+'</span></div>';
   }
  }
+ const seoMap={quranic_themes:'quran-themes',sunnah:'hadith',seerah:'seerah',prophetic_medicine:'tibb',living_guidance:'living-guidance'};
+ const route=location.pathname;
+ const seoKey=(route==='/'||route==='/index.html')?'home':(route==='/study'||route==='/study.html')?'quran-reader':(route==='/guidance'||route==='/guidance.html')?'guidance':route.startsWith('/encyclopedia/')?null:route.startsWith('/encyclopedia')?(seoMap[new URLSearchParams(location.search).get('domain')]||'encyclopedia'):null;
+ const currentSeo=(data.page_seo||[]).find(x=>x.id===seoKey);
+ if(currentSeo){
+  document.title=currentSeo.title;
+  const setMeta=(attribute,key,val)=>{let node=document.querySelector('meta['+attribute+'="'+key+'"]');if(!node){node=document.createElement('meta');node.setAttribute(attribute,key);document.head.append(node);}node.setAttribute('content',val);};
+  setMeta('name','description',currentSeo.description);
+  setMeta('property','og:title',currentSeo.title);
+  setMeta('property','og:description',currentSeo.description);
+  const photo=safeImage(currentSeo.social_image_url);if(photo)setMeta('property','og:image',photo);
+ }
  const home=panels.homepage;
  if(home&&(location.pathname==='/'||location.pathname==='/index.html')){
   const intro=document.querySelector('#indexView .intro-copy');
