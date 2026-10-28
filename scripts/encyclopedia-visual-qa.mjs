@@ -21,7 +21,7 @@ for(const size of [{name:'desktop',width:1440,height:980},{name:'mobile',width:3
  page.on('pageerror',e=>failures.push(size.name+' script error: '+e.message));
  await page.goto(origin+'/',{waitUntil:'domcontentloaded',timeout:35000});
  await page.locator('#results .entry-row').first().waitFor({timeout:25000});
- await auditPage(page,size.name+' encyclopedia',{selector:'.entry-row',minimum:15});
+ await auditPage(page,size.name+' encyclopedia',{selector:'.entry-row',minimum:17});
  await page.screenshot({path:'artifacts/encyclopedia-'+size.name+'.png',fullPage:true});
  await page.goto(origin+'/encyclopedia/black-seed',{waitUntil:'domcontentloaded',timeout:35000});
  await page.locator('.article-section').first().waitFor({timeout:25000});
@@ -39,6 +39,18 @@ for(const size of [{name:'desktop',width:1440,height:980},{name:'mobile',width:3
  if(chapter!=='114')throw Error('Quran Reader deep link selected wrong chapter number: '+chapter);
  await auditPage(page,size.name+' Quran Reader deep link',{selector:'.qrAyah',minimum:6});
  await page.screenshot({path:'artifacts/quran-reader-'+size.name+'.png',fullPage:true});
+ await page.goto(origin+'/encyclopedia?domain=seerah&q=clothing%20for%20men',{waitUntil:'domcontentloaded',timeout:35000});
+ await page.locator('#results .entry-row').first().waitFor({timeout:25000});
+ await page.locator('#sourceResults .provider-hit').first().waitFor({timeout:28000});
+ const heading=await page.locator('#results .entry-row h3').first().innerText();
+ if(!heading.toLowerCase().includes('clothing'))throw Error('Clothing Seerah editorial entry not ranked on '+size.name);
+ await auditPage(page,size.name+' connected Hadith search',{selector:'#sourceResults .provider-hit',minimum:1});
+ await page.screenshot({path:'artifacts/seerah-clothing-search-'+size.name+'.png',fullPage:true});
+ await page.goto(origin+'/encyclopedia?domain=prophetic_medicine&q=diabetes',{waitUntil:'domcontentloaded',timeout:35000});
+ await page.locator('#results .entry-row').first().waitFor({timeout:25000});
+ if(!(await page.locator('#results .entry-row h3').first().innerText()).toLowerCase().includes('diabetes'))throw Error('Diabetes reference not found on '+size.name);
+ await auditPage(page,size.name+' diabetes search',{selector:'#results .entry-row',minimum:1});
+ await page.screenshot({path:'artifacts/diabetes-search-'+size.name+'.png',fullPage:true});
  await page.close();
 }
 const admin=await browser.newPage({viewport:{width:1440,height:900}});
@@ -50,7 +62,7 @@ if(loginStatus!==200)throw Error('Browser Admin sign-in failed HTTP '+loginStatu
 await admin.goto(origin+'/admin',{waitUntil:'domcontentloaded'});
 await admin.locator('#records .record').first().waitFor({timeout:25000});
 const artCount=await admin.locator('#records .record').count();
-if(artCount!==15)throw Error('Browser Admin shows '+artCount+' articles, expected 15');
+if(artCount!==17)throw Error('Browser Admin shows '+artCount+' articles, expected 17');
 await auditPage(admin,'canonical desktop Admin',{selector:'#records .record',minimum:15});
 await admin.screenshot({path:'artifacts/canonical-admin-desktop.png',fullPage:true});
 await admin.locator('button[data-action="workspace"]').first().click();
