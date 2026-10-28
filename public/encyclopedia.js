@@ -161,6 +161,7 @@ $('alphabet').addEventListener('click',event=>{
  const b=event.target.closest('button[data-letter]');if(!b)return;filters.letter=b.dataset.letter==='ALL'?'':b.dataset.letter;refresh();
 });
 document.addEventListener('click',event=>{
+ const topic=event.target.closest('[data-topic]');if(topic){event.preventDefault();filters.q=topic.dataset.topic;filters.letter='';$('query').value=filters.q;history.pushState({},'',indexLink());refresh();$('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});return;}
  const a=event.target.closest('a[data-open]');if(!a)return;event.preventDefault();openArticle(a.dataset.open);
 });
 $('backIndex').addEventListener('click',event=>{event.preventDefault();history.pushState({},'',indexLink());showIndex();});
