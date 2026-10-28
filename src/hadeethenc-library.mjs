@@ -66,17 +66,16 @@ export async function publisherCategoryTree(rootIds){
     reported_count:Number.isFinite(count)&&count>=0?count:null};
   }).filter(x=>x&&x.title);
   const byId=new Map(records.map(x=>[x.id,x]));
-  const memo=new Map();
-  function rootFor(id){
-   if(memo.has(id))return memo.get(id);
-   const seen=new Set();let at=id;
-   while(at&&!seen.has(at)){
-    if(roots.has(at)){memo.set(id,at);return at;}
-    seen.add(at);at=byId.get(at)?.parent_id||null;
-   }
-   memo.set(id,null);return null;
+  function ancestorsInApprovedRoots(id){
+    const found=[],seen=new Set();let at=id;
+    while(at&&!seen.has(at)){
+      if(roots.has(at))found.push(at);
+      seen.add(at);at=byId.get(at)?.parent_id||null;
+    }
+    return found;
   }
-  const scoped=records.map(x=>({...x,shelf_root:rootFor(x.id)})).filter(x=>x.shelf_root!==null);
+  const scoped=records.map(x=>({...x,shelf_roots:ancestorsInApprovedRoots(x.id)}))
+    .filter(x=>x.shelf_roots.length>0);
   return {status:'available',categories:scoped,reported_nodes:scoped.length,
    source_url:origin+'/api/v1/categories/list/?language=en',
    notice:'Provider category counts are reported by the publisher; categories may overlap and are not unique Quranically articles.'};
