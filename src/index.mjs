@@ -217,7 +217,7 @@ async function adminApi(request,env,url,identity){
   try{values=normalize(entity,await parseBody(request),request.method==='POST'?'POST':'PUT');}
   catch(err){return invalid(String(err.message||err));}
   const id=route[1]||crypto.randomUUID();
-  if(!validId(id))return invalid('Invalid record ID');
+  if(!validId(id)&&!(['discipline_pages','homepage_disciplines'].includes(entity)&&['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance'].includes(id)))return invalid('Invalid record ID');
   // A commercial listing may be public only after explicit independent
   // verification and only for a seller-eligible ingredient—not for procedures
   // or devotional practices. The public API applies the same filter.
