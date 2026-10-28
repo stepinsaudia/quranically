@@ -840,3 +840,14 @@ test('Tibb backend retrieves independent Europe PMC references without inventing
   assert(!other.providers.some(x=>x.id==='europe_pmc'));
  }finally{globalThis.fetch=old;}
 });
+
+test('canonical article matches never suppress independent live source retrieval',()=>{
+ const client=fs.readFileSync(path.join(root,'public','encyclopedia.js'),'utf8');
+ assert(client.includes("if(filters.q){liveSources(filters.q,filters.domain);}"));
+ assert(!client.includes("}else if(filters.q){liveSources(filters.q,filters.domain);}"));
+ assert(client.indexOf('id')>=0);
+ for(const template of ['index.html','encyclopedia.html']){
+  const page=fs.readFileSync(path.join(root,'public',template),'utf8');
+  assert(page.indexOf('id="federatedResults"')<page.indexOf('id="indexHeading"'),template);
+ }
+});
