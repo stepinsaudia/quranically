@@ -1,5 +1,4 @@
-Approved for existing Quranically Worker live visual review only.
-Pinned development commit: 6ebf59f362a390a00ce73b8f457460d9a91582a4
-Target Worker: qst-living-knowledge-v1
-Target D1: qst-knowledge-v1-db
-No other Cloudflare resources or Workers authorised.
+AUTHORIZE EXISTING QURANICALLY WORKER NO-FLASH HEADER FIX
+Pinned QA-passed development commit: 1496bfddf8d4f092c88d06137971ff5b089a2691
+Scope: remove initial legacy header/footer, server-render canonical D1 shell, no new Worker or database.
+Live smoke test must confirm exactly one canonical header/footer in first HTML.
