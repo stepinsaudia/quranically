@@ -256,3 +256,13 @@ header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst
 .source-shelf-credit{padding:11px 17px;background:#f8f7f4;color:#76736d;font:500 10px/1.5 Manrope,sans-serif}
 .source-shelf-credit a{color:#8a530d}
 @media(max-width:700px){.source-shelf-records{grid-template-columns:1fr}.source-shelves-heading{padding:19px 17px}.source-shelf-detail{padding:16px}.source-shelves-heading h3{font-size:25px}}
+
+/* Complete official source category taxonomy with bounded, navigable pages. */
+.source-shelf-categories{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:0 17px 10px}
+.source-shelf-categories label{font:700 11px/1.5 Manrope,sans-serif;color:#4a4a46}
+.source-shelf-categories select{max-width:100%;min-width:220px;flex:1;border:1px solid #dfddd6;background:#fdfbf7;color:#222;border-radius:8px;font:600 12px/1.5 Manrope,sans-serif;padding:10px}
+.source-shelf-categories p{margin:0;color:#666;font:500 11px/1.6 Manrope,sans-serif}
+.source-shelf-pagination{display:flex;grid-column:1/-1;justify-content:space-between;gap:12px}
+.source-shelf-pagination button{cursor:pointer;background:#f7ede0;color:#794407;border:1px solid #e8cda8;border-radius:8px;font:700 12px Manrope,sans-serif;padding:10px 15px}
+.source-shelf-detail button[data-report]{cursor:pointer;border:1px solid #e8cda8;border-radius:6px;background:#fff;padding:8px;color:#794407}
+@media(max-width:700px){.source-shelf-categories{display:block}.source-shelf-categories select{margin:5px 0;width:100%;min-width:0}.source-shelf-pagination{flex-wrap:wrap}}
