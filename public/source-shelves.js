@@ -82,6 +82,13 @@ function setup(){
   const more=e.target.closest('[data-page]');if(more&&current)loadRecords(++epoch,current.active,Number(more.dataset.page));
  });
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+function start(){
+ setup();
+ // encyclopedia.js executes earlier (defer), so first-load initialization must
+ // not depend on its first refresh happening after this module is registered.
+ const domain=new URLSearchParams(location.search).get('domain')||'';
+ load(domain);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 window.QuranicallySourceShelves={load};
 })();
