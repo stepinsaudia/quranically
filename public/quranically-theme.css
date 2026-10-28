@@ -80,3 +80,12 @@ nav button.active,nav button:hover{background:#1c1d1e!important;color:#fff!impor
 .discipline-tabs a:hover{background:#fff0d8;border-color:#f5a52e}
 body[data-discipline] .index-intro{display:none}
 @media(max-width:720px){.discipline-hero{grid-template-columns:1fr}.discipline-copy{padding:27px 23px}.discipline-art{min-height:155px;max-height:155px}.discipline-copy h2{font-size:30px}}
+
+/* Approved shared black masthead, separated from light content sections. */
+body:not(:has(.admin-top)) .header,body:not(:has(.admin-top)) .global-nav{background:#141516!important;border-color:#343536!important;color:#fff}
+body:not(:has(.admin-top)) .identity strong{color:#fff!important}
+body:not(:has(.admin-top)) .identity small{color:#d2c7b8!important}
+body:not(:has(.admin-top)) .edition b{color:#eee!important}
+body:not(:has(.admin-top)) .global-nav-inner a{color:#eaeaea}
+body:not(:has(.admin-top)) .global-nav-inner a.current,body:not(:has(.admin-top)) .global-nav-inner a:hover{color:#f9b24e!important}
+body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
