@@ -518,3 +518,21 @@ test('public page templates include the shared canonical shell asset',()=>{
   assert(markup.includes('/quranically-theme.css'),page);
  }
 });
+
+test('multi-topic questions compose substantive separately cited references on-screen',async()=>{
+ const env=fixture();
+ const response=await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('Compare black seed and honey')+'&domain=prophetic_medicine');
+ assert.equal(response.status,200);
+ const result=await response.json();
+ assert.equal(result.outcome,'multi_article_answer');
+ assert.equal(result.answer,null);
+ assert(result.articles.some(a=>a.slug==='black-seed'));
+ assert(result.articles.some(a=>a.slug==='honey'));
+ assert(result.articles.every(a=>a.sections.length>=3&&a.citations.length>=1));
+ assert(result.articles.every(a=>a.citations.every(c=>c.source_url.startsWith('https://'))));
+ assert(result.articles.every(a=>a.review_status==='editorial_draft'));
+ const noCross=await (await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('Compare honey and patience')+'&domain=prophetic_medicine')).json();
+ assert.notEqual(noCross.outcome,'multi_article_answer');
+ const clean=await (await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('Black seed')+'&domain=prophetic_medicine')).json();
+ assert.equal(clean.outcome,'full_article_answer');
+});
