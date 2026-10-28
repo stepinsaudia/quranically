@@ -131,7 +131,7 @@ header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gr
   <div class="container qrBody">
     <div class="qrReaderHead">
       <div><span class="qrSectionLabel">THE QURAN READER</span><h2 id="qrSurahTitle">Al-Fatihah <span>الفاتحة</span></h2><p id="qrSurahSub">The Opening · Chapter 1 of 114 · Seven Ayahs</p></div>
-      <a href="#top" class="qrBack"><svg class="ico"><use href="#i-chevron"/></svg> Back to life guidance</a>
+      <a href="#top" class="qrBack"><svg class="ico"><use href="#i-chevron"/></svg> Return to guided study</a>
     </div>
     <div class="qrControlPanel">
       <div class="qrControlTop">
@@ -346,7 +346,7 @@ bootstrap.forEach((v,i)=>{v.words=offlineWordSets[i];v.wordSource='Built-in Al-F
 const wordAudio=$qr('qrWordAudio');
 for(let i=1;i<=114;i++){const o=document.createElement('option');o.value=i;o.textContent=`${String(i).padStart(3,'0')} · ${officialTitles[i]||'Surah '+i}`;qs.appendChild(o)}
 const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-function readerMode(){const on=location.hash==='#reader'||location.hash.startsWith('#reader-');document.body.classList.toggle('reader-mode',on);document.getElementById('fullReader').hidden=!on;document.getElementById('top').hidden=on;document.getElementById('copyJourney').hidden=on; if(on){window.scrollTo(0,0);if(!versesEl.children.length)renderVerses();}else {audio.pause();wordAudio.pause();chain=false;playingIndex=-1}}
+function readerMode(){const on=!location.hash||location.hash==='#reader'||location.hash.startsWith('#reader-');document.body.classList.toggle('reader-mode',on);document.getElementById('fullReader').hidden=!on;document.getElementById('top').hidden=on;document.getElementById('copyJourney').hidden=on; if(on){window.scrollTo(0,0);if(!versesEl.children.length)renderVerses();}else {audio.pause();wordAudio.pause();chain=false;playingIndex=-1}}
 window.addEventListener('hashchange',readerMode);readerMode();
 [...document.querySelectorAll('.nav a')].filter(x=>x.getAttribute('href')!=='#reader').forEach(x=>x.addEventListener('click',()=>{if(location.hash==='#reader'){location.hash=x.getAttribute('href')}}));
 function loadTitles(){fetch('/api/quran/chapters').then(r=>{if(!r.ok)throw Error('metadata');return r.json()}).then(j=>{if(!Array.isArray(j.chapters))return;j.chapters.forEach(s=>{const o=qs.options[s.number-1];if(o)o.textContent=`${String(s.number).padStart(3,'0')} · ${s.englishName}`})}).catch(()=>{setStatus('Chapter names unavailable from the reading provider; numbered chapters remain accessible.')});}
