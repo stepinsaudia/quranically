@@ -24,6 +24,9 @@ jobs:
       - run: npm install --no-package-lock
       - name: Worker unit and isolated database migration tests
         run: npm test
+      - name: Official category and clinical provider read-only connectivity
+        continue-on-error: true
+        run: node scripts/official-library-probe.mjs
       - name: Read-only production source availability diagnostics (nonblocking)
         continue-on-error: true
         run: node scripts/live-source-diagnostics.mjs
