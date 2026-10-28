@@ -100,8 +100,11 @@ async function refresh(){
  if(seq!==refreshSequence)return;
  if(matched){
   $('indexHeading').textContent='Additional encyclopedia results';
-  $('indexSubtitle').textContent='The complete contextual response appears above. References and further reading follow.';
- }else if(filters.q){liveSources(filters.q,filters.domain);}
+  $('indexSubtitle').textContent='The contextual editorial response appears above. Independently attributed live references are checked separately.';
+ }
+ // Search provider indexes on every legitimate question, including when a
+ // canonical article exists. Editorial articles must not block live source access.
+ if(filters.q){liveSources(filters.q,filters.domain);}
  else if(filters.domain){
   const sample={sunnah:'truthfulness',seerah:'migration',prophetic_medicine:'honey',living_guidance:'patience',quranic_themes:'mercy'}[filters.domain];
   if(sample)liveSources(sample,filters.domain,{featured:true});
