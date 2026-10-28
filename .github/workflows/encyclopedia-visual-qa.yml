@@ -19,10 +19,10 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts --no-audit playwright
           npx playwright install --with-deps chromium
-      - name: Read-only live endpoint acceptance including full contextual answers
+      - name: Verify live full context answers and canonical Admin (independent of Quran provider)
         env:
           QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
-        run: node scripts/encyclopedia-live-check.mjs
+        run: node scripts/answer-live-check.mjs
       - name: Capture real site and test visual bounds and Admin
         env:
           QST_ADMIN_PASSWORD: ${{ secrets.QST_ADMIN_PASSWORD }}
