@@ -35,6 +35,10 @@ jobs:
             ['tibb','/encyclopedia?domain=prophetic_medicine'],
             ['guidance','/encyclopedia?domain=living_guidance'],
             ['tibb-answer','/encyclopedia?domain=prophetic_medicine&q=ginger'],
+            ['sunnah-sources','/encyclopedia?domain=sunnah&q=fasting'],
+            ['seerah-sources','/encyclopedia?domain=seerah&q=clothing%20for%20men'],
+            ['tibb-sources','/encyclopedia?domain=prophetic_medicine&q=honey'],
+            ['guidance-sources','/encyclopedia?domain=living_guidance&q=patience'],
             ['admin','/admin']
           ];
           for(const size of [{label:'desktop',width:1440,height:900},{label:'mobile',width:390,height:844}]){
@@ -54,6 +58,10 @@ jobs:
                     if(await page.locator('.qst-home-discipline').count()!==5)throw Error('Home must have 5 discipline cards');
                   }else if(name==='tibb-answer'){
                     await page.locator('#inlineAnswer .qa-part').first().waitFor({timeout:18000});
+                  }else if(name.endsWith('-sources')){
+                    await page.locator('#sourceResults .provider-hit').first().waitFor({timeout:30000});
+                    const state=await page.locator('#sourceResultState').innerText();
+                    if(!state.includes('relevant source excerpt'))throw Error('Live provider results not surfaced: '+state);
                   }else{
                     await page.locator('.discipline-hero').waitFor({timeout:16000});
                   }
