@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: 1496bfddf8d4f092c88d06137971ff5b089a2691
+          ref: b11696b78923da2db0b947af36f4c8af0ea29ee7
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -32,6 +32,8 @@ jobs:
           npm test
           node --check src/index.mjs
           node --check src/site-shell.mjs
+          node --check src/source-discovery.mjs
+          node --check public/answer.js
           node --check public/encyclopedia.js
           node --check public/admin.js
           node --check public/site-chrome.js
@@ -85,6 +87,14 @@ jobs:
           if((disc.pages||[]).length!==5||(disc.pathways||[]).length<20)throw Error('Discipline pages/pathways incomplete');
           const answer=await (await grab('/api/encyclopedia/answer?domain=prophetic_medicine&q=ginger')).json();
           if(answer.outcome!=='full_article_answer')throw Error('Prophetic Medicine on-page answer failed');
+          for(const [domain,q] of [['sunnah','fasting'],['seerah','clothing for men'],['prophetic_medicine','honey'],['living_guidance','patience']]){
+            const qs=new URLSearchParams({domain,q});
+            const probe=await (await grab('/api/source-discovery?'+qs)).json();
+            if(!probe.providers?.length||!probe.results?.length)throw Error('No live source retrieval for '+domain+' / '+q);
+            if(probe.results.some(x=>!x.source_url||!x.excerpt))throw Error('Unattributed external source record: '+domain);
+            if(domain==='prophetic_medicine'&&!probe.providers.some(x=>x.id==='europe_pmc'))throw Error('Missing medical bibliography provider status');
+            console.log('LIVE SOURCE FETCH',domain,probe.results.length,'records; statuses',probe.providers.map(p=>p.id+':'+p.status).join(','));
+          }
           const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
           if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
           for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
