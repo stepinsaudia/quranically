@@ -18,7 +18,7 @@ async function load(){
   if(old){
    const shell=document.createElement('header');
    shell.className='qst-shell-header';
-   shell.innerHTML='<div class="qst-shell-inner"><a class="qst-shell-brand" href="/" aria-label="Quranically home"><img src="/favicon.svg" alt="" width="37" height="37"><span><strong>'+esc(header.heading)+'</strong><small>'+esc(header.kicker||'The Islamic Reference Encyclopedia')+'</small></span></a><nav class="qst-shell-nav" id="qstShellNav" aria-label="Main navigation">'+nav.map(x=>linkHtml(x,location.pathname===safeLink(x.href)?'qst-active':'')).join('')+'</nav><button type="button" class="qst-shell-menu" aria-controls="qstShellNav" aria-expanded="false">Menu</button></div>';
+   shell.innerHTML='<div class="qst-shell-inner"><a class="qst-shell-brand" href="/" aria-label="Quranically home"><img src="/favicon.svg" alt="" width="37" height="37"><span><strong>'+esc(header.heading)+'</strong><small>'+esc(header.kicker||'The Islamic Reference Encyclopedia')+'</small></span></a><nav class="qst-shell-nav" id="qstShellNav" aria-label="Main navigation">'+nav.map(x=>{const u=safeLink(x.href);const target=u?new URL(u,location.origin):null;const active=target&&target.pathname===location.pathname&&target.search===location.search;return linkHtml(x,active?'qst-active':'');}).join('')+'</nav><button type="button" class="qst-shell-menu" aria-controls="qstShellNav" aria-expanded="false">Menu</button></div>';
    old.insertAdjacentElement('beforebegin',shell);
    old.style.display='none';old.setAttribute('aria-hidden','true');old.inert=true;
    const button=shell.querySelector('.qst-shell-menu');
