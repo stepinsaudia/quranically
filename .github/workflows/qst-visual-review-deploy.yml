@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: 0c183174dfcf351a45e0aad5b7daaa7ab8e456a2
+          ref: caa983e4ec3176c06cb9c5ed6793547c843fa78a
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -109,6 +109,12 @@ jobs:
             if(detail.status!=='available'||!detail.passage||!detail.source_url)throw Error('Publisher detail unavailable for '+id);
             console.log('LIVE PUBLISHER LIBRARY',domain,'shelves',shelves.shelves.length,'reports',library.records.length,'detail',id);
           }
+          const categoryTree=await (await grab('/api/source-shelves/tree?domain=seerah')).json();
+          if(categoryTree.status!=='available'||!categoryTree.categories?.length)throw Error('Full official Seerah category tree unavailable');
+          if(!categoryTree.categories.some(x=>(x.shelf_roots||[]).includes('7')))throw Error('Publisher category hierarchy missing approved ancestry');
+          const deep=await (await grab('/api/source-shelves/records?domain=sunnah&shelf=sunnah-virtues&page=21')).json();
+          if(deep.status!=='available'||deep.page!==21||!deep.records?.length||deep.page_size!==20)throw Error('Full source pagination still limited to preview');
+          console.log('FULL LIBRARY HIERARCHY',categoryTree.categories.length,'categories; page 21',deep.records.length,'records');
           const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
           if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
           for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
