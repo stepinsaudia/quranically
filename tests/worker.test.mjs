@@ -140,7 +140,7 @@ test('Native Admin exposes Tibb modules through canonical endpoint without givin
  const publicList=(await (await get(env,'/api/tibb/offers/black-seed')).json()).offers;assert.equal(publicList.length,1);
 });
 
-test('encyclopedia has fifteen source-linked articles spanning five disciplines',async()=>{
+test('encyclopedia has source-linked articles spanning five disciplines',async()=>{
  const e=fixture();const articleCount=e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_articles').first().c;
  assert.equal(articleCount,18);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_sections').first().c>=70);
@@ -161,7 +161,7 @@ test('encyclopedia has fifteen source-linked articles spanning five disciplines'
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
  assert((await fullSection.json()).entries.some(x=>x.slug==='honey'));
  const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
- assert.equal((await med.json()).entries.length,9);
+ assert.equal((await med.json()).entries.length,10);
  const s=await get(e,'/api/encyclopedia?letter=H');
  assert((await s.json()).entries.some(x=>x.slug==='honey'));
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
