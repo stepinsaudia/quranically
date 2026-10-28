@@ -449,7 +449,8 @@ test('canonical Admin-driven discipline landing pages are read from D1',async()=
  const res=await get(env,'/api/discipline-pages');assert.equal(res.status,200);
  const data=await res.json();assert.equal(data.source,'canonical_d1');
  assert.equal(data.pages.length,5);
- assert(data.pages.every(p=>p.heading&&p.introduction&&p.pathway_labels));
+ assert(data.pages.every(p=>p.heading&&p.introduction));
+ assert(data.pathways.length>=20);
  env.DB.prepare("UPDATE discipline_pages SET heading='A new canonical title' WHERE id='seerah'").run();
  const updated=await (await get(env,'/api/discipline-pages')).json();
  assert.equal(updated.pages.find(p=>p.id==='seerah').heading,'A new canonical title');
