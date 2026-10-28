@@ -450,7 +450,7 @@ async function sitemapResponse(env,url){
   const rows=(await env.DB.prepare("SELECT slug,updated_at FROM encyclopedia_articles WHERE status='published' ORDER BY slug LIMIT 1000").all()).results;
   const entries=['/','/encyclopedia','/study.html','/guidance'].map(path=>({path}));
   for(const r of rows)entries.push({path:'/encyclopedia/'+r.slug,lastmod:String(r.updated_at||'').slice(0,10)});
-  const xml='<?xml version="1.0" encoding="UTF-8"?>\\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n'+entries.map(({path,lastmod})=>'<url><loc>'+escMarkup(url.origin+path)+'</loc>'+(lastmod?'<lastmod>'+escMarkup(lastmod)+'</lastmod>':'')+'</url>').join('\\n')+'\\n</urlset>';
+  const xml='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+entries.map(({path,lastmod})=>'<url><loc>'+escMarkup(url.origin+path)+'</loc>'+(lastmod?'<lastmod>'+escMarkup(lastmod)+'</lastmod>':'')+'</url>').join('\n')+'\n</urlset>';
   return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8','cache-control':'public, max-age=3600','x-content-type-options':'nosniff'}});
 }
 export default {
