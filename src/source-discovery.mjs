@@ -1,6 +1,7 @@
 // Quranically federated source discovery. No full-corpus mirroring and no AI-generated citations.
 // The API returns small, attributed pointers to provider data, not approved encyclopedia articles.
 const origin='https://ummahapi.com';
+// Stopwords remove question boilerplate but keep meaningful subject terms.
 const stop=new Set(['for','the','a','an','of','in','on','and','or','to','from','with','about','men','women','people','islam','islamic','prophetic','medicine','seerah','biography','sunnah','hadith','how','what','can','does','do','i','my']);
 export function sourceTerm(q){
   const cleaned=String(q||'').trim().replace(/\s+/g,' ').slice(0,95);
@@ -25,7 +26,7 @@ export async function liveSourceSearch(q,domain=''){
   const groups=[
    {id:'quran_verses',endpoint:'/api/quran/search?q='+encodeURIComponent(term)+'&limit=8',enabled:true},
    {id:'hadith_collections',endpoint:'/api/hadith/search?q='+encodeURIComponent(term)+'&limit=12',enabled:true},
-   {id:'duas',endpoint:'/api/duas/search?q='+encodeURIComponent(term),enabled:domain!=='seerah'&&domain!=='prophetic_medicine'}
+   {id:'duas',endpoint:'/api/duas/search?q='+encodeURIComponent(term),enabled:true}
   ];
   const responses=await Promise.all(groups.map(async group=>{
     if(!group.enabled)return {id:group.id,status:'not_queried',records:[],total:0};
