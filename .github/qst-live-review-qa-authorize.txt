@@ -1,1 +1,1 @@
-Read-only QA of deployed Quranically existing Cloudflare Worker on desktop and mobile. No database writes, Worker deploys or credential changes.
+Read-only live DOM verification for all five Quranically disciplines, including external provider records displayed on-screen for Hadith, Seerah, Prophetic Medicine and Living Guidance. No writes or deployment.
