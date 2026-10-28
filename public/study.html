@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="color-scheme" content="light" /><link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="color-scheme" content="light" /><meta name="google" content="notranslate" /><link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Quran Reader & Listening — Quranically</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -118,7 +118,7 @@ header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gr
 </svg>
 <header><div class="container head">
 <a class="brand" href="/" aria-label="Quranically, return to home"><span class="brand-mark"><svg class="ico"><use href="#i-book"/></svg></span><span><div class="brand-strong">QURANICALLY</div><div class="brand-sub">QURAN · SEERAH · TIBB AL-NABAWI</div></span></a>
-<nav class="nav" aria-label="Primary"><a href="#reader" class="reader-open-link">Quran Reader · Audio & Transliteration</a><a href="#quran">Quran in Guidance</a><a href="#seerah">The Prophet's example</a><a href="#care">Prophetic guidance</a><a href="#action">Living the guidance</a><a href="/tibb">Prophetic Medicine</a><a href="/">Home</a></nav>
+<nav class="nav" aria-label="Primary"><a href="#reader" class="reader-open-link">Quran Reader · Audio & Transliteration</a><a href="#quran">Quran in Guidance</a><a href="#seerah">The Prophet's example</a><a href="#care">Prophetic guidance</a><a href="#action">Living the guidance</a><a href="/encyclopedia?domain=prophetic_medicine">Prophetic Medicine</a><a href="/">Home</a></nav>
 <div class="nav-side"><a class="tiny-pill" href="#reader" id="openReaderPill" style="text-decoration:none"><svg class="ico"><use href="#i-volume"/></svg> Listen Quran</a><button class="tiny-pill" id="copyJourney"><svg class="ico"><use href="#i-copy"/></svg> Copy references</button><button class="tiny-pill mobile-menu" id="mobileMenu" aria-label="Show sections"><svg class="ico"><use href="#i-book"/></svg></button></div>
 </div></header>
 <section id="fullReader" class="full-qreader" aria-label="Complete Quran Reader" hidden>
@@ -161,7 +161,7 @@ header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gr
 <form id="searchForm" class="searchform"><svg class="ico"><use href="#i-search"/></svg><input id="searchInput" type="search" aria-label="Search for a concern" placeholder="Ask: How do I deal with hardship, anxiety, grief...?" value="hardship"/><button type="submit">Explore <svg class="ico"><use href="#i-arrow"/></svg></button></form>
 <div class="suggestions"><span>EXPLORE</span><button type="button" class="active" data-topic="hardship">Hardship</button><button type="button" data-topic="anxiety">Anxiety & worry</button><button type="button" data-topic="grief">Grief & loss</button><button type="button" data-topic="debt">Debt & financial stress</button></div><div id="unsupported" class="unsupported" role="status"></div></div>
 <div class="hero-side"><div class="arabic" lang="ar" dir="rtl">فَإِنَّ مَعَ ٱلْعُسْرِ يُسْرًا</div><p>“With hardship there is ease.”</p><small>Quran · Ash-Sharh 94:5</small></div></div></section>
-<div class="contextbar"><div class="container context-inner"><div class="crumb">DISCOVER <svg class="ico"><use href="#i-chevron"/></svg> LIFE GUIDANCE <svg class="ico"><use href="#i-chevron"/></svg> <strong id="currentTopic">Hardship</strong></div><div class="status-row"><span><i class="live-dot"></i> Primary sources shown in full context</span><span>RESEARCH DEMONSTRATION</span></div></div></div>
+<div class="contextbar"><div class="container context-inner"><div class="crumb">DISCOVER <svg class="ico"><use href="#i-chevron"/></svg> LIFE GUIDANCE <svg class="ico"><use href="#i-chevron"/></svg> <strong id="currentTopic">Hardship</strong></div><div class="status-row"><span><i class="live-dot"></i> Primary sources shown in full context</span><span>EXTERNAL TEXT & RECITATION PROVIDERS · CHECK SOURCE STATUS</span></div></div></div>
 <section class="guidance-bar" aria-label="Personal guidance toolkit"><div class="container guidance-inner"><div class="guidance-intro"><span class="eyebrow">NEW · MY GUIDANCE COLLECTION</span><strong>Listen · Follow · Save · Apply · Share</strong></div><div class="guidance-controls"><button class="g-btn" id="toggleTranslit" aria-pressed="false"><svg class="ico"><use href="#i-language"/></svg> Transliteration</button><button class="g-btn" id="toggleNotebook" aria-expanded="false"><svg class="ico"><use href="#i-note"/></svg> My notebook</button><button class="g-btn" id="saveJourney"><svg class="ico"><use href="#i-bookmark"/></svg> <span id="saveJourneyLabel">Save journey</span></button><button class="g-btn" id="shareJourney"><svg class="ico"><use href="#i-share"/></svg> Share</button><button class="g-btn primary" id="openExport"><svg class="ico"><use href="#i-download"/></svg> Take it with me</button></div></div><div class="container"><div class="audio-strip" id="globalAudio" hidden><svg class="ico"><use href="#i-volume"/></svg><span class="audio-name" id="audioCaption">Quran verse recitation</span><audio id="verseAudio" controls preload="none"></audio><button class="g-btn" id="stopVerseAudio" type="button">Stop</button><small>Audio streamed from Al Quran Cloud · no MP3 redistributed</small></div><div class="guidance-notebook" id="guideNotebook" hidden><div class="guidance-intro"><span class="eyebrow">PRIVATE JOURNAL</span></div><h3>My reflection & next steps</h3><p>Record what you have understood, questions to ask, or a personal action. Notes remain on this device in this demonstration.</p><textarea id="personalNotes" placeholder="Today I learned…
 My next action…
 A question I want to ask a knowledgeable scholar…" aria-label="My private guidance notes"></textarea><div class="note-actions"><button class="g-btn primary" id="savePersonalNotes"><svg class="ico"><use href="#i-check"/></svg> Save notes</button><button class="g-btn" id="recordMemo"><svg class="ico"><use href="#i-mic"/></svg> Record voice note</button><button class="g-btn" id="stopMemo" disabled><svg class="ico"><use href="#i-stop"/></svg> Stop recording</button><span class="privacy-label" id="noteStatus">Private to this browser; not uploaded</span></div><div id="memoResult" class="note-actions"></div></div><div id="exportPanel" class="export-panel" hidden><strong>Your guidance sheet · portable, source-led and printable</strong><p>Includes the current verses, Arabic and transliteration, cited Seerah lessons, Dua, practical checklist, and optional personal notes. No recitation MP3 is bundled.</p><div class="guide-downloads"><button class="g-btn primary" id="exportSheet"><svg class="ico"><use href="#i-download"/></svg> Download guidance sheet (HTML)</button><button class="g-btn" id="exportPdf"><svg class="ico"><use href="#i-printer"/></svg> Print / Save as PDF</button><button class="g-btn" id="exportText"><svg class="ico"><use href="#i-download"/></svg> Download text</button></div><p class="shareinfo">HTML opens offline; audio requires internet. PDF is created through your browser’s Print dialog. Personal notes are excluded from Share by default.</p></div></div></section>
@@ -420,16 +420,22 @@ function renderVerses(){
 }
 async function changeSurah(n){
  const count=++loadingCounter;audio.pause();wordAudio.pause();$qr('qrWordAudioBar').hidden=true;selectedWord=null;chain=false;playingIndex=-1;surah=n;qs.value=String(n);versesEl.innerHTML='<div class="qr-loading">Loading Quranic verses and source metadata…</div>';
- const u=`https://api.alquran.cloud/v1/surah/${n}/editions/quran-uthmani,en.transliteration,en.pickthall`;
+ const u=`/api/quran/surah/${n}`; // Canonical Quranically read-through route with fixed attributed editions.
  try{const res=await fetch(u);if(!res.ok)throw Error('API status '+res.status);const json=await res.json();if(json.code!==200||!Array.isArray(json.data)||json.data.length<3)throw Error('Missing editions');if(count!==loadingCounter)return;
  const [ar,latin,en]=json.data;
  if(!ar.ayahs?.length || !latin.ayahs?.length || !en.ayahs?.length)throw Error('Incomplete chapter data');
  collection=ar.ayahs.map((a,i)=>({n:a.numberInSurah,global:a.number,ar:a.text,latin:latin.ayahs[i]?.text||'',en:en.ayahs[i]?.text||'',words:n===1?offlineWordSets[i]:null,wordSource:n===1?'Built-in Al-Fatihah demonstration · unreviewed study glosses':null}));
  officialTitles[n]=ar.englishName||officialTitles[n]||`Surah ${n}`;
- sourceLabel='Arabic: Al Quran Cloud Uthmani · Transliteration: Al Quran Cloud (unreviewed) · English: M. Pickthall';
+ sourceLabel='Provider: Al Quran Cloud · Arabic: Uthmani · Transliteration: unreviewed · Translation: M. Pickthall';
  setStatus('Live verses loaded · Arabic: Uthmani · Transliteration: en.transliteration (requires proofreading) · English: M. Pickthall. Recitation streamed from Islamic Network.');
  }catch(err){if(count!==loadingCounter)return;if(n===1){collection=bootstrap;sourceLabel='Offline Al-Fatihah demonstration · editorial English explanation; source editions must be reviewed';setStatus('Network unavailable: showing built-in Al-Fatihah example. Audio may stream if internet access is available.');}else{collection=[];sourceLabel='';setStatus(`Surah ${n} cannot be loaded because the public API is inaccessible. Return to Al-Fatihah for the built-in sample.`);}}
  renderVerses();
+ if(collection.length){
+  const jump=Number(new URLSearchParams(location.search).get('ayah'));
+  if(Number.isInteger(jump)&&jump>0&&jump<=collection.length){
+   requestAnimationFrame(()=>document.getElementById('qr-verse-'+(jump-1))?.scrollIntoView({behavior:'smooth',block:'center'}));
+  }
+ }
 }
 function audioURL(v){return `https://cdn.islamic.network/quran/audio/128/${encodeURIComponent($qr('qrReciter').value)}/${v.global}.mp3`}
 async function playIndex(i,continuePlayback){
@@ -456,7 +462,9 @@ $qr('qrSpeed').onchange=()=>{audio.playbackRate=Number($qr('qrSpeed').value)};
 $qr('qrShowLatin').onchange=renderVerses;
 $qr('qrShowEnglish').onchange=renderVerses;
 $qr('qrShowWords').onchange=renderVerses;
-loadTitles();renderVerses();changeSurah(1);
+const requestedSurah=Number(new URLSearchParams(location.search).get('surah'));
+const startingSurah=Number.isInteger(requestedSurah)&&requestedSurah>=1&&requestedSurah<=114?requestedSurah:1;
+loadTitles();renderVerses();changeSurah(startingSurah);
 })();
 </script>
 </body></html>
