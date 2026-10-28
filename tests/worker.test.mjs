@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -463,6 +463,7 @@ test('global site shell is canonical D1 content and Admin edits propagate to pub
  const snapshot=await first.json();
  assert.equal(snapshot.source,'canonical_d1');
  assert.equal(snapshot.panels.length,3);
+ assert.equal(snapshot.homepage_cards.length,5);
  assert(snapshot.links.some(l=>l.section==='header'&&l.href==='/study.html'));
  const secret='Quranically-site-shell-test-secret-2026';
  const salt=new Uint8Array(16);salt.fill(0x5d);
@@ -477,11 +478,20 @@ test('global site shell is canonical D1 content and Admin edits propagate to pub
  const headers={origin:'https://test.local',cookie,'content-type':'application/json'};
  const bootstrap=await (await get(env,'/api/admin/bootstrap',{headers:{cookie}})).json();
  assert.equal(bootstrap.site_panels.length,3);
+ assert.equal(bootstrap.homepage_disciplines.length,5);
  assert(bootstrap.site_links.length>=10);
  const write=await get(env,'/api/admin/site_panels/homepage',{method:'PUT',headers,body:JSON.stringify({heading:'An Admin-controlled Quranically headline'})});
  assert.equal(write.status,200);
  const updated=await (await get(env,'/api/site-chrome')).json();
  assert.equal(updated.panels.find(p=>p.id==='homepage').heading,'An Admin-controlled Quranically headline');
+ const changedCard=await get(env,'/api/admin/homepage_disciplines/prophetic_medicine',{method:'PUT',headers,body:JSON.stringify({title:'Tibb al-Nabawi','description':'Evidence-informed traditions'})});
+ assert.equal(changedCard.status,200);
+ let homeCards=(await (await get(env,'/api/site-chrome')).json()).homepage_cards;
+ assert.equal(homeCards.find(c=>c.id==='prophetic_medicine').title,'Tibb al-Nabawi');
+ const unpublished=await get(env,'/api/admin/homepage_disciplines/prophetic_medicine',{method:'PUT',headers,body:JSON.stringify({status:'draft'})});
+ assert.equal(unpublished.status,200);
+ homeCards=(await (await get(env,'/api/site-chrome')).json()).homepage_cards;
+ assert.equal(homeCards.some(c=>c.id==='prophetic_medicine'),false);
  const renamed=await get(env,'/api/admin/site_links/nav-quran',{method:'PUT',headers,body:JSON.stringify({label:'Qur’an Reader'})});
  assert.equal(renamed.status,200);
  const nav=(await (await get(env,'/api/site-chrome')).json()).links;
