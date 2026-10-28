@@ -1,5 +1,5 @@
-AUTHORIZE QURANICALLY LIVE SOURCE RETRIEVAL FIX
-Pinned tested commit: b11696b78923da2db0b947af36f4c8af0ea29ee7
-Existing Worker only: qst-living-knowledge-v1
-Existing database only: qst-knowledge-v1-db
-Scope: source retrieval, fallback relevance, live source display in all disciplines, separate Europe PMC citations for Tibb, no paid resource creation.
+AUTHORIZE QURANICALLY EXISTING WORKER SOURCE-LIBRARY REVIEW
+Approved canonical commit: 0c183174dfcf351a45e0aad5b7daaa7ab8e456a2
+Existing Worker: qst-living-knowledge-v1
+Existing D1: qst-knowledge-v1-db
+Scope: official HadeethEnc source collections in four disciplines, Admin shelves, bounded in-page report/explanations, publisher attributions, clear editorial counts. No second Worker or new paid service.
