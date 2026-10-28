@@ -923,3 +923,48 @@ test('publisher explorer initialises first page regardless of deferred script lo
  assert(client.includes('function start()'));
  assert(client.includes('load(domain)'));
 });
+
+test('full official source taxonomy honors overlapping publisher roots and nested categories',async()=>{
+ const env=fixture(),old=globalThis.fetch,requests=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);requests.push(u);
+   if(u.includes('/categories/list/'))return new Response(JSON.stringify([
+    {id:'7',title:'Seerah and History',parent_id:null,hadeeths_count:'228'},
+    {id:'81',title:'The Prophet',parent_id:'7',hadeeths_count:'92'},
+    {id:'901',title:'Prophetic habits',parent_id:'81',hadeeths_count:'44'},
+    {id:'999',title:'Unrelated category',parent_id:null,hadeeths_count:'100'}
+   ]));
+   if(u.includes('/hadeeths/list/'))return new Response(JSON.stringify({
+    data:[{id:'2962',title:'A real publisher report'}],
+    meta:{current_page:'51',last_page:108,total_items:2152,per_page:'20'}
+   }));
+   throw Error('Unexpected external URL '+u);
+  };
+  const tree=(await (await get(env,'/api/source-shelves/tree?domain=seerah')).json());
+  assert.equal(tree.status,'available');
+  assert(tree.categories.some(x=>x.id==='81'&&x.shelf_roots.includes('7')&&x.shelf_roots.includes('81')));
+  assert(tree.categories.some(x=>x.id==='901'&&x.shelf_roots.includes('7')&&x.shelf_roots.includes('81')));
+  assert(!tree.categories.some(x=>x.id==='999'));
+  const page=(await (await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history&category=901&page=51')).json());
+  assert.equal(page.status,'available');
+  assert.equal(page.reported_total,2152);
+  assert.equal(page.last_page,108);
+  assert.equal(page.page_size,20);
+  assert.equal(page.has_next_page,true);
+  assert(requests.some(u=>u.includes('category_id=901')&&u.includes('page=51')&&u.includes('per_page=20')));
+  assert.equal((await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history&category=999&page=1')).status,400);
+  assert.equal((await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history&page=2001')).status,400);
+ }finally{globalThis.fetch=old;}
+});
+test('the canonical publisher UI permits more than 8 records and always offers source fallback',()=>{
+ const ui=fs.readFileSync(path.join(root,'public','source-shelves.js'),'utf8');
+ assert(ui.includes('shelfCategorySelect'));
+ assert(ui.includes('Next 20 reports'));
+ assert(ui.includes('Open the official HadeethEnc record'));
+ assert(ui.includes('data-page'));
+ for(const p of ['public/index.html','public/encyclopedia.html']){
+  const source=fs.readFileSync(path.join(root,p),'utf8');
+  assert(source.includes('id="shelfCategories"'));
+ }
+});
