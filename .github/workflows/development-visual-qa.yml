@@ -1,0 +1,48 @@
+name: Quranically canonical dev visual QA
+on:
+  push:
+    branches:
+      - develop/equal-discipline-capability
+    paths:
+      - 'scripts/development-visual-qa.mjs'
+      - '.github/workflows/development-visual-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install developer tooling
+        run: |
+          npm install --no-package-lock
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Prepare isolated local D1 schema
+        run: npx wrangler d1 migrations apply qst-knowledge-v1-db --local
+      - name: Start local Worker preview (no deployment)
+        run: |
+          nohup npx wrangler dev --local --port 8787 > wrangler-preview.log 2>&1 &
+          for attempt in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8787/api/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat wrangler-preview.log
+          exit 1
+      - name: Audit homepage, all five disciplines, answer and Admin on retina desktop/mobile
+        run: node scripts/development-visual-qa.mjs
+      - name: Upload screenshots even when QA fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-development-visual-evidence
+          path: |
+            artifacts/development/*.png
+            wrangler-preview.log
+          if-no-files-found: ignore
+          retention-days: 5
