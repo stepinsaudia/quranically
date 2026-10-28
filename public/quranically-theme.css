@@ -192,3 +192,21 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 }
 body:has(.qst-home-card-grid) .breadcrumbs{display:none}
 body:has(.qst-home-card-grid) .index-intro{margin-top:20px}
+
+/* Finalise charcoal/amber consistency in legacy encyclopedia rails and reading elements. */
+.reference-rail .focus-card{background:#18191b!important;border-color:#18191b!important;color:#fff!important}
+.reference-rail .focus-card .side-label,.reference-rail .focus-card .folio-number{color:#e4a94f!important}
+.reference-rail .focus-card h3{color:#fff!important}
+.reference-rail .focus-card p{color:#c3c4c3!important}
+.reference-rail .focus-card .short-line{background:#69625a!important}
+.reference-rail .focus-card a{color:#ffbd61!important}
+.reference-policy b,.principles-grid h3{color:#292929!important}
+.methodology-section{background:#f8f7f4;border-color:#e8e6e2}
+.method-grid h2{color:#191919}
+.inline-answer{background:#fff;border-top-color:#f5a52e;box-shadow:0 6px 28px rgba(0,0,0,.045)}
+.inline-answer h3,.qa-part h4,.qa-source h4,.qa-bibliography h4,.qa-related h4{color:#222!important}
+.qa-badges span{background:#fff5e7;border-color:#f3dbb5;color:#805716}
+.qa-passage{background:#fff8ef;border-color:#eddcbe}
+.qa-passage>div{color:#17191b}
+.qa-bibliography li a,.qa-foot a{color:#92580c}
+.article-section h2,.article-intro h1{color:#17191b!important}
