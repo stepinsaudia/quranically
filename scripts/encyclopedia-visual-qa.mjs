@@ -35,8 +35,8 @@ for(const size of [{name:'desktop',width:1440,height:980},{name:'mobile',width:3
  await page.locator('#qr-verse-5 .qrArabic').waitFor({timeout:32000});
  const arabic=await page.locator('#qr-verse-5 .qrArabic').innerText();
  if(arabic.trim().length<3)throw Error('Quran reader failed to render original verse text at '+size.name);
- const chapter=await page.locator('#qrSurahTitle').innerText();
- if(!chapter.toLowerCase().includes('nas'))throw Error('Quran Reader deep link selected wrong chapter: '+chapter);
+ const chapter=await page.locator('#qrSurah').inputValue();
+ if(chapter!=='114')throw Error('Quran Reader deep link selected wrong chapter number: '+chapter);
  await auditPage(page,size.name+' Quran Reader deep link',{selector:'.qrAyah',minimum:6});
  await page.screenshot({path:'artifacts/quran-reader-'+size.name+'.png',fullPage:true});
  await page.close();
