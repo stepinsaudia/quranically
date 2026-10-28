@@ -58,27 +58,23 @@ function renderProviderResult(x){
     +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
 }
 let sourceSequence=0;
-async function liveSources(q,domain){
+async function liveSources(q,domain,{featured=false}={}){
  const root=$('federatedResults');
  if(!q||q.length<2){sourceSequence++;root.hidden=true;return;}
- root.hidden=false;$('sourceResultState').textContent='Searching connected Quran, Hadith and supplication sources…';$('sourceResults').innerHTML='';
+ root.hidden=false;$('sourceResultState').textContent=featured?'Exploring a sample subject from connected reference indexes…':'Searching connected Qur’an, Hadith and supplication indexes…';$('sourceResults').innerHTML='';
  const mySeq=++sourceSequence;
  try{
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
   const data=await api('/api/source-discovery?'+params);
   if(mySeq!==sourceSequence)return;
-  // Provider snippets must directly contain every meaningful query word.
-  // A keyword-index hit alone is not evidence about the user's actual concern.
-  const words=q.toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>3&&!['have','with','about','please','prophetic','medicine','there','what','want'].includes(w));
-  const items=(Array.isArray(data.results)?data.results:[]).filter(x=>{
-    const body=(x.title+' '+x.excerpt+' '+x.reference).toLowerCase();
-    return words.length>0&&words.every(w=>body.includes(w));
-  }).slice(0,5);
+  // The Worker already rejects off-topic evidence and ranks matches by subject.
+  // Never discard useful citations because the excerpt omits question filler words.
+  const items=(Array.isArray(data.results)?data.results:[]).slice(0,9);
   $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
   const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
-  $('sourceResultState').textContent=total+' indexed source match(es) shown · fetched '+new Date(data.fetched_at).toLocaleString()+
+  $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+total+' relevant source excerpt(s) · fetched '+new Date(data.fetched_at).toLocaleString()+
     (offline.length?' · Unavailable: '+offline.join(', '):'')+
-    (total===0?' · Search again with one clear subject word.':'');
+    (total===0?' · No matching excerpts returned by the available providers. This is not a complete scholarly search.':'');
  }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
 }
 let refreshSequence=0;
@@ -105,6 +101,10 @@ async function refresh(){
   $('indexHeading').textContent='Additional encyclopedia results';
   $('indexSubtitle').textContent='The complete contextual response appears above. References and further reading follow.';
  }else if(filters.q){liveSources(filters.q,filters.domain);}
+ else if(filters.domain){
+  const sample={sunnah:'truthfulness',seerah:'migration',prophetic_medicine:'honey',living_guidance:'patience',quranic_themes:'mercy'}[filters.domain];
+  if(sample)liveSources(sample,filters.domain,{featured:true});
+ }
 }
 const typeNames={quran:'Quranic text',hadith:'Hadith collection',clinical:'Medical evidence',reference:'Reference corpus',classical:'Classical scholarship'};
 function sectionHTML(s,i){
