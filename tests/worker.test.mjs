@@ -408,3 +408,21 @@ test('fallback rejects unrelated excerpts even when upstream search reports matc
   assert.deepEqual(data.evidence,[]);
  }finally{globalThis.fetch=old;}
 });
+
+test('supplication discovery is available consistently in all five disciplines',async()=>{
+ const env=fixture(),old=globalThis.fetch;const seen=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);seen.push(u);
+   if(u.includes('/api/duas/search'))return new Response(JSON.stringify({success:true,data:{results_count:1,results:[{id:12,title:'Prayer for mercy',translation:'A supplication seeking mercy',source:'Traditional collection'}]}}),{status:200});
+   if(u.includes('/api/quran/search'))return new Response(JSON.stringify({success:true,data:{results_count:0,results:[]}}),{status:200});
+   return new Response(JSON.stringify({success:true,data:{total_found:0,hadiths:[]}}),{status:200});
+  };
+  for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
+   const data=await (await get(env,'/api/source-discovery?'+new URLSearchParams({q:'mercy',domain}))).json();
+   assert(data.providers.some(p=>p.id==='duas'&&p.status==='available'),domain);
+   assert(data.results.some(x=>x.kind==='dua'&&x.reference==='Traditional collection'),domain);
+  }
+  assert.equal(seen.filter(x=>x.includes('/api/duas/search')).length,5);
+ }finally{globalThis.fetch=old;}
+});
