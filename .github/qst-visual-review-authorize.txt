@@ -1,4 +1,5 @@
-AUTHORIZE EXISTING QURANICALLY WORKER NO-FLASH HEADER FIX
-Pinned QA-passed development commit: 1496bfddf8d4f092c88d06137971ff5b089a2691
-Scope: remove initial legacy header/footer, server-render canonical D1 shell, no new Worker or database.
-Live smoke test must confirm exactly one canonical header/footer in first HTML.
+AUTHORIZE QURANICALLY LIVE SOURCE RETRIEVAL FIX
+Pinned tested commit: b11696b78923da2db0b947af36f4c8af0ea29ee7
+Existing Worker only: qst-living-knowledge-v1
+Existing database only: qst-knowledge-v1-db
+Scope: source retrieval, fallback relevance, live source display in all disciplines, separate Europe PMC citations for Tibb, no paid resource creation.
