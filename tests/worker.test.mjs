@@ -220,3 +220,30 @@ test("encyclopedia Admin rejects cross-article or mismatched Qur'an-Hadith excer
  assert.equal(moved.status,400);
  assert.equal(e.DB.prepare("SELECT COUNT(*) c FROM encyclopedia_passages WHERE article_id='honey'").first().c,2);
 });
+
+test('Quran same-origin chapter API validates source alignment and rejects invented or malformed verses',async()=>{
+ const env=fixture();
+ assert.equal((await get(env,'/api/quran/surah/0')).status,400);
+ assert.equal((await get(env,'/api/quran/surah/115')).status,400);
+ assert.equal((await get(env,'/api/quran/surah/notanumber')).status,400);
+ const original=globalThis.fetch;
+ let upstream='';
+ try{
+  globalThis.fetch=async url=>{
+   upstream=String(url);
+   const data=['quran-uthmani','en.transliteration','en.pickthall'].map((edition,i)=>({
+    number:1,edition:{identifier:edition},ayahs:[{numberInSurah:1,text:i===0?'بِسْمِ اللَّهِ':'The opening'}]
+   }));
+   return new Response(JSON.stringify({code:200,data}),{status:200,headers:{'content-type':'application/json'}});
+  };
+  const ok=await get(env,'/api/quran/surah/1');assert.equal(ok.status,200);
+  assert(upstream.startsWith('https://api.alquran.cloud/v1/surah/1/editions/'));
+  const json=await ok.json();
+  assert.equal(json.data.length,3);
+  assert.equal(json.provenance.review_status.includes('pending'),true);
+  globalThis.fetch=async()=>new Response(JSON.stringify({code:200,data:[{number:1,ayahs:[]}]}),{status:200});
+  const bad=await get(env,'/api/quran/surah/1');assert.equal(bad.status,502);
+  globalThis.fetch=async()=>{throw Error('provider offline');};
+  assert.equal((await get(env,'/api/quran/surah/1')).status,502);
+ }finally{globalThis.fetch=original;}
+});
