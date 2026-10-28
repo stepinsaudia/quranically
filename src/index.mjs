@@ -424,7 +424,16 @@ async function publicApi(request,env,url){
   if(pathname==='/api/source-shelves/detail'){
     const id=(url.searchParams.get('id')||'').trim();
     if(!/^\d{1,9}$/.test(id))return invalid('Invalid publisher report identifier');
-    return json(await curatedHadithDetail(id));
+    const cache=typeof caches!=='undefined'?caches.default:null;
+    const key=new Request(new URL('/api/source-shelves/detail?id='+id,url.origin));
+    if(cache){const hit=await cache.match(key);if(hit)return hit;}
+    const record=await curatedHadithDetail(id);
+    if(record.status!=='available')return json(record);
+    const response=new Response(JSON.stringify(record),{headers:{
+      'content-type':'application/json; charset=utf-8',
+      'cache-control':'public, max-age=3600','x-content-type-options':'nosniff'}});
+    if(cache)await cache.put(key,response.clone()).catch(()=>{});
+    return response;
   }
   if(pathname==='/api/source-discovery'){
     const q=(url.searchParams.get('q')||'').trim();
