@@ -632,3 +632,20 @@ test('canonical Admin includes upload interface and no parallel media product de
  assert(markup.includes('mediaFile'));
  assert(markup.includes('openMediaLibrary'));
 });
+
+test('unphrased, legitimate questions resolve related canonical evidence without fabricating rulings',async()=>{
+ const env=fixture();
+ const cases=[
+  {q:'How can a merchant trade honestly?',domain:'sunnah',slug:'truthful-trade-sunnah'},
+  {q:'Can sellers deceive buyers in business?',domain:'sunnah',slug:'truthful-trade-sunnah'},
+  {q:'What is ethical business?',domain:'living_guidance',slug:'islamic-business-ethics'}
+ ];
+ for(const x of cases){
+  const data=await (await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q:x.q,domain:x.domain}))).json();
+  assert.equal(data.outcome,'full_article_answer',x.q);
+  assert.equal(data.answer.slug,x.slug,x.q);
+  assert(data.answer.citations.length>=2,x.q);
+ }
+ const nonsense=await (await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('unrelated purple antennas')+'&domain=sunnah')).json();
+ assert.notEqual(nonsense.outcome,'full_article_answer');
+});
