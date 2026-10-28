@@ -4,3 +4,5 @@ Canonical V3 finishing release: apply migration 0010_encyclopedia_passages.sql t
 Canonical Admin dossier finishing release: only Quranically's existing Worker, no new D1 migrations. Add source-to-article attribution enforcement, editorial workspace linking article sections/citations/Arabic passages/cross-references. Run all tests and live acceptance. No changes to third-party services or other Cloudflare resources.
 
 Owner-approved Quranically reader and reference finalization: same existing Worker/D1 only; fix reader to use verified fixed-source Quran API for all 114 chapters, deep-linked verse references, canonical per-article SEO, D1-generated sitemap and up-to-date repository operating guidance. All CI checks passed before release. No database migration or unrelated project changes.
+
+Correction after real Chromium browser QA: the validated Quran chapter loaded but the standalone reader section was hidden. Make Quran reading the visible default at /study.html and retain legacy guide on hash navigation. Extend canonical source search across sections and bibliography. Run production acceptance, same Worker and D1 only.\n
