@@ -3,3 +3,5 @@ Run authentic Chromium 1440px desktop and 390px mobile screenshot checks against
 Post-Admin dossier production QA: inspect original Arabic quotation panel on desktop and mobile, Admin dossier edit links and reference form, and verify zero unintended edits or horizontal overflow.
 
 Canonical Quran API release: browser verify the full reader at /study.html?surah=114&ayah=6 for both 1440px desktop and 390px mobile, including original Arabic, chapter selection and zero horizontal overflow. Read-only.
+
+Re-run browser QA after Quran Reader visibility correction. Expect /study.html?surah=114&ayah=6 to show visible Arabic text and correct Surah on desktop and mobile; retain Admin and article QA.
