@@ -410,6 +410,38 @@ async function serveProtectedAdminAsset(request,env,assetPath){
   }
   return new Response('Admin asset redirect loop',{status:503});
 }
+// Canonical search-engine and browser metadata come from the same published D1
+// article record as the visible encyclopedia, never from a parallel CMS.
+const escMarkup=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+async function encyclopediaHtml(request,env,url,slug){
+  const entry=await env.DB.prepare("SELECT slug,title,subtitle,abstract,domain,review_status,updated_at FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first();
+  if(!entry)return new Response('Reference article not found',{status:404,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
+  const res=await env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+  if(!res.ok)return res;
+  let markup=await res.text();
+  const headline=entry.title+' | Quranically — Islamic Reference Encyclopedia';
+  const desc=String(entry.abstract||entry.subtitle||'').slice(0,280);
+  const canonical=url.origin+'/encyclopedia/'+entry.slug;
+  markup=markup.replace(/<title>[^<]*<\/title>/,'<title>'+escMarkup(headline)+'</title>');
+  markup=markup.replace(/<meta name="description" content="[^"]*">/,'<meta name="description" content="'+escMarkup(desc)+'">');
+  const schema={
+    '@context':'https://schema.org','@type':'Article',headline:entry.title,
+    description:desc,mainEntityOfPage:canonical,
+    dateModified:String(entry.updated_at||'').replace(' ','T')+'Z',
+    publisher:{'@type':'Organization',name:'Quranically'},
+    about:entry.domain.replaceAll('_',' '),
+    isAccessibleForFree:true
+  };
+  markup=markup.replace('</head>','<link rel="canonical" href="'+escMarkup(canonical)+'"><meta property="og:type" content="article"><meta property="og:title" content="'+escMarkup(headline)+'"><meta property="og:description" content="'+escMarkup(desc)+'"><script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script></head>');
+  return new Response(markup,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
+}
+async function sitemapResponse(env,url){
+  const rows=(await env.DB.prepare("SELECT slug,updated_at FROM encyclopedia_articles WHERE status='published' ORDER BY slug LIMIT 1000").all()).results;
+  const entries=['/','/encyclopedia','/study.html','/guidance'].map(path=>({path}));
+  for(const r of rows)entries.push({path:'/encyclopedia/'+r.slug,lastmod:String(r.updated_at||'').slice(0,10)});
+  const xml='<?xml version="1.0" encoding="UTF-8"?>\\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n'+entries.map(({path,lastmod})=>'<url><loc>'+escMarkup(url.origin+path)+'</loc>'+(lastmod?'<lastmod>'+escMarkup(lastmod)+'</lastmod>':'')+'</url>').join('\\n')+'\\n</urlset>';
+  return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8','cache-control':'public, max-age=3600','x-content-type-options':'nosniff'}});
+}
 export default {
   async fetch(request,env){
     const url=readUrl(request),path=url.pathname;
@@ -426,14 +458,20 @@ export default {
         }
         return await serveProtectedAdminAsset(request,env,'/admin');
       }
+      if(path==='/robots.txt'){
+        return new Response('User-agent: *\\nDisallow: /admin\\nDisallow: /api/admin/\\nSitemap: '+url.origin+'/sitemap.xml\\n',{headers:{'content-type':'text/plain; charset=utf-8','cache-control':'public, max-age=3600'}});
+      }
+      if(path==='/sitemap.xml')return await sitemapResponse(env,url);
       if(path==='/tibb'||path==='/tibb/'||path==='/tibb.html'){
         const entry=(url.searchParams.get('entry')||'').trim();
         const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
         return Response.redirect(new URL(target,url.origin),302);
       }
-      if(path==='/encyclopedia'||path==='/encyclopedia/'||(path.startsWith('/encyclopedia/')&&validId(path.slice('/encyclopedia/'.length).replace(/\/$/,'')))){
-        // Dedicated human-readable article URL, served through the canonical encyclopedia shell.
-        return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+      if(path==='/encyclopedia'||path==='/encyclopedia/')return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+      if(path.startsWith('/encyclopedia/')){
+        const slug=path.slice('/encyclopedia/'.length).replace(/\/$/,'');
+        if(!validId(slug))return new Response('Reference article not found',{status:404});
+        return await encyclopediaHtml(request,env,url,slug);
       }
       if(path.startsWith('/api/'))return await publicApi(request,env,url);
       // Never serve admin HTML directly without Access checking.
