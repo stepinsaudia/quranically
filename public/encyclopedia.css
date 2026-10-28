@@ -85,3 +85,20 @@
 .qa-foot a{font-weight:800;color:#24566e;text-decoration:underline;font-size:12px}
 .qa-foot small{font-size:10px;color:#8b776d;line-height:1.7}
 @media(max-width:520px){.inline-answer{padding:17px}.qa-part p{font-size:12px}.qa-bibliography li{grid-template-columns:20px 1fr}}
+
+/* Answer-first reading mode: preserve navigation while prioritizing article text. */
+@media(min-width:1181px){
+ .reference-work:has(.inline-answer:not([hidden])){grid-template-columns:200px minmax(0,1fr);column-gap:36px}
+ .reference-work:has(.inline-answer:not([hidden])) .reference-rail{display:none}
+}
+.inline-answer .qa-part p{font-size:14px;line-height:1.88;max-width:860px}
+.inline-answer .qa-summary{font-size:17px;line-height:1.76;max-width:860px}
+.inline-answer .qa-part h4{font-size:23px}
+.inline-answer .qa-bibliography li strong{font-size:13px}
+.inline-answer .qa-bibliography li p{font-size:12px}
+.inline-answer .qa-bibliography li small{font-size:11px}
+@media(max-width:520px){
+ .inline-answer .qa-part p{font-size:14px;line-height:1.85}
+ .inline-answer .qa-summary{font-size:16px}
+ .inline-answer .qa-part h4{font-size:21px}
+}
