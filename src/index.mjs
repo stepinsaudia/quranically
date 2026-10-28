@@ -436,9 +436,9 @@ async function publicApi(request,env,url){
     if(!best){
       const generic=new Set(['islam','islamic','prophet','muhammad','messenger','hadith','quran','qur','says','say','tells','teach','teaches','did','does']);
       const expansions={
-        trading:'trade',commerce:'trade',commercial:'trade',business:'trade',merchant:'trade',merchants:'trade',selling:'trade',buying:'trade',buyer:'trade',seller:'trade',
+        trading:'trade',commerce:'trade',commercial:'trade',business:'trade',merchant:'trade',merchants:'trade',selling:'trade',buying:'trade',buyer:'trade',buyers:'trade',seller:'trade',sellers:'trade',
         honesty:'honest',honestly:'honest',truthful:'honest',truthfulness:'honest',transparency:'honest',transparent:'honest',
-        deception:'fraud',deceptive:'fraud',deceiving:'fraud',cheating:'fraud',cheat:'fraud',deceit:'fraud',
+        deception:'fraud',deceive:'fraud',deceptive:'fraud',deceiving:'fraud',cheating:'fraud',cheat:'fraud',deceit:'fraud',
         justice:'fair',fairness:'fair',ethical:'ethic',ethics:'ethic',
         remedies:'remedy',herbs:'remedy',supplements:'supplement',medical:'medicine',
         risks:'risk',safe:'safety'
