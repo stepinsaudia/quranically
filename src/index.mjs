@@ -478,6 +478,27 @@ async function sitemapResponse(env,url){
   return new Response(xml,{headers:{'content-type':'application/xml; charset=utf-8','cache-control':'public, max-age=3600','x-content-type-options':'nosniff'}});
 }
 export default {
+  async scheduled(_event,env){
+    // One metadata-only health probe per source per day. No copyrighted
+    // corpus ingestion, no user search history, no automatic publication.
+    const checks=[
+      ['ummah_quran','https://ummahapi.com/api/quran/surahs'],
+      ['ummah_hadith','https://ummahapi.com/api/hadith/collections'],
+      ['ummah_dua','https://ummahapi.com/api/duas/categories'],
+      ['hadeethenc','https://hadeethenc.com/api/v1/languages']
+    ];
+    for(const [id,endpoint] of checks){
+      let state='unavailable',http=null;
+      try{
+        const res=await fetch(endpoint,{headers:{accept:'application/json'},signal:AbortSignal.timeout(7500)});
+        http=res.status;state=res.ok?'healthy':'unavailable';
+      }catch{}
+      try{
+        await env.DB.prepare("INSERT INTO source_connector_checks(source_id,last_checked_at,last_state,last_http_status,notes) VALUES(?,?,?,?,?) ON CONFLICT(source_id) DO UPDATE SET last_checked_at=excluded.last_checked_at,last_state=excluded.last_state,last_http_status=excluded.last_http_status,notes=excluded.notes")
+          .bind(id,new Date().toISOString(),state,http,'Metadata availability check only; not religious text verification').run();
+      }catch{} // A source-health probe must never interrupt public Quran access.
+    }
+  },
   async fetch(request,env){
     const url=readUrl(request),path=url.pathname;
     try{
