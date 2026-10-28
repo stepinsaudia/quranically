@@ -21,6 +21,12 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
   try{
    const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:25000});
    if(!response||response.status()>=400)throw Error('HTTP '+(response?.status()??'none'));
+   if(name!=='admin'){
+    const initial=await response.text();
+    if(!initial.includes('data-canonical-shell="server"'))throw Error('Canonical shell not in initial HTML');
+    if((initial.match(/<header class="qst-shell-header"/g)||[]).length!==1)throw Error('Duplicate/missing initial header');
+    if(initial.includes('<header class="header">')||initial.includes('<header class="site-header">'))throw Error('Legacy header leaked into initial HTML');
+   }
    if(min>0)await page.locator(selector).first().waitFor({timeout:17000});
    if(min>0&&await page.locator(selector).count()<min)throw Error('Incomplete view '+selector);
    if(name==='home'){
