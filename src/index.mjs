@@ -6,6 +6,7 @@ const readUrl=(request)=>new URL(request.url);
 const validId=s=>typeof s==='string' && /^[a-z0-9][a-z0-9-]{0,85}$/.test(s);
 const allowedUrl=s=>!s|| (typeof s==='string'&&s.length<1200&&/^https:\/\//i.test(s));
 const field={
+  discipline_pages:['eyebrow','heading','introduction','pathway_labels','hero_image_url','hero_image_alt','status','sort_order'],
   journeys:['slug','title','kicker','summary','category','tags','clinical_note','status'],
   sources:['title','organization','source_url','source_type','license_notes','use_policy','review_status'],
   evidence:['journey_id','source_id','evidence_type','title','reference','arabic','transliteration','meaning','explanation','source_url','audio_url','source_grade','review_note','review_status','publish_status','sort_order'],
@@ -18,7 +19,7 @@ const field={
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
+const tableFor={discipline_pages:'discipline_pages',journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -29,7 +30,7 @@ const enumVals={
  review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
  verification_status:['pending','verified','rejected']
 };
-const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
+const needed={discipline_pages:['heading','introduction'],journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
  encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
  encyclopedia_sections:['article_id','heading','section_type','body'],
@@ -37,7 +38,7 @@ const needed={journeys:['title','slug'],sources:['title','source_url','source_ty
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+const textLimit={introduction:1500,pathway_labels:350,hero_image_alt:200,eyebrow:140,heading:180,hero_image_url:1200,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -61,7 +62,7 @@ function normalize(table,payload,method){
       if(!localEnums[table][k].includes(txt))throw new Error('Invalid '+k);
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
-    if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
+    if(['source_url','audio_url','reference_url','offer_url','hero_image_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
     if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
@@ -204,6 +205,7 @@ async function adminApi(request,env,url,identity){
     if(!field[entity])return json({error:'Unknown collection'},404);
     return json({records:(await env.DB.prepare(`SELECT * FROM ${entity} ORDER BY id LIMIT 300`).all()).results});
   }
+  if(entity==='discipline_pages'&&request.method==='POST')return json({error:'Discipline page identifiers are fixed. Edit existing canonical records instead.'},405);
   if(!['POST','PUT','PATCH'].includes(request.method)||!field[entity])return json({error:'Unsupported action'},405);
   if(!originValid(request))return json({error:'Cross-origin edit blocked'},403);
   let values;
@@ -481,6 +483,10 @@ async function publicApi(request,env,url){
     const entry=await env.DB.prepare("SELECT * FROM tibb_entries WHERE slug=? AND status='published'").bind(slug).first();
     if(!entry)return json({error:'Not found'},404);
     return json({entry,notice:'Religious source and contemporary clinical evidence are separate. Educational content is not individual medical advice.'});
+  }
+  if(pathname==='/api/discipline-pages'){
+    const records=(await env.DB.prepare("SELECT id,eyebrow,heading,introduction,pathway_labels,hero_image_url,hero_image_alt,sort_order FROM discipline_pages WHERE status='published' ORDER BY sort_order,id").all()).results;
+    return json({pages:records,source:'canonical_d1'});
   }
   if(pathname==='/api/sources'){
     return json({sources:(await env.DB.prepare('SELECT id,title,organization,source_url,source_type,use_policy,review_status FROM sources ORDER BY title').all()).results});
