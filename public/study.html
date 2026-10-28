@@ -349,7 +349,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'
 function readerMode(){const on=location.hash==='#reader'||location.hash.startsWith('#reader-');document.body.classList.toggle('reader-mode',on);document.getElementById('fullReader').hidden=!on;document.getElementById('top').hidden=on;document.getElementById('copyJourney').hidden=on; if(on){window.scrollTo(0,0);if(!versesEl.children.length)renderVerses();}else {audio.pause();wordAudio.pause();chain=false;playingIndex=-1}}
 window.addEventListener('hashchange',readerMode);readerMode();
 [...document.querySelectorAll('.nav a')].filter(x=>x.getAttribute('href')!=='#reader').forEach(x=>x.addEventListener('click',()=>{if(location.hash==='#reader'){location.hash=x.getAttribute('href')}}));
-function loadTitles(){fetch('https://api.alquran.cloud/v1/surah').then(r=>{if(!r.ok)throw Error('metadata');return r.json()}).then(j=>{if(!Array.isArray(j.data))return;j.data.forEach(s=>{const o=qs.options[s.number-1];if(o)o.textContent=`${String(s.number).padStart(3,'0')} · ${s.englishName}`})}).catch(()=>{});}
+function loadTitles(){fetch('/api/quran/chapters').then(r=>{if(!r.ok)throw Error('metadata');return r.json()}).then(j=>{if(!Array.isArray(j.chapters))return;j.chapters.forEach(s=>{const o=qs.options[s.number-1];if(o)o.textContent=`${String(s.number).padStart(3,'0')} · ${s.englishName}`})}).catch(()=>{setStatus('Chapter names unavailable from the reading provider; numbered chapters remain accessible.')});}
 function setStatus(message){$qr('qrSourceStatus').textContent=message}
 
 function normalizeQFword(w,index,ch,ayah){
