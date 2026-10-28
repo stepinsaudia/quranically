@@ -916,3 +916,10 @@ test('all non-Quran landing pages mount the canonical publisher reading module',
  const client=fs.readFileSync(path.join(root,'public/encyclopedia.js'),'utf8');
  assert(client.includes('QuranicallySourceShelves.load(filters.domain)'));
 });
+
+test('publisher explorer initialises first page regardless of deferred script load order',()=>{
+ const client=fs.readFileSync(path.join(root,'public','source-shelves.js'),'utf8');
+ assert(client.includes('new URLSearchParams(location.search).get('+"'domain'"+')'));
+ assert(client.includes('function start()'));
+ assert(client.includes('load(domain)'));
+});
