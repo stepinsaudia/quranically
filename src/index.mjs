@@ -414,7 +414,7 @@ async function publicApi(request,env,url){
     if(subcategory&&subcategory!==String(categoryId)){
       const tree=await publisherCategoryTree([categoryId]);
       if(tree.status!=='available')return json({error:'Category membership could not be verified against the publisher'},503);
-      if(!tree.categories.some(x=>x.id===subcategory&&x.shelf_root===String(categoryId)))return invalid('Category is not within the published collection');
+      if(!tree.categories.some(x=>x.id===subcategory&&x.shelf_roots.includes(String(categoryId))))return invalid('Category is not within the published collection');
       categoryId=Number(subcategory);
     }
     const results=await curatedHadithList(categoryId,page);
