@@ -155,3 +155,19 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 .pick-image{margin-top:6px;padding:7px 10px;background:#fff5e6;color:#774c11;border:1px solid #e9ba70;border-radius:6px;font-size:10px;display:block}
 #mediaPanel{margin:17px 0;padding:20px;border:1px solid #e8e6e0;border-radius:12px}
 #mediaPanel[hidden]{display:none}
+
+/* Approved cinematic homepage treatment, one set of global design tokens. */
+#indexView .index-intro{background:linear-gradient(112deg,#111314 0%,#1c1b19 58%,#27211a 100%);border-color:#282726;box-shadow:0 8px 28px rgba(0,0,0,.10)}
+#indexView .index-intro .intro-copy h1{color:#fff!important;max-width:680px}
+#indexView .index-intro .intro-copy h1 em{color:#f5a52e!important}
+#indexView .index-intro .intro-copy>p:not(.overline){color:#e8e4dd!important}
+#indexView .index-intro .intro-detail span{color:#d9cbbc}
+#indexView .index-intro .intro-detail svg{color:#f5a52e}
+#indexView .index-intro .overline{color:#f5a52e!important}
+#indexView .intro-manuscript{background:radial-gradient(circle at 58% 45%,#53422c,#131415 78%)}
+#indexView .intro-manuscript:has(.qst-managed-hero-image){padding:0}
+#indexView .qst-managed-hero-image{min-height:330px;max-height:390px;object-fit:cover;object-position:center 45%;filter:saturate(.9) contrast(1.04)}
+.qst-card-media img{transition:transform .3s ease;filter:saturate(.88) contrast(1.04)}
+.qst-home-discipline:hover .qst-card-media img{transform:scale(1.035)}
+.discipline-art img{object-position:center 45%;filter:saturate(.88) contrast(1.05)}
+@media(prefers-reduced-motion:reduce){.qst-card-media img{transition:none}}
