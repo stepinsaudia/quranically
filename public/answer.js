@@ -16,6 +16,11 @@ async function show(q,domain){
   const r=await fetch('/api/encyclopedia/answer?'+params,{headers:{accept:'application/json'},signal:AbortSignal.timeout(18000)});
   if(!r.ok)throw Error('The knowledge database is temporarily unavailable');
   const data=await r.json();if(id!==sequence)return null;
+  if(data.outcome==='source_evidence' && Array.isArray(data.evidence) && data.evidence.length){
+    const hits=data.evidence.map((x,i)=>'<article class="qa-part"><h4>'+esc(x.title||x.reference||'Indexed reference')+'</h4><p>'+esc(x.excerpt||'No excerpt provided')+'</p><small>'+esc(x.kind||'source')+' · '+esc(x.reference||'')+' · External provider, not independently reviewed</small>'+(href(x.source_url)?'<p><a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a></p>':'')+'</article>').join('');
+    content.innerHTML='<div class="qa-kicker">QURANICALLY / LIVE SOURCE EVIDENCE</div><h3>Relevant source passages for “'+esc(q)+'”</h3><p class="qa-summary">No complete editorial answer is available for this question yet. The following live source excerpts can be examined on this page. These are research leads, not authenticated rulings, professional diagnoses or a complete scholarly synthesis.</p><div class="qa-chapters">'+hits+'</div><p class="qa-state">Evidence review pending. External source availability and matching do not establish the authenticity or interpretation of every claim.</p>';
+    return true;
+  }
   if(data.outcome!=='full_article_answer'||!data.answer){
     content.innerHTML='<div class="qa-kicker">QURANICALLY / ANSWER SEARCH</div><h3>No complete article for this specific question yet</h3><p>We could not establish a relevant, source-backed response for “'+esc(q)+'”. We will not invent a cure, ruling or unrelated answer. You can examine any separately identified research references below.</p>';
     return false;
