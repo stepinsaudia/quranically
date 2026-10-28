@@ -372,3 +372,39 @@ test('on-page canonical answers address weak eyesight, diabetes, and clothing wi
  assert.equal((await crossed.json()).outcome,'no_editorial_answer');
  assert.equal((await get(env,'/api/encyclopedia/answer?q=x')).status,400);
 });
+
+test('five-discipline answer fallback retains provenance and never fabricates full articles',async()=>{
+ const env=fixture(),original=globalThis.fetch;
+ try{
+   globalThis.fetch=async url=>{
+     const u=String(url);
+     if(u.includes('/api/quran/search'))return new Response(JSON.stringify({success:true,data:{results_count:1,results:[{surah_number:16,ayah:69,translation:'The bees produce honey for people.'}]}}),{status:200});
+     if(u.includes('/api/hadith/search'))return new Response(JSON.stringify({success:true,data:{total_found:1,hadiths:[{collection:'bukhari',collection_name:'Sahih Bukhari',hadithnumber:'9',english:'People should study honey carefully.',grade:'Sahih'}]}}),{status:200});
+     if(u.includes('/api/duas/search'))return new Response(JSON.stringify({success:true,data:{results_count:0,results:[]}}),{status:200});
+     throw Error('Unrecognized mock endpoint');
+   };
+   for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
+     const r=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q:'honey carefully',domain}));
+     assert.equal(r.status,200,domain);
+     const data=await r.json();
+     assert.equal(data.outcome,'source_evidence',domain);
+     assert.equal(data.answer,null);
+     assert(data.evidence.length>=1);
+     assert(data.evidence.every(x=>x.review_status==='upstream_unreviewed'));
+     assert(data.providers.length>=2);
+   }
+ }finally{globalThis.fetch=original;}
+});
+test('fallback rejects unrelated excerpts even when upstream search reports matches',async()=>{
+ const env=fixture(),old=globalThis.fetch;
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url),hadith=u.includes('/hadith/');
+   return new Response(JSON.stringify({success:true,data:hadith?{hadiths:[{collection:'bukhari',hadithnumber:'1',english:'This speaks only about prayer.',grade:'Sahih'}]}:{results:[]}}),{status:200});
+  };
+  const data=await (await get(env,'/api/encyclopedia/answer?q=unresearched%20ceramic%20instruments&domain=seerah')).json();
+  assert.equal(data.outcome,'no_editorial_answer');
+  assert.equal(data.answer,null);
+  assert.deepEqual(data.evidence,[]);
+ }finally{globalThis.fetch=old;}
+});
