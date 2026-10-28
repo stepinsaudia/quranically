@@ -115,3 +115,20 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 @media(max-width:980px){.qst-shell-inner{min-height:67px;flex-wrap:wrap}.qst-shell-menu{display:block;margin-left:auto}.qst-shell-nav{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:0;padding-bottom:9px}.qst-open .qst-shell-nav{display:flex}.qst-shell-nav a{padding:10px 6px}.qst-footer-inner{grid-template-columns:repeat(3,minmax(0,1fr))}.qst-foot-intro{grid-column:span 3}}
 @media(max-width:550px){.qst-footer-inner{grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 15px}.qst-foot-intro{grid-column:span 2}.qst-footer-bottom{flex-direction:column}.qst-shell-brand strong{font-size:21px}}
 @media(prefers-reduced-motion:reduce){.qst-shell-header *{scroll-behavior:auto}}
+
+/* Five equal, structurally controlled homepage pathways. Images are editorial records. */
+.qst-home-card-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:20px;margin-bottom:20px}
+.qst-home-discipline{display:flex;flex-direction:column;border:1px solid #e8e7e3;border-radius:12px;overflow:hidden;color:#191919!important;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.045);text-decoration:none!important;transition:transform .2s ease,box-shadow .2s ease}
+.qst-home-discipline:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(0,0,0,.10)}
+.qst-card-media{width:100%;aspect-ratio:1.85/1;background:#1a1b1b;overflow:hidden}
+.qst-card-media img{width:100%;height:100%;object-fit:cover;display:block}
+.qst-card-placeholder{display:grid;place-items:center;height:100%;padding:16px;background:radial-gradient(circle at 75% 26%,#a76b2477,#26221e 50%,#131416 100%);color:#ffd08a;text-align:center}
+.qst-card-placeholder span{font:500 20px/1.25 Georgia,serif;max-width:170px}
+.qst-card-copy{padding:14px 15px 16px;min-height:115px;position:relative}
+.qst-card-copy strong{display:block;font:700 14px/1.3 Manrope,sans-serif;letter-spacing:-.02em;padding-right:10px}
+.qst-card-copy p{font-size:11px;line-height:1.6;color:#65676a;margin:8px 18px 0 0}
+.qst-card-arrow{position:absolute;right:12px;bottom:14px;background:#f5a52e;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;color:#141414;font-size:13px}
+@media(max-width:980px){.qst-home-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.qst-home-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.qst-card-copy{padding:11px;min-height:120px}.qst-card-copy strong{font-size:12px}.qst-card-placeholder span{font-size:16px}}
+@media(max-width:420px){.qst-home-card-grid{grid-template-columns:1fr 1fr}.qst-card-media{aspect-ratio:1.4/1}}
+@media(prefers-reduced-motion:reduce){.qst-home-discipline{transition:none}}
