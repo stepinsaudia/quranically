@@ -1,3 +1,4 @@
+import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -332,6 +333,25 @@ async function publicApi(request,env,url){
     return json({journey,evidence,steps,pilot_notice:'Content is a referenced editorial pilot awaiting independent scholarly and, where needed, medical review.'});
   }
 
+  if(pathname==='/api/source-connectors'){
+    const states=(await env.DB.prepare('SELECT source_id,last_checked_at,last_state FROM source_connector_checks').all()).results;
+    const byId=new Map(states.map(x=>[x.source_id,x]));
+    return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked'})),notice:'Provider availability and scholarly validation are distinct.'});
+  }
+  if(pathname==='/api/source-discovery'){
+    const q=(url.searchParams.get('q')||'').trim();
+    const domain=(url.searchParams.get('domain')||'').trim();
+    if(q.length<2||q.length>95)return invalid('Enter a search term between 2 and 95 characters');
+    if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid subject');
+    // Coarse query cache prevents one reader action from turning into 3 provider API calls every time.
+    const cache=typeof caches!=='undefined'?caches.default:null;
+    const requestKey=new Request(new URL('/api/source-discovery?'+new URLSearchParams({q:q.toLowerCase(),domain}),url.origin));
+    if(cache){const hit=await cache.match(requestKey);if(hit)return hit;}
+    const result=await liveSourceSearch(q,domain);
+    const response=new Response(JSON.stringify(result),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=1800','x-content-type-options':'nosniff'}});
+    if(cache)await cache.put(requestKey,response.clone());
+    return response;
+  }
   if(pathname==='/api/encyclopedia/subjects'){
     const groups=(await env.DB.prepare("SELECT domain,COUNT(*) AS entries FROM encyclopedia_articles WHERE status='published' GROUP BY domain ORDER BY domain").all()).results;
     return json({subjects:groups,review_policy:'Content is editorially sourced; independent expert verification is pending unless explicitly shown.'});
