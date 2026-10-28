@@ -1,4 +1,5 @@
 import {liveSourceSearch,rankSourceEvidence,CONNECTORS} from './source-discovery.mjs';
+import {curatedHadithList,curatedHadithDetail} from './hadeethenc-library.mjs';
 import {renderCanonicalShell} from './site-shell.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -7,6 +8,7 @@ const readUrl=(request)=>new URL(request.url);
 const validId=s=>typeof s==='string' && /^[a-z0-9][a-z0-9-]{0,85}$/.test(s);
 const allowedUrl=s=>!s|| (typeof s==='string'&&s.length<1200&&/^https:\/\//i.test(s));
 const field={
+  source_shelves:['domain','heading','provider_category_id','status','sort_order'],
   discipline_pathways:['domain','label','href','status','sort_order'],
   page_seo:['title','description','social_image_url','social_image_alt','status'],
   homepage_disciplines:['title','description','image_url','image_alt','status','sort_order'],
@@ -25,7 +27,7 @@ const field={
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={discipline_pathways:'discipline_pathways',page_seo:'page_seo',homepage_disciplines:'homepage_disciplines',site_panels:'site_panels',site_links:'site_links',discipline_pages:'discipline_pages',journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
+const tableFor={source_shelves:'source_shelves',discipline_pathways:'discipline_pathways',page_seo:'page_seo',homepage_disciplines:'homepage_disciplines',site_panels:'site_panels',site_links:'site_links',discipline_pages:'discipline_pages',journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -36,7 +38,7 @@ const enumVals={
  review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
  verification_status:['pending','verified','rejected']
 };
-const needed={discipline_pathways:['domain','label','href'],page_seo:['title','description'],homepage_disciplines:['title','description'],site_panels:['heading'],site_links:['section','label','href'],discipline_pages:['heading','introduction'],journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
+const needed={source_shelves:['domain','heading','provider_category_id'],discipline_pathways:['domain','label','href'],page_seo:['title','description'],homepage_disciplines:['title','description'],site_panels:['heading'],site_links:['section','label','href'],discipline_pages:['heading','introduction'],journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
  encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
  encyclopedia_sections:['article_id','heading','section_type','body'],
@@ -67,6 +69,8 @@ function normalize(table,payload,method){
     if(localEnums[table]?.[k]){
       if(!localEnums[table][k].includes(txt))throw new Error('Invalid '+k);
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
+    if(table==='source_shelves'&&k==='domain'&&!['sunnah','seerah','prophetic_medicine','living_guidance'].includes(txt))throw new Error('Invalid library discipline');
+    if(table==='source_shelves'&&k==='provider_category_id'&&(!/^\d{1,4}$/.test(txt)||Number(txt)<1))throw new Error('Invalid official category identifier');
     if(table==='discipline_pathways'&&k==='domain'&&!['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance'].includes(txt))throw new Error('Invalid discipline pathway');
     if(table==='site_links'&&k==='section'&&!['header','footer_explore','footer_resources','footer_about','footer_legal'].includes(txt))throw new Error('Invalid site link section');
     if(['site_links','discipline_pathways'].includes(table)&&k==='href'&&!( /^\/(?!\/)[a-zA-Z0-9/?#=&._%~-]*$/.test(txt) || /^https:\/\/[^\s<>"']+$/.test(txt)))throw new Error('Only internal paths or HTTPS links are accepted');
@@ -312,7 +316,7 @@ async function adminApi(request,env,url,identity){
       if(!route[1])return invalid('Record ID required');
       const before=await env.DB.prepare(`SELECT id FROM ${entity} WHERE id=?`).bind(id).first();
       if(!before)return json({error:'Record not found'},404);
-      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles','discipline_pages','site_panels','site_links','homepage_disciplines','page_seo','discipline_pathways'].includes(entity);
+      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles','discipline_pages','site_panels','site_links','homepage_disciplines','page_seo','discipline_pathways','source_shelves'].includes(entity);
       await env.DB.prepare(`UPDATE ${entity} SET ${fields.map(k=>k+'=?').join(',')}${hasUpdated?",updated_at=datetime('now')":''} WHERE id=?`).bind(...vals,id).run();
       await audit(env.DB,identity.email,'update',entity,id);
     }
@@ -383,6 +387,29 @@ async function publicApi(request,env,url){
     const states=(await env.DB.prepare('SELECT source_id,last_checked_at,last_state FROM source_connector_checks').all()).results;
     const byId=new Map(states.map(x=>[x.source_id,x]));
     return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked'})),notice:'Provider availability and scholarly validation are distinct.'});
+  }
+  if(pathname==='/api/source-shelves'){
+    const domain=(url.searchParams.get('domain')||'').trim();
+    const allowed=['sunnah','seerah','prophetic_medicine','living_guidance'];
+    if(!allowed.includes(domain))return invalid('Choose a supported knowledge discipline');
+    const rows=(await env.DB.prepare("SELECT id,domain,heading,provider_category_id,sort_order FROM source_shelves WHERE status='published' AND domain=? ORDER BY sort_order,id LIMIT 16").bind(domain).all()).results;
+    return json({domain,provider:'HadeethEnc',shelves:rows,source:'canonical_d1',notice:'Curated publisher categories are not the same as reviewed Quranically articles.'});
+  }
+  if(pathname==='/api/source-shelves/records'){
+    const domain=(url.searchParams.get('domain')||'').trim();
+    const shelfId=(url.searchParams.get('shelf')||'').trim();
+    const page=Number(url.searchParams.get('page')||'1');
+    if(!['sunnah','seerah','prophetic_medicine','living_guidance'].includes(domain)||!/^[-a-z0-9]{3,85}$/.test(shelfId)||!Number.isSafeInteger(page)||page<1||page>20)return invalid('Invalid source collection request');
+    const shelf=await env.DB.prepare("SELECT id,domain,heading,provider_category_id FROM source_shelves WHERE status='published' AND domain=? AND id=?").bind(domain,shelfId).first();
+    if(!shelf)return json({error:'Published source shelf not found'},404);
+    const results=await curatedHadithList(shelf.provider_category_id,page);
+    return json({domain,shelf:{id:shelf.id,heading:shelf.heading,provider_category_id:shelf.provider_category_id},...results,
+      notice:'These are direct published-provider records, not independent Quranically authentication or medical treatment guidance.'});
+  }
+  if(pathname==='/api/source-shelves/detail'){
+    const id=(url.searchParams.get('id')||'').trim();
+    if(!/^\d{1,9}$/.test(id))return invalid('Invalid publisher report identifier');
+    return json(await curatedHadithDetail(id));
   }
   if(pathname==='/api/source-discovery'){
     const q=(url.searchParams.get('q')||'').trim();
