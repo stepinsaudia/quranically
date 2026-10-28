@@ -692,7 +692,7 @@ export default {
         return await serveProtectedAdminAsset(request,env,'/admin');
       }
       if(path.startsWith('/media/')){
-        const match=/^\\/media\\/([a-z0-9-]{3,85})\\.webp$/.exec(path);
+        const match=/^\/media\/([a-z0-9-]{3,85})\.webp$/.exec(path);
         if(!match)return new Response('Not found',{status:404});
         const row=await env.DB.prepare("SELECT payload FROM media_assets WHERE id=? AND status='active'").bind(match[1]).first();
         if(!row)return new Response('Not found',{status:404});
