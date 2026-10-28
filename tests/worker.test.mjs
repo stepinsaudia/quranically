@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -667,4 +667,26 @@ test('all five disciplines have differentiated initial photography without overr
  assert.equal(home.homepage_cards.length,5);
  assert(home.homepage_cards.every(p=>p.image_url.startsWith('https://images.pexels.com/')));
  assert(home.panels.find(p=>p.id==='homepage').image_url.startsWith('https://images.pexels.com/'));
+});
+
+test('each discipline has Admin-managed real topic pathways, not dead search labels',async()=>{
+ const env=fixture();
+ const response=await get(env,'/api/discipline-pages');
+ assert.equal(response.status,200);
+ const d=await response.json();
+ assert.equal(d.pages.length,5);
+ assert(d.pathways.length>=20);
+ for(const key of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
+  const items=d.pathways.filter(p=>p.domain===key);
+  assert(items.length>=3,key);
+  assert(items.every(p=>p.label&&p.href.startsWith('/')),key);
+ }
+ const tibb=d.pathways.find(p=>p.href==='/encyclopedia/traditional-remedies-safety');
+ assert.equal(tibb.domain,'prophetic_medicine');
+ const articles=d.pathways.filter(p=>p.href.startsWith('/encyclopedia/')&&!p.href.includes('?'));
+ for(const a of articles){
+  const slug=a.href.split('/').pop();
+  assert.equal(env.DB.prepare("SELECT COUNT(*) c FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first().c,1,'Missing source-linked pathway: '+slug);
+ }
+ assert.equal((await get(env,'/api/admin/discipline_pathways')).status,503);
 });
