@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -142,13 +142,17 @@ test('Native Admin exposes Tibb modules through canonical endpoint without givin
 
 test('encyclopedia has fifteen source-linked articles spanning five disciplines',async()=>{
  const e=fixture();const articleCount=e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_articles').first().c;
- assert.equal(articleCount,15);
+ assert.equal(articleCount,17);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_sections').first().c>=70);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_citations').first().c>=30);
  const groups=await get(e,'/api/encyclopedia/subjects');assert.equal(groups.status,200);
  const subjects=(await groups.json()).subjects;assert.equal(subjects.length,5);
  const result=await get(e,'/api/encyclopedia?q=black%20seed');assert.equal(result.status,200);
- assert.deepEqual((await result.json()).entries.map(x=>x.slug),['black-seed']);
+ assert((await result.json()).entries.some(x=>x.slug==='black-seed'));
+ const condition=await get(e,'/api/encyclopedia?domain=prophetic_medicine&q=diabetes');assert.equal(condition.status,200);
+ assert((await condition.json()).entries.some(x=>x.slug==='diabetes-and-prophetic-medicine'));
+ const clothes=await get(e,'/api/encyclopedia?domain=seerah&q=clothing%20for%20men');assert.equal(clothes.status,200);
+ assert((await clothes.json()).entries.some(x=>x.slug==='mens-clothing-prophetic-era'));
  const direct=await get(e,'/api/encyclopedia?q=talbina');
  assert.equal(direct.status,200);
  assert.equal((await direct.json()).entries[0].slug,'talbina');
@@ -157,7 +161,7 @@ test('encyclopedia has fifteen source-linked articles spanning five disciplines'
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
  assert((await fullSection.json()).entries.some(x=>x.slug==='honey'));
  const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
- assert.equal((await med.json()).entries.length,8);
+ assert.equal((await med.json()).entries.length,9);
  const s=await get(e,'/api/encyclopedia?letter=H');
  assert((await s.json()).entries.some(x=>x.slug==='honey'));
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
@@ -184,7 +188,7 @@ test('encyclopedia article publication requires sources and sections; Admin audi
  const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
  assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={origin:'https://test.local',cookie,'content-type':'application/json'};
  const bootstrap=await get(e,'/api/admin/bootstrap',{headers});assert.equal(bootstrap.status,200);const state=await bootstrap.json();
- assert.equal(state.encyclopedia_articles.length,15);
+ assert.equal(state.encyclopedia_articles.length,17);
  assert(state.encyclopedia_sections.length>=70);assert(state.encyclopedia_citations.length>=30);
  assert(state.encyclopedia_passages.length>=10);
  const make=await get(e,'/api/admin/encyclopedia_articles',{method:'POST',headers,body:JSON.stringify({slug:'test-reference-entry',title:'A test reference entry',domain:'quranic_themes',entry_type:'concept',abstract:'An isolated test entry.',status:'draft'})});
@@ -287,4 +291,56 @@ test('Quran chapter list is validated before it is displayed',async()=>{
   globalThis.fetch=async()=>new Response(JSON.stringify({code:200,data:[]}),{status:200});
   assert.equal((await get(env,'/api/quran/chapters')).status,502);
  }finally{globalThis.fetch=original;}
+});
+
+test('Live source discovery retrieves labeled Quran and Hadith matches without claiming Quranically review',async()=>{
+ const env=fixture(),old=globalThis.fetch;const requested=[];
+ try{
+  globalThis.fetch=async url=>{
+   requested.push(String(url));
+   if(String(url).includes('/api/quran/search'))return new Response(JSON.stringify({success:true,data:{results_count:1,results:[{verse_key:'16:69',surah_number:16,surah_name:'An-Nahl',ayah:69,translation:'Among the signs is an account of bees.'}]}}),{status:200});
+   if(String(url).includes('/api/hadith/search'))return new Response(JSON.stringify({success:true,data:{total_found:100,hadiths:[{id:'bukhari-1',collection:'bukhari',collection_name:'Sahih al-Bukhari',hadithnumber:1,english:'Clothing is mentioned in context.',grade:'Sahih'}]}}),{status:200});
+   if(String(url).includes('/api/duas/search'))return new Response(JSON.stringify({success:true,data:{results_count:0,results:[]}}),{status:200});
+   return new Response('{}',{status:404});
+  };
+  const r=await get(env,'/api/source-discovery?q=clothing%20for%20men&domain=seerah');
+  assert.equal(r.status,200);
+  const data=await r.json();
+  assert.equal(data.term,'clothing');
+  assert(data.results.some(x=>x.kind==='hadith'));
+  assert(data.results.every(x=>x.review_status==='upstream_unreviewed'));
+  assert(data.results.every(x=>x.source_url.startsWith('https://')));
+  assert(requested.every(x=>x.startsWith('https://ummahapi.com/')));
+  assert.equal((await get(env,'/api/source-discovery?q=x')).status,400);
+  assert.equal((await get(env,'/api/source-discovery?q=clothing&domain=invalid')).status,400);
+ }finally{globalThis.fetch=old;}
+});
+test('Source provider failures are visible as unavailable rather than fabricated search hits',async()=>{
+ const env=fixture(),old=globalThis.fetch;
+ try{
+  globalThis.fetch=async()=>{throw Error('network disconnected');};
+  const r=await get(env,'/api/source-discovery?q=diabetes&domain=prophetic_medicine');
+  assert.equal(r.status,200);
+  const data=await r.json();
+  assert.equal(data.results.length,0);
+  assert(data.providers.some(x=>x.status==='temporarily_unavailable'));
+  assert.equal(data.review_notice.includes('not Quranically'),true);
+ }finally{globalThis.fetch=old;}
+});
+test('Scheduled source checks use metadata only and do not store religious text or searches',async()=>{
+ const env=fixture(),old=globalThis.fetch;const called=[];
+ try{
+  globalThis.fetch=async url=>{called.push(String(url));return new Response('{}',{status:200});};
+  await worker.scheduled({},env);
+  const records=(await env.DB.prepare('SELECT * FROM source_connector_checks').all()).results;
+  assert.equal(records.length,4);
+  assert(records.every(x=>x.last_state==='healthy'));
+  assert.equal(called.length,4);
+  assert(called.every(x=>!x.includes('search?q=')));
+  const list=await get(env,'/api/source-connectors');
+  assert.equal(list.status,200);
+  const data=await list.json();
+  assert(data.connectors.some(x=>x.id==='sunnah_com'&&x.mode==='access_required'));
+  assert(data.connectors.some(x=>x.id==='ummah_hadith'&&x.last_state==='healthy'));
+ }finally{globalThis.fetch=old;}
 });
