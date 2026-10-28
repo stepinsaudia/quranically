@@ -215,3 +215,14 @@ body:has(.qst-home-card-grid) .index-intro{margin-top:20px}
 .admin-image-preview{margin-top:9px;width:min(100%,400px);aspect-ratio:1.85;border:1px solid #e7e5df;border-radius:9px;overflow:hidden;background:#f3f1ed}
 .admin-image-preview[hidden]{display:none}
 .admin-image-preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+
+/* Shared canonical page utilities moved out of legacy headers.
+   No secondary header, hidden legacy navigation or post-load header swap. */
+.qst-page-tools{display:flex;gap:12px;justify-content:flex-end;align-items:center;min-height:45px;padding:8px clamp(18px,3vw,48px);max-width:1380px;margin:0 auto;border-bottom:1px solid #e9e8e4;background:#fffdfa}
+.qst-page-tools a,.qst-page-tools button{background:#fff;border:1px solid #dedbd5;color:#1c1c1c;border-radius:6px;padding:7px 10px;font:650 11px Manrope,sans-serif;line-height:1.4;text-decoration:none}
+.qst-page-tools a:hover,.qst-page-tools button:hover{background:#fff1dc;border-color:#f5a52e;color:#171717}
+.qst-page-tools #savedNum{font-variant-numeric:tabular-nums;color:#a86c10}
+header.qst-shell-header{background:#141516!important;border-bottom:1px solid #363333!important}
+header.qst-shell-header .qst-shell-nav a{color:#f0eee9!important}
+header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst-shell-nav a:hover{color:#f8b453!important}
+@media(max-width:550px){.qst-page-tools{justify-content:flex-start;gap:6px;flex-wrap:wrap;padding:8px 15px}.qst-page-tools a,.qst-page-tools button{font-size:10px}}
