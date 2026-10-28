@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';
-import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
+import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';
 const root=path.resolve('.');
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
@@ -167,7 +167,7 @@ test('encyclopedia has source-linked articles spanning five disciplines',async()
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
 });
 test('encyclopedia detail returns real sections, numbered bibliography and related reading',async()=>{
- const e=fixture();const r=await get(e,'/api/encyclopedia/black-seed');assert.equal(r.status,200);
+ const e=fixture();e.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public','encyclopedia.html'),'utf8'),{headers:{'content-type':'text/html'}});const r=await get(e,'/api/encyclopedia/black-seed');assert.equal(r.status,200);
  const x=await r.json();
  assert(x.sections.length>=5);assert(x.citations.length>=2);
  assert(x.citations.some(c=>c.citation_ref==='5688'&&c.citation_type==='hadith'));
@@ -525,6 +525,8 @@ test('canonical header and footer exist in first HTML response; no old markup, d
  const env=fixture();
  for(const [path,file] of [['/','index.html'],['/encyclopedia?domain=seerah','encyclopedia.html'],['/study.html','study.html'],['/guidance','guidance.html']]){
   env.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public',file),'utf8'),{status:200,headers:{'content-type':'text/html'}});
+  const sample=fs.readFileSync(path.join(root,'public',file),'utf8');
+  try{await renderCanonicalShell(env,new URL('https://test.local'+path),new Response(sample,{headers:{'content-type':'text/html'}}));}catch(e){throw new Error('SSR direct error '+path+': '+e.message);}
   const response=await get(env,path);
   assert.equal(response.status,200,path);
   const html=await response.text();
