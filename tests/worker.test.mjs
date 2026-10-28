@@ -820,3 +820,23 @@ test('front-end reference explorer does not reapply the restrictive all-keyword 
  assert(!code.includes('words.every(w=>body.includes(w))'));
  assert(code.includes("featured:true"));
 });
+
+test('Tibb backend retrieves independent Europe PMC references without inventing therapeutic claims',async()=>{
+ const env=fixture(),old=globalThis.fetch,requests=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);requests.push(u);
+   if(u.includes('europepmc')){
+    return new Response(JSON.stringify({hitCount:100,resultList:{result:[{id:'12345678',source:'MED',title:'Diabetes and clinical outcomes in adults',journalTitle:'Clinical Studies',pubYear:'2024'}]}}),{status:200});
+   }
+   return new Response(JSON.stringify({success:true,data:u.includes('/api/hadith/')?{hadiths:[],total_found:0}:{results:[],results_count:0}}),{status:200});
+  };
+  const data=await (await get(env,'/api/source-discovery?domain=prophetic_medicine&q=diabetes')).json();
+  assert(data.results.some(x=>x.kind==='research'&&x.reference==='MED:12345678'));
+  assert(data.results.some(x=>x.evidence_scope==='bibliographic_only_not_treatment_endorsement'));
+  assert(data.providers.some(x=>x.id==='europe_pmc'&&x.status==='available'));
+  assert(requests.some(x=>x.includes('europepmc/webservices/rest/search')));
+  const other=await (await get(env,'/api/source-discovery?domain=seerah&q=diabetes')).json();
+  assert(!other.providers.some(x=>x.id==='europe_pmc'));
+ }finally{globalThis.fetch=old;}
+});
