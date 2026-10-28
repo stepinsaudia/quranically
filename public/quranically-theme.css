@@ -171,3 +171,11 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 .qst-home-discipline:hover .qst-card-media img{transform:scale(1.035)}
 .discipline-art img{object-position:center 45%;filter:saturate(.88) contrast(1.05)}
 @media(prefers-reduced-motion:reduce){.qst-card-media img{transition:none}}
+
+/* Search is a native third row of the cinematic home hero, never hidden below cards. */
+#indexView .index-intro .search-strip{grid-column:1/-1;margin:0;background:#111313;border:0;border-top:1px solid #40382f}
+#indexView .index-intro .search-frame{min-height:90px;padding:13px 25px;max-width:none;width:100%}
+#indexView .index-intro .search-title span{color:#f7b654}
+#indexView .index-intro .search-title small{color:#d2cbc2}
+#indexView .index-intro .search-frame form{box-shadow:0 10px 25px rgba(0,0,0,.12)}
+@media(max-width:720px){#indexView .index-intro .search-frame{padding:16px 20px}#indexView .index-intro .search-title{min-width:0}}
