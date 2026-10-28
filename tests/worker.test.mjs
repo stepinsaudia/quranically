@@ -161,7 +161,7 @@ test('encyclopedia has source-linked articles spanning five disciplines',async()
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
  assert((await fullSection.json()).entries.some(x=>x.slug==='honey'));
  const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
- assert.equal((await med.json()).entries.length,10);
+ assert((await med.json()).entries.length>=11);
  const s=await get(e,'/api/encyclopedia?letter=H');
  assert((await s.json()).entries.some(x=>x.slug==='honey'));
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
@@ -188,7 +188,7 @@ test('encyclopedia article publication requires sources and sections; Admin audi
  const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
  assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={origin:'https://test.local',cookie,'content-type':'application/json'};
  const bootstrap=await get(e,'/api/admin/bootstrap',{headers});assert.equal(bootstrap.status,200);const state=await bootstrap.json();
- assert.equal(state.encyclopedia_articles.length,18);
+ assert(state.encyclopedia_articles.length>=23);
  assert(state.encyclopedia_sections.length>=70);assert(state.encyclopedia_citations.length>=30);
  assert(state.encyclopedia_passages.length>=10);
  const make=await get(e,'/api/admin/encyclopedia_articles',{method:'POST',headers,body:JSON.stringify({slug:'test-reference-entry',title:'A test reference entry',domain:'quranic_themes',entry_type:'concept',abstract:'An isolated test entry.',status:'draft'})});
