@@ -1,5 +1,5 @@
-AUTHORIZE QURANICALLY EXISTING WORKER DEEP SOURCE COVERAGE REVIEW
-Pinned tested commit: caa983e4ec3176c06cb9c5ed6793547c843fa78a
+AUTHORIZE QURANICALLY EXISTING WORKER SOURCE DETAIL RELIABILITY UPDATE
+QA-passed commit: eeac42798d066c1ee178fe958e4653c19c4408ba
 Existing Worker: qst-living-knowledge-v1
 Existing D1: qst-knowledge-v1-db
-Scope: official complete HadeethEnc category hierarchy; 20 reports per page and deep pagination; on-page citation/detail fallback; canonical Admin unchanged. No new Worker, database or paid resource.
+Scope: cache successful official publisher detail responses for 1 hour at Cloudflare edge; never cache errors. Keeps full category browsing and Admin settings unchanged. No new paid infrastructure.
