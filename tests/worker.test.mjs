@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -850,4 +850,69 @@ test('canonical article matches never suppress independent live source retrieval
   const page=fs.readFileSync(path.join(root,'public',template),'utf8');
   assert(page.indexOf('id="federatedResults"')<page.indexOf('id="indexHeading"'),template);
  }
+});
+
+test('publisher shelves are independently managed from 27 D1 editorial articles',async()=>{
+ const env=fixture();
+ for(const domain of ['sunnah','seerah','prophetic_medicine','living_guidance']){
+  const res=await get(env,'/api/source-shelves?domain='+domain);
+  assert.equal(res.status,200,domain);
+  const data=await res.json();
+  assert.equal(data.source,'canonical_d1');
+  assert(data.shelves.length>=2,domain);
+  assert(data.shelves.every(s=>Number(s.provider_category_id)>0));
+ }
+ assert.equal((await get(env,'/api/source-shelves?domain=incorrect')).status,400);
+ assert.equal((await get(env,'/api/admin/source_shelves')).status,503);
+});
+test('official HadeethEnc source shelf browsing and detailed reading uses real returned records',async()=>{
+ const env=fixture(),original=globalThis.fetch,observed=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);observed.push(u);
+   if(u.includes('/hadeeths/list/')){
+    return new Response(JSON.stringify({data:[{id:'2962',title:'The Prophet explained the importance of justice in this report',translations:['en']}],meta:{current_page:1,last_page:2,total:18}}),{headers:{'content-type':'application/json'}});
+   }
+   if(u.includes('/hadeeths/one/')){
+    return new Response(JSON.stringify({id:'2962',title:'A source report on justice',hadeeth:'The original translated narration is available from the publisher.',explanation:'Publisher translation with context and explanation.',attribution:'Publisher source',grade:'Sahih',hints:['The reader should examine the original report.']}),{headers:{'content-type':'application/json'}});
+   }
+   throw Error('Unexpected external address '+u);
+  };
+  const listed=await (await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history')).json();
+  assert.equal(listed.status,'available');
+  assert.equal(listed.records[0].id,'2962');
+  assert.equal(listed.records[0].provider,'HadeethEnc');
+  assert.equal(listed.has_next_page,true);
+  assert(observed.some(u=>u.includes('category_id=7')&&u.includes('language=en')));
+  const details=await (await get(env,'/api/source-shelves/detail?id=2962')).json();
+  assert.equal(details.status,'available');
+  assert(details.explanation.includes('context'));
+  assert(details.passage.includes('narration'));
+  assert(details.notice.includes('not a Quranically-authenticated ruling'));
+  assert(observed.some(u=>u.includes('/hadeeths/one/')&&u.includes('id=2962')));
+ }finally{globalThis.fetch=original;}
+});
+test('publisher cannot be used as an arbitrary SSRF/proxy and cannot unpublish protected records',async()=>{
+ const env=fixture(),old=globalThis.fetch;
+ try{
+  let called=0;globalThis.fetch=async()=>{called++;throw Error('offline');};
+  assert.equal((await get(env,'/api/source-shelves/records?domain=seerah&shelf=unknown')).status,404);
+  assert.equal((await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history&page=-1')).status,400);
+  assert.equal((await get(env,'/api/source-shelves/detail?id=https:%2f%2fexample.com')).status,400);
+  assert.equal(called,0);
+  env.DB.prepare("UPDATE source_shelves SET status='draft' WHERE id='seerah-history'").run();
+  assert.equal((await get(env,'/api/source-shelves/records?domain=seerah&shelf=seerah-history')).status,404);
+  const published=(await (await get(env,'/api/source-shelves?domain=seerah')).json()).shelves;
+  assert(published.every(s=>s.id!=='seerah-history'));
+ }finally{globalThis.fetch=old;}
+});
+test('all non-Quran landing pages mount the canonical publisher reading module',()=>{
+ for(const path of ['public/index.html','public/encyclopedia.html']){
+  const content=fs.readFileSync(path.join(root,path),'utf8');
+  assert(content.includes('id="sourceShelves"'));
+  assert(content.includes('/source-shelves.js'));
+  assert(content.includes('id="shelfRecords"'));
+ }
+ const client=fs.readFileSync(path.join(root,'public/encyclopedia.js'),'utf8');
+ assert(client.includes('QuranicallySourceShelves.load(filters.domain)'));
 });
