@@ -1,1 +1,1 @@
-Read-only live DOM verification for all five Quranically disciplines, including external provider records displayed on-screen for Hadith, Seerah, Prophetic Medicine and Living Guidance. No writes or deployment.
+Read-only final Worker GUI audit of the new canonical source-library cards. Verify desktop and mobile visible real HadeethEnc category cards and expandable publisher explanations, in addition to source search, header and footer. No writes or deployments.
