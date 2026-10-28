@@ -780,3 +780,43 @@ test('authenticated editor can change discipline pathway destination without cre
  const hidden=(await (await get(env,'/api/discipline-pages')).json()).pathways;
  assert(!hidden.some(x=>x.id===row.id));
 });
+
+test('live search interprets natural-language questions and retries related primary-source words',async()=>{
+ const env=fixture(),old=globalThis.fetch,seen=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);seen.push(u);
+   const q=new URL(u).searchParams.get('q');
+   if(u.includes('/api/hadith/search')){
+    const records=q==='garment'?[{collection:'bukhari',collection_name:'Sahih Bukhari',hadithnumber:10,english:'A garment was worn in this report.',grade:'Sahih'}]:[];
+    return new Response(JSON.stringify({success:true,data:{total_found:records.length,hadiths:records}}));
+   }
+   return new Response(JSON.stringify({success:true,data:{results_count:0,results:[]}}));
+  };
+  const data=await (await get(env,'/api/source-discovery?q='+encodeURIComponent('What clothing did Prophet Muhammad wear for men?')+'&domain=seerah')).json();
+  assert(data.results.some(x=>x.kind==='hadith'&&x.excerpt.includes('garment')));
+  assert(data.providers.some(x=>x.id==='hadith_collections'&&x.status==='available'));
+  assert(seen.some(u=>u.includes('q=garment')));
+  assert(data.results.every(x=>x.matched_terms.includes('clothing')));
+ }finally{globalThis.fetch=old;}
+});
+test('one legitimate subject term in an excerpt is displayed while unrelated evidence is rejected',async()=>{
+ const env=fixture(),old=globalThis.fetch;
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);
+   if(u.includes('/api/hadith/search'))return new Response(JSON.stringify({success:true,data:{hadiths:[{collection:'muslim',hadithnumber:52,english:'Truthfulness is central to honest dealing and good behavior.'}],total_found:1}}));
+   return new Response(JSON.stringify({success:true,data:{results:[],results_count:0}}));
+  };
+  const data=await (await get(env,'/api/source-discovery?q='+encodeURIComponent('How did Muslims practice honesty in daily trade?')+'&domain=sunnah')).json();
+  assert(data.results.some(x=>x.kind==='hadith'&&x.excerpt.includes('Truthfulness')));
+  assert(data.results.every(x=>x.review_status==='upstream_unreviewed'));
+  const unrelated=await (await get(env,'/api/source-discovery?q=unrelated-purple-antennas&domain=sunnah')).json();
+  assert.equal(unrelated.results.length,0);
+ }finally{globalThis.fetch=old;}
+});
+test('front-end reference explorer does not reapply the restrictive all-keyword filter',()=>{
+ const code=fs.readFileSync(path.join(root,'public','encyclopedia.js'),'utf8');
+ assert(!code.includes('words.every(w=>body.includes(w))'));
+ assert(code.includes("featured:true"));
+});
