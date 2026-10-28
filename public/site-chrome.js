@@ -48,6 +48,21 @@ async function load(){
   const photo=safeImage(home.image_url),hero=document.querySelector('#indexView .intro-manuscript');
   if(photo&&hero){hero.innerHTML='<img class="qst-managed-hero-image" src="'+esc(photo)+'" alt="'+esc(home.image_alt||'')+'" loading="eager">';}
  }
+ const cards=(data.homepage_cards||[]).filter(c=>['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance'].includes(c.id));
+ if(cards.length&&(location.pathname==='/'||location.pathname==='/index.html')){
+   const intro=document.querySelector('#indexView .index-intro');
+   if(intro){
+     const section=document.createElement('section');
+     section.className='qst-home-card-grid shell';
+     section.setAttribute('aria-label','Explore the five knowledge disciplines');
+     section.innerHTML=cards.map(c=>{
+       const image=safeImage(c.image_url);
+       const media=image?'<img src="'+esc(image)+'" alt="'+esc(c.image_alt||'')+'" loading="lazy">':'<div class="qst-card-placeholder"><span>'+esc(c.title)+'</span></div>';
+       return '<a class="qst-home-discipline" href="/encyclopedia?domain='+encodeURIComponent(c.id)+'"><div class="qst-card-media">'+media+'</div><div class="qst-card-copy"><strong>'+esc(c.title)+'</strong><p>'+esc(c.description)+'</p><span class="qst-card-arrow" aria-hidden="true">↗</span></div></a>';
+     }).join('');
+     intro.insertAdjacentElement('afterend',section);
+   }
+ }
  document.documentElement.dataset.qstChrome='canonical';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>load().catch(()=>{}));
