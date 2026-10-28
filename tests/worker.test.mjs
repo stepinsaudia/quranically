@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -579,4 +579,56 @@ test('public home and discipline pages receive Admin-managed SEO in the server H
  env.DB.prepare("UPDATE page_seo SET status='draft' WHERE id='home'").run();
  const notPublished=await (await get(env,'/')).text();
  assert(notPublished.includes('<title>Static fallback</title>'));
+});
+
+test('Admin direct image upload uses canonical D1 and blocks unapproved public media',async()=>{
+ const env=fixture(),password='Media-security-test-credential-2026';
+ const salt=new Uint8Array(16);salt.fill(0x46);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const digest=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ env.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(digest);
+ const makeBlob=()=>{
+  const blob=new Uint8Array(64);
+  for(let i=0;i<4;i++)blob[i]='RIFF'.charCodeAt(i);
+  for(let i=0;i<4;i++)blob[8+i]='WEBP'.charCodeAt(i);
+  for(let i=0;i<4;i++)blob[12+i]='VP8X'.charCodeAt(i);
+  return blob;
+ };
+ const unauth=await get(env,'/api/admin/media',{method:'GET'});
+ assert.equal(unauth.status,401);
+ const login=await get(env,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const payload=makeBlob(),headers={cookie,origin:'https://test.local','content-type':'image/webp','x-image-alt':'Approved Islamic architectural photograph'};
+ const invalid=await get(env,'/api/admin/media/upload',{method:'POST',headers:{...headers,'content-type':'text/html'},body:'<img src=x>'});
+ assert.equal(invalid.status,400);
+ const outsider=await get(env,'/api/admin/media/upload',{method:'POST',headers:{...headers,origin:'https://evil.example'},body:payload});
+ assert.equal(outsider.status,403);
+ const upload=await get(env,'/api/admin/media/upload',{method:'POST',headers,body:payload});
+ assert.equal(upload.status,200);
+ const media=await upload.json();
+ assert(media.url.startsWith('https://test.local/media/m-'));
+ assert.equal(media.byte_size,64);
+ const publicResponse=await get(env,new URL(media.url).pathname);
+ assert.equal(publicResponse.status,200);
+ assert.equal(publicResponse.headers.get('content-type'),'image/webp');
+ const binary=new Uint8Array(await publicResponse.arrayBuffer());
+ assert.equal(binary.length,64);
+ const listing=await (await get(env,'/api/admin/media',{headers:{cookie}})).json();
+ assert.equal(listing.records.length,1);
+ assert(!('payload' in listing.records[0]));
+ const published=await get(env,'/api/admin/homepage_disciplines/prophetic_medicine',{method:'PUT',headers:{cookie,origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({image_url:media.url})});
+ assert.equal(published.status,200);
+ const card=(await (await get(env,'/api/site-chrome')).json()).homepage_cards.find(c=>c.id==='prophetic_medicine');
+ assert.equal(card.image_url,media.url);
+ const archive=await get(env,'/api/admin/media/'+media.id,{method:'PUT',headers:{cookie,origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({status:'archived'})});
+ assert.equal(archive.status,200);
+ assert.equal((await get(env,new URL(media.url).pathname)).status,404);
+});
+test('canonical Admin includes upload interface and no parallel media product dependency',()=>{
+ const markup=fs.readFileSync(path.join(root,'public','admin.html'),'utf8');
+ assert(markup.includes('/media-admin.js'));
+ assert(markup.includes('mediaFile'));
+ assert(markup.includes('openMediaLibrary'));
 });
