@@ -391,10 +391,10 @@ async function publicApi(request,env,url){
     if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid subject');
     // Coarse query cache prevents one reader action from turning into 3 provider API calls every time.
     const cache=typeof caches!=='undefined'?caches.default:null;
-    const requestKey=new Request(new URL('/api/source-discovery?'+new URLSearchParams({q:q.toLowerCase(),domain}),url.origin));
+    const requestKey=new Request(new URL('/api/source-discovery?'+new URLSearchParams({q:q.toLowerCase(),domain,revision:'v2'}),url.origin));
     if(cache){const hit=await cache.match(requestKey);if(hit)return hit;}
     const result=await liveSourceSearch(q,domain);
-    const response=new Response(JSON.stringify(result),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=1800','x-content-type-options':'nosniff'}});
+    const response=new Response(JSON.stringify(result),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
     if(cache)await cache.put(requestKey,response.clone());
     return response;
   }
