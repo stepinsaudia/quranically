@@ -83,7 +83,16 @@ async function openArticle(slug,writeHistory=true){
  }catch(e){selectedEntry=null;$('articleTitle').textContent='Entry unavailable';$('articleAbstract').textContent=e.message;$('articleSections').textContent='';$('articleMeta').textContent='';}
 }
 $('encyclopediaSearch').addEventListener('submit',event=>{
- event.preventDefault();filters.q=$('query').value.trim();filters.letter='';
+ event.preventDefault();
+ const entered=$('query').value.trim();
+ const ref=/^(?:quran\\s+)?(\\d{1,3}):(\\d{1,3})$/i.exec(entered);
+ if(ref){
+   const chapter=Number(ref[1]),ayah=Number(ref[2]);
+   if(chapter>=1&&chapter<=114&&ayah>=1&&ayah<=286){
+     location.assign('/study.html?surah='+chapter+'&ayah='+ayah);return;
+   }
+ }
+ filters.q=entered;filters.letter='';
  history.pushState({},'',indexLink());refresh();document.getElementById('indexView').scrollIntoView({behavior:'smooth'});
 });
 $('subjects').addEventListener('click',event=>{
