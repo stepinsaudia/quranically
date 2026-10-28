@@ -81,6 +81,7 @@ async function liveSources(q,domain,{featured=false}={}){
 let refreshSequence=0;
 async function refresh(){
  renderDiscipline();
+ if(window.QuranicallySourceShelves)window.QuranicallySourceShelves.load(filters.domain);
  const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
  const heading=filters.domain?titles[filters.domain]:'All reference entries';
