@@ -32,3 +32,40 @@ jobs:
           node --check public/encyclopedia.js
           node --check public/admin.js
           node --check public/site-chrome.js
+          node --check public/media-admin.js
+          node --check scripts/development-visual-qa.mjs
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --no-package-lock
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Apply schema to isolated local D1
+        run: npx wrangler d1 migrations apply qst-knowledge-v1-db --local
+      - name: Start development Worker without deploying
+        run: |
+          nohup npx wrangler dev --local --port 8787 > wrangler-preview.log 2>&1 &
+          for attempt in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8787/api/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat wrangler-preview.log
+          exit 1
+      - name: Retina desktop/mobile canonical public and Admin QA
+        run: node scripts/development-visual-qa.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-development-screenshots
+          path: |
+            artifacts/development/*.png
+            wrangler-preview.log
+          if-no-files-found: ignore
+          retention-days: 5
