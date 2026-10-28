@@ -1,4 +1,4 @@
-import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
+import {liveSourceSearch,rankSourceEvidence,CONNECTORS} from './source-discovery.mjs';
 import {renderCanonicalShell} from './site-shell.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -493,11 +493,9 @@ async function publicApi(request,env,url){
       // Search usable live evidence on demand instead of stopping at the small editorial index.
       // A provider excerpt is never silently promoted to a reviewed, complete Islamic answer.
       const discovery=await liveSourceSearch(q,domain);
-      const terms=meaningful(q);
-      const accepted=(discovery.results||[]).filter(x=>{
-        const body=normalize([x.title,x.excerpt,x.reference].join(' '));
-        return terms.length>0&&terms.every(t=>body.includes(t));
-      }).slice(0,6);
+      // Provider ranking is shared with the source desk and is not an
+      // exact-phrase gate. Do not discard legitimate subject-linked evidence.
+      const accepted=rankSourceEvidence(discovery.results||[],q,6);
       return json({outcome:accepted.length?'source_evidence':'no_editorial_answer',query:q,domain,
         notice:accepted.length?'Relevant external source excerpts were found, but no complete editorial article is ready. Source verification remains pending.':'No suitably matching reviewed editorial article or relevant available provider excerpts were located.',
         evidence:accepted,providers:discovery.providers||[],fetched_at:discovery.fetched_at||null,answer:null});
