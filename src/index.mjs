@@ -347,7 +347,11 @@ async function publicApi(request,env,url){
     if(domain){query+=' AND domain=?';params.push(domain);}
     if(letter){query+=' AND UPPER(SUBSTR(title,1,1))=?';params.push(letter);}
     if(q){query+=' AND (title LIKE ? OR arabic_title LIKE ? OR subtitle LIKE ? OR alternate_names LIKE ? OR abstract LIKE ? OR EXISTS(SELECT 1 FROM encyclopedia_sections s WHERE s.article_id=encyclopedia_articles.id AND (s.heading LIKE ? OR s.body LIKE ?)) OR EXISTS(SELECT 1 FROM encyclopedia_citations c WHERE c.article_id=encyclopedia_articles.id AND (c.source_title LIKE ? OR c.citation_ref LIKE ?)))';const pat='%'+q.replace(/[%_]/g,'')+'%';params.push(...Array(9).fill(pat));}
-    query+=' ORDER BY title ASC LIMIT 120';
+    if(q){
+      query+=' ORDER BY CASE WHEN LOWER(title)=LOWER(?) THEN 0 WHEN title LIKE ? THEN 1 ELSE 2 END, title ASC';
+      params.push(q,'%'+q.replace(/[%_]/g,'')+'%');
+    }else query+=' ORDER BY title ASC';
+    query+=' LIMIT 120';
     const entries=(await env.DB.prepare(query).bind(...params).all()).results;
     return json({entries,filters:{q,domain,letter},notice:'Source-linked encyclopedia under editorial review. Do not equate citation with clinical approval.'});
   }
