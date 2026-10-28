@@ -1,5 +1,5 @@
-AUTHORIZE QURANICALLY EXISTING WORKER SOURCE-LIBRARY REVIEW
-Approved canonical commit: 0c183174dfcf351a45e0aad5b7daaa7ab8e456a2
+AUTHORIZE QURANICALLY EXISTING WORKER DEEP SOURCE COVERAGE REVIEW
+Pinned tested commit: caa983e4ec3176c06cb9c5ed6793547c843fa78a
 Existing Worker: qst-living-knowledge-v1
 Existing D1: qst-knowledge-v1-db
-Scope: official HadeethEnc source collections in four disciplines, Admin shelves, bounded in-page report/explanations, publisher attributions, clear editorial counts. No second Worker or new paid service.
+Scope: official complete HadeethEnc category hierarchy; 20 reports per page and deep pagination; on-page citation/detail fallback; canonical Admin unchanged. No new Worker, database or paid resource.
