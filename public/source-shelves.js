@@ -23,7 +23,7 @@ function sourceLink(id){
 function renderCategories(){
  const holder=$('shelfCategories');if(!current)return;
  const root=String(current.active.provider_category_id);
- const all=(current.categories||[]).filter(c=>c.shelf_root===root);
+ const all=(current.categories||[]).filter(c=>(c.shelf_roots||[]).includes(root));
  if(!all.length){
   holder.innerHTML='<p>Browse the published collection. '+(current.categoryStatus==='temporarily_unavailable'?'Publisher subcategory list is temporarily unavailable.':'Checking for official subcategories…')+'</p>';
   return;
