@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -454,4 +454,54 @@ test('canonical Admin-driven discipline landing pages are read from D1',async()=
  const hidden=await (await get(env,'/api/discipline-pages')).json();
  assert.equal(hidden.pages.some(p=>p.id==='seerah'),false);
  assert.equal((await get(env,'/api/admin/discipline_pages')).status,503);
+});
+
+test('global site shell is canonical D1 content and Admin edits propagate to public pages',async()=>{
+ const env=fixture();
+ const first=await get(env,'/api/site-chrome');
+ assert.equal(first.status,200);
+ const snapshot=await first.json();
+ assert.equal(snapshot.source,'canonical_d1');
+ assert.equal(snapshot.panels.length,3);
+ assert(snapshot.links.some(l=>l.section==='header'&&l.href==='/study.html'));
+ const secret='Quranically-site-shell-test-secret-2026';
+ const salt=new Uint8Array(16);salt.fill(0x5d);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveBits']);
+ const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=a=>Array.from(a,v=>v.toString(16).padStart(2,'0')).join('');
+ env.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(derived);
+ assert.equal((await get(env,'/api/admin/site_panels')).status,401);
+ const login=await get(env,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password:secret})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const headers={origin:'https://test.local',cookie,'content-type':'application/json'};
+ const bootstrap=await (await get(env,'/api/admin/bootstrap',{headers:{cookie}})).json();
+ assert.equal(bootstrap.site_panels.length,3);
+ assert(bootstrap.site_links.length>=10);
+ const write=await get(env,'/api/admin/site_panels/homepage',{method:'PUT',headers,body:JSON.stringify({heading:'An Admin-controlled Quranically headline'})});
+ assert.equal(write.status,200);
+ const updated=await (await get(env,'/api/site-chrome')).json();
+ assert.equal(updated.panels.find(p=>p.id==='homepage').heading,'An Admin-controlled Quranically headline');
+ const renamed=await get(env,'/api/admin/site_links/nav-quran',{method:'PUT',headers,body:JSON.stringify({label:'Qur’an Reader'})});
+ assert.equal(renamed.status,200);
+ const nav=(await (await get(env,'/api/site-chrome')).json()).links;
+ assert.equal(nav.find(x=>x.id==='nav-quran').label,'Qur’an Reader');
+ const blocked=await get(env,'/api/admin/site_links/nav-quran',{method:'PUT',headers,body:JSON.stringify({href:'javascript:alert(1)'})});
+ assert.equal(blocked.status,400);
+ const cross=await get(env,'/api/admin/site_panels/homepage',{method:'PUT',headers:{...headers,origin:'https://wrong.example'},body:JSON.stringify({heading:'should not apply'})});
+ assert.equal(cross.status,403);
+ const hidden=await get(env,'/api/admin/site_links/foot-desk',{method:'PUT',headers,body:JSON.stringify({status:'draft'})});
+ assert.equal(hidden.status,200);
+ const final=await (await get(env,'/api/site-chrome')).json();
+ assert(!final.links.some(x=>x.id==='foot-desk'));
+ const audit=(await (await get(env,'/api/admin/audit',{headers:{cookie}})).json()).records;
+ assert(audit.some(x=>x.table_name==='site_panels'&&x.record_id==='homepage'));
+ assert(audit.some(x=>x.table_name==='site_links'&&x.record_id==='nav-quran'));
+});
+test('public page templates include the shared canonical shell asset',()=>{
+ for(const page of ['index.html','encyclopedia.html','study.html','guidance.html']){
+  const markup=fs.readFileSync(path.join(root,'public',page),'utf8');
+  assert(markup.includes('/site-chrome.js'),page);
+  assert(markup.includes('/quranically-theme.css'),page);
+ }
 });
