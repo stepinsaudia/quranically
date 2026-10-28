@@ -369,14 +369,16 @@ async function publicApi(request,env,url){
     let best=null;
     for(const a of records){
       const aliases=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(Boolean);
+      // A related phrase must match whole normalized tokens, not accidental substrings.
+      // Favour an entire topic over an incidental word within another topic.
       let score=0,method='';
       for(const alias of aliases){
         const tokens=meaningful(alias);
         if(!tokens.length)continue;
         let n=0;
         if(query===alias){n=150+Math.min(20,tokens.length*3);}
-        else if(query.includes(alias)&&tokens.length>1){n=115+Math.min(20,tokens.length*2);}
-        else if(alias.includes(query)&&queryTokens.length>1){n=75;}
+        else if(tokens.length>1&&queryTokens.length>=tokens.length&&tokens.every(t=>queryTokens.includes(t))){n=115+Math.min(20,tokens.length*2);}
+        else if(queryTokens.length>1&&queryTokens.every(t=>tokens.includes(t))){n=75;}
         else if(queryTokens.length&&tokens.length){
           const hits=queryTokens.filter(t=>tokens.includes(t));
           if(hits.length===queryTokens.length&&hits.length>=2)n=70;
