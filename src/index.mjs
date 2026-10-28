@@ -6,6 +6,7 @@ const readUrl=(request)=>new URL(request.url);
 const validId=s=>typeof s==='string' && /^[a-z0-9][a-z0-9-]{0,85}$/.test(s);
 const allowedUrl=s=>!s|| (typeof s==='string'&&s.length<1200&&/^https:\/\//i.test(s));
 const field={
+  page_seo:['title','description','social_image_url','social_image_alt','status'],
   homepage_disciplines:['title','description','image_url','image_alt','status','sort_order'],
   site_panels:['kicker','heading','subtitle','body','image_url','image_alt','status','sort_order'],
   site_links:['section','label','href','status','sort_order'],
@@ -22,7 +23,7 @@ const field={
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={homepage_disciplines:'homepage_disciplines',site_panels:'site_panels',site_links:'site_links',discipline_pages:'discipline_pages',journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
+const tableFor={page_seo:'page_seo',homepage_disciplines:'homepage_disciplines',site_panels:'site_panels',site_links:'site_links',discipline_pages:'discipline_pages',journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -33,7 +34,7 @@ const enumVals={
  review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
  verification_status:['pending','verified','rejected']
 };
-const needed={homepage_disciplines:['title','description'],site_panels:['heading'],site_links:['section','label','href'],discipline_pages:['heading','introduction'],journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
+const needed={page_seo:['title','description'],homepage_disciplines:['title','description'],site_panels:['heading'],site_links:['section','label','href'],discipline_pages:['heading','introduction'],journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
  encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
  encyclopedia_sections:['article_id','heading','section_type','body'],
@@ -41,7 +42,7 @@ const needed={homepage_disciplines:['title','description'],site_panels:['heading
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url']};
-const textLimit={description:900,kicker:180,subtitle:900,image_url:1200,image_alt:220,label:150,href:450,section:80,introduction:1500,pathway_labels:350,hero_image_alt:200,eyebrow:140,heading:180,hero_image_url:1200,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+const textLimit={social_image_url:1200,social_image_alt:220,description:900,kicker:180,subtitle:900,image_url:1200,image_alt:220,label:150,href:450,section:80,introduction:1500,pathway_labels:350,hero_image_alt:200,eyebrow:140,heading:180,hero_image_url:1200,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -67,7 +68,7 @@ function normalize(table,payload,method){
     if(table==='site_links'&&k==='section'&&!['header','footer_explore','footer_resources','footer_about','footer_legal'].includes(txt))throw new Error('Invalid site link section');
     if(table==='site_links'&&k==='href'&&!( /^\/(?!\/)[a-zA-Z0-9/?#=&._%~-]*$/.test(txt) || /^https:\/\/[^\s<>"']+$/.test(txt)))throw new Error('Only internal paths or HTTPS links are accepted');
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
-    if(['source_url','audio_url','reference_url','offer_url','hero_image_url','image_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
+    if(['source_url','audio_url','reference_url','offer_url','hero_image_url','image_url','social_image_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
     if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
@@ -210,7 +211,7 @@ async function adminApi(request,env,url,identity){
     if(!field[entity])return json({error:'Unknown collection'},404);
     return json({records:(await env.DB.prepare(`SELECT * FROM ${entity} ORDER BY id LIMIT 300`).all()).results});
   }
-  if(['discipline_pages','site_panels','homepage_disciplines'].includes(entity)&&request.method==='POST')return json({error:'Discipline page identifiers are fixed. Edit existing canonical records instead.'},405);
+  if(['discipline_pages','site_panels','homepage_disciplines','page_seo'].includes(entity)&&request.method==='POST')return json({error:'Discipline page identifiers are fixed. Edit existing canonical records instead.'},405);
   if(!['POST','PUT','PATCH'].includes(request.method)||!field[entity])return json({error:'Unsupported action'},405);
   if(!originValid(request))return json({error:'Cross-origin edit blocked'},403);
   let values;
@@ -273,7 +274,7 @@ async function adminApi(request,env,url,identity){
       if(!route[1])return invalid('Record ID required');
       const before=await env.DB.prepare(`SELECT id FROM ${entity} WHERE id=?`).bind(id).first();
       if(!before)return json({error:'Record not found'},404);
-      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles','discipline_pages','site_panels','site_links','homepage_disciplines'].includes(entity);
+      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles','discipline_pages','site_panels','site_links','homepage_disciplines','page_seo'].includes(entity);
       await env.DB.prepare(`UPDATE ${entity} SET ${fields.map(k=>k+'=?').join(',')}${hasUpdated?",updated_at=datetime('now')":''} WHERE id=?`).bind(...vals,id).run();
       await audit(env.DB,identity.email,'update',entity,id);
     }
@@ -519,11 +520,12 @@ async function publicApi(request,env,url){
   }
   if(pathname==='/api/site-chrome'){
     const cards=(await env.DB.prepare("SELECT id,title,description,image_url,image_alt,sort_order FROM homepage_disciplines WHERE status='published' ORDER BY sort_order,id").all()).results;
+    const seo=(await env.DB.prepare("SELECT id,title,description,social_image_url,social_image_alt FROM page_seo WHERE status='published' ORDER BY id").all()).results;
     const [panels,links]=await Promise.all([
       env.DB.prepare("SELECT id,kicker,heading,subtitle,body,image_url,image_alt FROM site_panels WHERE status='published' ORDER BY sort_order,id").all(),
       env.DB.prepare("SELECT id,section,label,href,sort_order FROM site_links WHERE status='published' ORDER BY section,sort_order,id").all()
     ]);
-    return json({panels:panels.results,links:links.results,homepage_cards:cards,source:'canonical_d1'});
+    return json({panels:panels.results,links:links.results,homepage_cards:cards,page_seo:seo,source:'canonical_d1'});
   }
   if(pathname==='/api/discipline-pages'){
     const records=(await env.DB.prepare("SELECT id,eyebrow,heading,introduction,pathway_labels,hero_image_url,hero_image_alt,sort_order FROM discipline_pages WHERE status='published' ORDER BY sort_order,id").all()).results;
