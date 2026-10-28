@@ -179,3 +179,16 @@ body:not(:has(.admin-top)) .header-admin{color:#f8b14b;border-color:#6b6253}
 #indexView .index-intro .search-title small{color:#d2cbc2}
 #indexView .index-intro .search-frame form{box-shadow:0 10px 25px rgba(0,0,0,.12)}
 @media(max-width:720px){#indexView .index-intro .search-frame{padding:16px 20px}#indexView .index-intro .search-title{min-width:0}}
+
+/* Compact mobile hero retains the actual licensed visual, instead of hiding the discipline identity. */
+@media(max-width:760px){
+ #indexView .index-intro .intro-manuscript{display:block!important;height:195px!important;min-height:195px!important;padding:0!important}
+ #indexView .index-intro .intro-manuscript:has(.qst-managed-hero-image){height:195px!important}
+ #indexView .qst-managed-hero-image{width:100%;height:195px!important;min-height:195px!important;object-position:center 55%}
+ #indexView .index-intro .search-strip{grid-column:1}
+ #indexView .index-intro .search-frame{padding:15px 16px}
+ #indexView .index-intro .search-frame form{min-width:0}
+ #indexView .index-intro .search-frame form button{padding:11px 13px}
+}
+body:has(.qst-home-card-grid) .breadcrumbs{display:none}
+body:has(.qst-home-card-grid) .index-intro{margin-top:20px}
