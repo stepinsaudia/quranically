@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -559,4 +559,24 @@ test('newly indexed knowledge answers cover all five disciplines with independen
  }
  const total=env.DB.prepare('SELECT COUNT(*) AS c FROM encyclopedia_articles').first().c;
  assert(total>=23,'All five disciplines expanded without dropping earlier articles');
+});
+
+test('public home and discipline pages receive Admin-managed SEO in the server HTML',async()=>{
+ const env=fixture();
+ env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Static fallback</title><meta name="description" content="Placeholder"></head><body><main>Reference content</main></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ const home=await (await get(env,'/')).text();
+ assert(home.includes('<title>Quranically — The Islamic Reference Encyclopedia</title>'));
+ assert(home.includes('property="og:title"'));
+ assert(home.includes('rel="canonical"'));
+ const tibb=await (await get(env,'/encyclopedia?domain=prophetic_medicine')).text();
+ assert(tibb.includes('<title>Prophetic Medicine | Quranically</title>'));
+ assert(tibb.includes('?domain=prophetic_medicine'));
+ const quran=await (await get(env,'/study.html')).text();
+ assert(quran.includes('<title>Qur’an Reader | Quranically</title>'));
+ env.DB.prepare("UPDATE page_seo SET title='Source-aware title for editorial review' WHERE id='home'").run();
+ const changed=await (await get(env,'/')).text();
+ assert(changed.includes('<title>Source-aware title for editorial review</title>'));
+ env.DB.prepare("UPDATE page_seo SET status='draft' WHERE id='home'").run();
+ const notPublished=await (await get(env,'/')).text();
+ assert(notPublished.includes('<title>Static fallback</title>'));
 });
