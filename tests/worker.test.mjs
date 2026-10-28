@@ -907,8 +907,8 @@ test('publisher cannot be used as an arbitrary SSRF/proxy and cannot unpublish p
  }finally{globalThis.fetch=old;}
 });
 test('all non-Quran landing pages mount the canonical publisher reading module',()=>{
- for(const path of ['public/index.html','public/encyclopedia.html']){
-  const content=fs.readFileSync(path.join(root,path),'utf8');
+ for(const file of ['public/index.html','public/encyclopedia.html']){
+  const content=fs.readFileSync(path.join(root,file),'utf8');
   assert(content.includes('id="sourceShelves"'));
   assert(content.includes('/source-shelves.js'));
   assert(content.includes('id="shelfRecords"'));
