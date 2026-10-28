@@ -1,4 +1,5 @@
 import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
+import {renderCanonicalShell} from './site-shell.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -629,7 +630,7 @@ const escMarkup=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;'
 async function encyclopediaHtml(request,env,url,slug){
   const entry=await env.DB.prepare("SELECT slug,title,subtitle,abstract,domain,review_status,updated_at FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first();
   if(!entry)return new Response('Reference article not found',{status:404,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'}});
-  const res=await env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+  const res=await publicAssetResponse(request,env,'/encyclopedia');
   if(!res.ok)return res;
   let markup=await res.text();
   const headline=entry.title+' | Quranically — Islamic Reference Encyclopedia';
@@ -646,7 +647,7 @@ async function encyclopediaHtml(request,env,url,slug){
     isAccessibleForFree:true
   };
   markup=markup.replace('</head>','<link rel="canonical" href="'+escMarkup(canonical)+'"><meta property="og:type" content="article"><meta property="og:title" content="'+escMarkup(headline)+'"><meta property="og:description" content="'+escMarkup(desc)+'"><script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,'\\u003c')+'</script></head>');
-  return new Response(markup,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
+  return renderCanonicalShell(env,url,new Response(markup,{status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}}));
 }
 function pageSeoId(url){
   const path=url.pathname;
@@ -660,10 +661,11 @@ function pageSeoId(url){
   return null;
 }
 async function pageSeoResponse(env,url,response){
+  if(!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
   const id=pageSeoId(url);
-  if(!id||!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
+  if(!id)return renderCanonicalShell(env,url,response);
   const seo=await env.DB.prepare("SELECT title,description,social_image_url,social_image_alt FROM page_seo WHERE id=? AND status='published'").bind(id).first();
-  if(!seo)return response;
+  if(!seo)return renderCanonicalShell(env,url,response);
   let html=await response.text();
   const title=escMarkup(seo.title),description=escMarkup(seo.description);
   const canonical=url.origin+url.pathname+(url.pathname.startsWith('/encyclopedia')&&url.searchParams.get('domain')?'?domain='+encodeURIComponent(url.searchParams.get('domain')):'');
@@ -673,11 +675,22 @@ async function pageSeoResponse(env,url,response){
   }
   const social=seo.social_image_url&&/^https:\/\//i.test(seo.social_image_url)?'<meta property="og:image" content="'+escMarkup(seo.social_image_url)+'"><meta property="og:image:alt" content="'+escMarkup(seo.social_image_alt)+'">':'';
   html=html.replace('</head>','<meta property="og:type" content="website"><meta property="og:title" content="'+title+'"><meta property="og:description" content="'+description+'"><link rel="canonical" href="'+escMarkup(canonical)+'">'+social+'</head>');
-  const headers=new Headers(response.headers);
-  headers.set('content-type','text/html; charset=utf-8');
-  headers.set('cache-control','public, max-age=300');
-  for(const key of ['content-length','content-encoding','etag'])headers.delete(key);
-  return new Response(html,{status:response.status,headers});
+  return renderCanonicalShell(env,url,new Response(html,{status:response.status,headers:{'content-type':'text/html; charset=utf-8'}}));
+}
+// Resolve redirects inside the trusted static-assets binding, without an external fetch
+// or client-side redirect that could display a legacy page before the canonical shell.
+async function publicAssetResponse(request,env,assetPath){
+  const origin=new URL(request.url).origin;
+  const allowed=new Set(['/','/index.html','/encyclopedia','/encyclopedia.html','/study','/study.html','/guidance','/guidance.html']);
+  for(let n=0;n<4;n++){
+    const response=await env.ASSETS.fetch(new Request(new URL(assetPath,origin),request));
+    if(![301,302,307,308].includes(response.status))return response;
+    const target=new URL(response.headers.get('location')||'/',origin);
+    if(target.origin!==origin||!allowed.has(target.pathname))throw new Error('Unexpected public asset redirect');
+    if(target.pathname===assetPath)throw new Error('Public asset redirect loop');
+    assetPath=target.pathname;
+  }
+  throw new Error('Public asset redirect limit exceeded');
 }
 async function sitemapResponse(env,url){
   const rows=(await env.DB.prepare("SELECT slug,updated_at FROM encyclopedia_articles WHERE status='published' ORDER BY slug LIMIT 1000").all()).results;
@@ -740,8 +753,8 @@ export default {
         const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
         return Response.redirect(new URL(target,url.origin),302);
       }
-      if(path==='/encyclopedia'||path==='/encyclopedia/')return pageSeoResponse(env,url,await env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request)));
-      if(['/', '/index.html','/study.html','/study','/guidance','/guidance.html'].includes(path))return pageSeoResponse(env,url,await env.ASSETS.fetch(request));
+      if(path==='/encyclopedia'||path==='/encyclopedia/')return pageSeoResponse(env,url,await publicAssetResponse(request,env,'/encyclopedia'));
+      if(['/', '/index.html','/study.html','/study','/guidance','/guidance.html'].includes(path))return pageSeoResponse(env,url,await publicAssetResponse(request,env,path));
       if(path.startsWith('/encyclopedia/')){
         const slug=path.slice('/encyclopedia/'.length).replace(/\/$/,'');
         if(!validId(slug))return new Response('Reference article not found',{status:404});
