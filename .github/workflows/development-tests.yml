@@ -27,6 +27,7 @@ jobs:
       - name: Static JavaScript syntax checks
         run: |
           node --check src/index.mjs
+          node --check src/site-shell.mjs
           node --check src/source-discovery.mjs
           node --check public/answer.js
           node --check public/encyclopedia.js
