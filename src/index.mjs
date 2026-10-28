@@ -395,6 +395,34 @@ async function publicApi(request,env,url){
       }
       if(score>0&&(!best||score>best.score))best={article:a,score,method};
     }
+    // A question about two named subjects should not collapse to the first
+    // article. Assemble distinguishable, sourced records from the SAME D1 CMS.
+    const comparisonRequested=/\\b(?:and|versus|vs\\.?|compare|difference between)\\b/i.test(q);
+    if(comparisonRequested){
+      const named=records.map(a=>{
+        const names=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(x=>x.length>=4);
+        const matched=names.some(alias=>{
+          const tokens=meaningful(alias);
+          return tokens.length>0&&tokens.every(t=>queryTokens.includes(t));
+        });
+        return matched?a:null;
+      }).filter(Boolean).slice(0,3);
+      if(named.length>=2){
+        const compared=await Promise.all(named.map(async entry=>{
+          const [parts,references]=await Promise.all([
+            env.DB.prepare('SELECT heading,section_type,body FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id LIMIT 7').bind(entry.id).all(),
+            env.DB.prepare('SELECT citation_type,source_title,citation_ref,source_url,source_note,verification_status FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id LIMIT 12').bind(entry.id).all()
+          ]);
+          return {slug:entry.slug,title:entry.title,domain:entry.domain,abstract:entry.abstract,review_status:entry.review_status,sections:parts.results,citations:references.results};
+        }));
+        if(compared.every(a=>a.sections.length>=3&&a.citations.length>=1)){
+          return json({outcome:'multi_article_answer',query:q,domain,
+            articles:compared,answer:null,
+            notice:'This is a comparative reading of independently attributed encyclopedia entries, not a new scholarly verdict or claim of medical efficacy.',
+            provenance:'Canonical published D1 articles; original review status preserved on each source.'});
+        }
+      }
+    }
     if(!best){
       // Search usable live evidence on demand instead of stopping at the small editorial index.
       // A provider excerpt is never silently promoted to a reviewed, complete Islamic answer.
