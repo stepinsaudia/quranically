@@ -261,7 +261,7 @@ test('Quran same-origin chapter API validates source alignment and rejects inven
 
 test('canonical article SEO and XML sitemap use only published D1 entries',async()=>{
  const env=fixture();
- env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Quranically | The Islamic Reference Encyclopedia</title><meta name="description" content="Editorial encyclopedia"></head><body><div id="articleView"></div></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Quranically | The Islamic Reference Encyclopedia</title><meta name="description" content="Editorial encyclopedia"></head><body><!--QST_CANONICAL_HEADER--><div id="articleView"></div><!--QST_CANONICAL_FOOTER--></body></html>',{status:200,headers:{'content-type':'text/html'}});
  const detail=await get(env,'/encyclopedia/black-seed');
  assert.equal(detail.status,200);
  const html=await detail.text();
@@ -520,6 +520,46 @@ test('public page templates include the shared canonical shell asset',()=>{
  }
 });
 
+
+test('canonical header and footer exist in first HTML response; no old markup, double header or hidden swap',async()=>{
+ const env=fixture();
+ for(const [path,file] of [['/','index.html'],['/encyclopedia?domain=seerah','encyclopedia.html'],['/study.html','study.html'],['/guidance','guidance.html']]){
+  env.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public',file),'utf8'),{status:200,headers:{'content-type':'text/html'}});
+  const response=await get(env,path);
+  assert.equal(response.status,200,path);
+  const html=await response.text();
+  assert.equal((html.match(/<header class="qst-shell-header"/g)||[]).length,1,path);
+  assert.equal((html.match(/<footer class="qst-shell-footer"/g)||[]).length,1,path);
+  assert(!html.includes('<!--QST_CANONICAL_HEADER-->'),path);
+  assert(!html.includes('<header class="header">'),path);
+  assert(!html.includes('<header class="site-header">'),path);
+  assert(!html.includes('<nav class="global-nav">'),path);
+  assert(html.includes('data-canonical-shell="server"'),path);
+  assert.equal(response.headers.get('cache-control'),'no-store');
+ }
+ env.ASSETS.fetch=async()=>new Response(fs.readFileSync(path.join(root,'public','index.html'),'utf8'),{status:200,headers:{'content-type':'text/html'}});
+ env.DB.prepare("UPDATE site_panels SET heading='New admin-controlled masthead' WHERE id='header'").run();
+ const changed=await (await get(env,'/')).text();
+ assert(changed.includes('<strong>New admin-controlled masthead</strong>'));
+ assert(!changed.includes('<strong>QURANICALLY</strong>'));
+ env.DB.prepare("UPDATE site_links SET label='Read Qur’an Now' WHERE id='nav-quran'").run();
+ const renamed=await (await get(env,'/')).text();
+ assert(renamed.includes('Read Qur’an Now'));
+ assert(!renamed.includes('Quran Reader</a></nav>'));
+});
+test('static public templates never include visible obsolete header/footer markup',()=>{
+ for(const name of ['index.html','encyclopedia.html','study.html','guidance.html']){
+  const source=fs.readFileSync(path.join(root,'public',name),'utf8');
+  assert(source.includes('<!--QST_CANONICAL_HEADER-->'),name);
+  assert(source.includes('<!--QST_CANONICAL_FOOTER-->'),name);
+  assert(!source.includes('<header class="header">'),name);
+  assert(!source.includes('<header class="site-header">'),name);
+ }
+ const js=fs.readFileSync(path.join(root,'public','site-chrome.js'),'utf8');
+ assert(!js.includes('insertAdjacentElement('+"'beforebegin'"+')'));
+ assert(!js.includes("old.style.display='none'"));
+});
+
 test('multi-topic questions compose substantive separately cited references on-screen',async()=>{
  const env=fixture();
  const response=await get(env,'/api/encyclopedia/answer?q='+encodeURIComponent('Compare black seed and honey')+'&domain=prophetic_medicine');
@@ -564,7 +604,7 @@ test('newly indexed knowledge answers cover all five disciplines with independen
 
 test('public home and discipline pages receive Admin-managed SEO in the server HTML',async()=>{
  const env=fixture();
- env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Static fallback</title><meta name="description" content="Placeholder"></head><body><main>Reference content</main></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Static fallback</title><meta name="description" content="Placeholder"></head><body><!--QST_CANONICAL_HEADER--><main>Reference content</main><!--QST_CANONICAL_FOOTER--></body></html>',{status:200,headers:{'content-type':'text/html'}});
  const home=await (await get(env,'/')).text();
  assert(home.includes('<title>Quranically — The Islamic Reference Encyclopedia</title>'));
  assert(home.includes('property="og:title"'));
