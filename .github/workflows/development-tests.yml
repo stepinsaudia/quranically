@@ -1,0 +1,32 @@
+name: Quranically development quality gate
+on:
+  push:
+    branches:
+      - develop/equal-discipline-capability
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'migrations/**'
+      - 'tests/**'
+      - 'package.json'
+      - '.github/workflows/development-tests.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Worker unit and isolated database migration tests
+        run: npm test
+      - name: Static JavaScript syntax checks
+        run: |
+          node --check src/index.mjs
+          node --check src/source-discovery.mjs
+          node --check public/answer.js
+          node --check public/encyclopedia.js
