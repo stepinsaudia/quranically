@@ -16,6 +16,15 @@ async function show(q,domain){
   const r=await fetch('/api/encyclopedia/answer?'+params,{headers:{accept:'application/json'},signal:AbortSignal.timeout(18000)});
   if(!r.ok)throw Error('The knowledge database is temporarily unavailable');
   const data=await r.json();if(id!==sequence)return null;
+  if(data.outcome==='multi_article_answer'&&Array.isArray(data.articles)&&data.articles.length>=2){
+    const articles=data.articles.map(a=>{
+      const citations=(a.citations||[]).map(citation).join('');
+      const sections=(a.sections||[]).map(section).join('');
+      return '<article class="qa-compare-article"><div class="qa-kicker">'+esc(String(a.domain||'').replaceAll('_',' '))+' · '+esc(String(a.review_status||'editorial pending').replaceAll('_',' '))+'</div><h3>'+esc(a.title)+'</h3><p class="qa-summary">'+esc(a.abstract)+'</p><div class="qa-chapters">'+sections+'</div><section class="qa-bibliography"><h4>Sources for '+esc(a.title)+'</h4><ol>'+citations+'</ol></section><p><a href="/encyclopedia/'+encodeURIComponent(a.slug)+'">Read the permanent article</a></p></article>';
+    }).join('');
+    content.innerHTML='<div class="qa-kicker">QURANICALLY / MULTI-SUBJECT REFERENCE</div><h3>Comparative reading: '+esc(q)+'</h3><p class="qa-summary">The answer below brings together distinct source-linked encyclopedia entries. They have not been merged into an invented ruling, endorsement, or clinical conclusion. Each entry retains its own references and review status.</p><div class="qa-compare-grid">'+articles+'</div><p class="qa-state">Compare the stated evidence and consult qualified specialists where interpretation or treatment is contested.</p>';
+    return true;
+  }
   if(data.outcome==='source_evidence' && Array.isArray(data.evidence) && data.evidence.length){
     const hits=data.evidence.map((x,i)=>'<article class="qa-part"><h4>'+esc(x.title||x.reference||'Indexed reference')+'</h4><p>'+esc(x.excerpt||'No excerpt provided')+'</p><small>'+esc(x.kind||'source')+' · '+esc(x.reference||'')+' · External provider, not independently reviewed</small>'+(href(x.source_url)?'<p><a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a></p>':'')+'</article>').join('');
     content.innerHTML='<div class="qa-kicker">QURANICALLY / LIVE SOURCE EVIDENCE</div><h3>Relevant source passages for “'+esc(q)+'”</h3><p class="qa-summary">No complete editorial answer is available for this question yet. The following live source excerpts can be examined on this page. These are research leads, not authenticated rulings, professional diagnoses or a complete scholarly synthesis.</p><div class="qa-chapters">'+hits+'</div><p class="qa-state">Evidence review pending. External source availability and matching do not establish the authenticity or interpretation of every claim.</p>';
