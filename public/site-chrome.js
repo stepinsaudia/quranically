@@ -50,6 +50,9 @@ async function load(){
  }
  const home=panels.homepage;
  if(home&&(location.pathname==='/'||location.pathname==='/index.html')){
+  const homeHero=document.querySelector('#indexView .index-intro');
+  const searchStrip=document.querySelector('#indexView .search-strip');
+  if(homeHero&&searchStrip)homeHero.appendChild(searchStrip);
   const intro=document.querySelector('#indexView .intro-copy');
   if(intro){
    const kicker=intro.querySelector('.overline'),title=intro.querySelector('h1'),description=intro.querySelector('p:not(.overline)');
