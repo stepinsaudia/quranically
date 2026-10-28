@@ -28,12 +28,38 @@ function entryCard(x,i){
   +'<div class="entry-meta">'+ic('book')+'<span>Source-indexed · '+esc(x.review_status.replaceAll('_',' '))+'</span></div></div>'
   +'<div class="entry-side"><div class="entry-arabic" lang="ar" dir="rtl">'+esc(x.arabic_title)+'</div><a class="open-entry" href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">Read article '+ic('arrow')+'</a></div></article>';
 }
+function renderProviderResult(x){
+  const external=String(x.source_url||'');
+  let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
+  return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
+    +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
+    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
+}
+let sourceSequence=0;
+async function liveSources(q,domain){
+ const root=$('federatedResults');
+ if(!q||q.length<2){sourceSequence++;root.hidden=true;return;}
+ root.hidden=false;$('sourceResultState').textContent='Searching connected Quran, Hadith and supplication sources…';$('sourceResults').innerHTML='';
+ const mySeq=++sourceSequence;
+ try{
+  const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
+  const data=await api('/api/source-discovery?'+params);
+  if(mySeq!==sourceSequence)return;
+  const items=Array.isArray(data.results)?data.results:[];
+  $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
+  const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
+  $('sourceResultState').textContent=total+' indexed source match(es) shown · fetched '+new Date(data.fetched_at).toLocaleString()+
+    (offline.length?' · Unavailable: '+offline.join(', '):'')+
+    (total===0?' · Search again with one clear subject word.':'');
+ }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
+}
 async function refresh(){
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
  const heading=filters.domain?titles[filters.domain]:'All reference entries';
  $('indexHeading').textContent=heading;
  $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':'Follow subject pathways, alphabetic entries and cross-references.';
  $('loading').textContent='Retrieving referenced entries…';$('resultCount').textContent='Searching…';$('results').innerHTML='';renderAlphabet();
+ liveSources(filters.q,filters.domain);
  try{
   const data=await api('/api/encyclopedia'+(params.size?'?'+params:''));
   $('resultCount').textContent=data.entries.length+' ARTICLE'+(data.entries.length===1?'':'S');
