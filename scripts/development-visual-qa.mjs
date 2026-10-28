@@ -44,6 +44,11 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
       if(!current.some(x=>x.trim()===expectedNav))throw Error('Incorrect active discipline navigation '+JSON.stringify(current));
     }
    }
+   if(['hadith','seerah','tibb','guidance'].includes(name)){
+    await page.locator('#sourceShelves:visible').waitFor({timeout:15000});
+    await page.locator('#shelfTabs [data-shelf]').first().waitFor({timeout:15000});
+    if(await page.locator('#shelfTabs [data-shelf]').count()<2)throw Error('Missing published canonical provider shelves');
+   }
    if(['quran','hadith','seerah','tibb','guidance'].includes(name)){
     await page.waitForFunction(()=>{const i=document.querySelector('.discipline-art img');return !!i&&i.complete&&i.naturalWidth>0;},{timeout:16000});
    }
