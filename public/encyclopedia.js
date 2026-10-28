@@ -8,21 +8,22 @@ let filters={domain:new URLSearchParams(location.search).get('domain')||'',q:new
 if(!titles[filters.domain])filters.domain='';
 let selectedEntry=null;
 const disciplineTones={quranic_themes:'quran',sunnah:'hadith',seerah:'seerah',prophetic_medicine:'tibb',living_guidance:'guidance'};
-let disciplinePages={};
+let disciplinePages={},disciplinePathways=[];
 function renderDiscipline(){
  const d=disciplinePages[filters.domain],el=$('disciplineLanding');
  if(!d){el.hidden=true;el.innerHTML='';document.body.removeAttribute('data-discipline');return;}
  const tone=disciplineTones[filters.domain];
  document.body.dataset.discipline=tone;
- const tabs=String(d.pathway_labels||'').split('|').map(t=>t.trim()).filter(Boolean).slice(0,8);
+ const tabs=disciplinePathways.filter(p=>p.domain===filters.domain&&/^\/(?!\/)[a-zA-Z0-9/?#=&._%~-]*$/.test(p.href)).slice(0,8);
  const img=d.hero_image_url&&/^https:\/\//.test(d.hero_image_url)?d.hero_image_url:'';
  el.hidden=false;
- el.innerHTML='<div class="discipline-hero discipline-'+tone+'"><div class="discipline-copy"><span class="discipline-eyebrow">'+esc(d.eyebrow)+'</span><h2>'+esc(d.heading)+'</h2><p>'+esc(d.introduction)+'</p><a class="discipline-explore" href="#indexHeading">Browse reference articles <span aria-hidden="true">→</span></a></div><div class="discipline-art" aria-hidden="true">'+(img?'<img src="'+esc(img)+'" alt="'+esc(d.hero_image_alt||'')+'" loading="lazy">':'<div class="discipline-art-frame"><span>'+esc((d.eyebrow||'KNOWLEDGE').split(' / ').pop())+'</span></div>')+'</div></div><nav class="discipline-tabs" aria-label="'+esc(titles[filters.domain])+' pathways">'+tabs.map(t=>'<a href="#indexHeading" data-topic="'+esc(t)+'">'+esc(t)+'</a>').join('')+'</nav>';
+ el.innerHTML='<div class="discipline-hero discipline-'+tone+'"><div class="discipline-copy"><span class="discipline-eyebrow">'+esc(d.eyebrow)+'</span><h2>'+esc(d.heading)+'</h2><p>'+esc(d.introduction)+'</p><a class="discipline-explore" href="#indexHeading">Browse reference articles <span aria-hidden="true">→</span></a></div><div class="discipline-art" aria-hidden="true">'+(img?'<img src="'+esc(img)+'" alt="'+esc(d.hero_image_alt||'')+'" loading="lazy">':'<div class="discipline-art-frame"><span>'+esc((d.eyebrow||'KNOWLEDGE').split(' / ').pop())+'</span></div>')+'</div></div><nav class="discipline-tabs" aria-label="'+esc(titles[filters.domain])+' pathways">'+tabs.map(p=>'<a href="'+esc(p.href)+'">'+esc(p.label)+'</a>').join('')+'</nav>';
 }
 async function loadDisciplinePages(){
  try{
   const data=await api('/api/discipline-pages');
   disciplinePages=Object.fromEntries((data.pages||[]).map(d=>[d.id,d]));
+  disciplinePathways=Array.isArray(data.pathways)?data.pathways:[];
   renderDiscipline();
  }catch(e){
   const el=$('disciplineLanding');el.hidden=true;el.innerHTML='';
@@ -167,7 +168,6 @@ $('alphabet').addEventListener('click',event=>{
  const b=event.target.closest('button[data-letter]');if(!b)return;filters.letter=b.dataset.letter==='ALL'?'':b.dataset.letter;refresh();
 });
 document.addEventListener('click',event=>{
- const topic=event.target.closest('[data-topic]');if(topic){event.preventDefault();filters.q=topic.dataset.topic;filters.letter='';$('query').value=filters.q;history.pushState({},'',indexLink());refresh();$('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});return;}
  const a=event.target.closest('a[data-open]');if(!a)return;event.preventDefault();openArticle(a.dataset.open);
 });
 $('backIndex').addEventListener('click',event=>{event.preventDefault();history.pushState({},'',indexLink());showIndex();});
