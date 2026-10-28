@@ -1,0 +1,92 @@
+name: Quranically live Worker screenshot and parity audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-live-review-qa-authorize.txt'
+permissions:
+  contents: read
+jobs:
+  live-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install read-only browser tools
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Audit actual live Worker at retina desktop/mobile
+        run: |
+          mkdir -p artifacts/live
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright';
+          const base='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
+          const browser=await chromium.launch();
+          const issues=[];
+          const routes=[
+            ['home','/'],
+            ['quran','/encyclopedia?domain=quranic_themes'],
+            ['hadith','/encyclopedia?domain=sunnah'],
+            ['seerah','/encyclopedia?domain=seerah'],
+            ['tibb','/encyclopedia?domain=prophetic_medicine'],
+            ['guidance','/encyclopedia?domain=living_guidance'],
+            ['tibb-answer','/encyclopedia?domain=prophetic_medicine&q=ginger'],
+            ['admin','/admin']
+          ];
+          for(const size of [{label:'desktop',width:1440,height:900},{label:'mobile',width:390,height:844}]){
+            const page=await browser.newPage({viewport:{width:size.width,height:size.height},deviceScaleFactor:2});
+            for(const [name,uri] of routes){
+              const errs=[];
+              const listener=e=>errs.push(e.message);
+              page.on('pageerror',listener);
+              try{
+                const resp=await page.goto(base+uri,{waitUntil:'domcontentloaded',timeout:30000});
+                if(!resp?.ok())throw Error('HTTP '+resp?.status());
+                if(name!=='admin'){
+                  await page.locator('.qst-shell-header').waitFor({timeout:19000});
+                  await page.locator('.qst-shell-footer').waitFor({timeout:19000});
+                  if(name==='home'){
+                    await page.locator('.qst-home-discipline').first().waitFor({timeout:15000});
+                    if(await page.locator('.qst-home-discipline').count()!==5)throw Error('Home must have 5 discipline cards');
+                  }else if(name==='tibb-answer'){
+                    await page.locator('#inlineAnswer .qa-part').first().waitFor({timeout:18000});
+                  }else{
+                    await page.locator('.discipline-hero').waitFor({timeout:16000});
+                  }
+                  await page.waitForTimeout(1100);
+                }
+                const data=await page.evaluate(()=>({
+                  width:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+                  header:document.querySelectorAll('.qst-shell-header').length,
+                  footer:document.querySelectorAll('.qst-shell-footer').length,
+                  imgTotal:document.querySelectorAll('img').length,
+                  imgBroken:[...document.querySelectorAll('img')].filter(i=>i.complete && !i.naturalWidth).map(i=>i.currentSrc).slice(0,8),
+                  disciplineTitle:document.querySelector('.discipline-hero h2')?.textContent||null,
+                  searchVisible:!!document.querySelector('#encyclopediaSearch')?.getBoundingClientRect().height
+                }));
+                await page.screenshot({path:'artifacts/live/'+size.label+'-'+name+'.png',fullPage:true});
+                if(data.scrollWidth>data.width+7)issues.push(size.label+' '+name+' horizontal overflow '+data.scrollWidth);
+                if(name!=='admin'&&(!data.header||!data.footer))issues.push(size.label+' '+name+' missing header/footer');
+                if(data.imgBroken.length)issues.push(size.label+' '+name+' broken images: '+JSON.stringify(data.imgBroken));
+                if(errs.length)issues.push(size.label+' '+name+' script errors: '+errs.join('; '));
+                console.log('LIVE AUDIT',size.label,name,JSON.stringify(data));
+              }catch(e){issues.push(size.label+' '+name+': '+e.message);}
+              page.off('pageerror',listener);
+            }
+            await page.close();
+          }
+          await browser.close();
+          console.log('AUDIT ISSUES:',JSON.stringify(issues));
+          if(issues.length)process.exitCode=1;
+          JS
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-live-worker-desktop-mobile-screenshots
+          path: artifacts/live/*.png
+          if-no-files-found: ignore
+          retention-days: 7
