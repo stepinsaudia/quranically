@@ -11,3 +11,5 @@ Re-run final Chromium QA after replacing transliterated Surah title assertion wi
 Federated source-search browser QA: verify Quranically's new diabetes article, men's clothing in Seerah plus live external Hadith matches, review labels and zero horizontal overflow at 1440 and 390 pixels; verify 17 records in Admin. Read only.
 
 Owner observed invalid source-only search. Verify on-page full articles, cited sections, and no unrelated Hadith suggestions for 'i have weak eyesight', 'diabetes', and 'clothing for men', both desktop/mobile, plus read-only live endpoint and Admin checks.
+
+Run isolated full-answer on-page source QA for weak eyesight, diabetes and men clothing; verify live Admin; render 1440px desktop and 390px mobile screenshots. Quran chapter provider checks are independent from this repair.
