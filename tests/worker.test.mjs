@@ -381,6 +381,8 @@ test('unified search rejects invalid queries and returns the canonical evidence 
  const body=await response.json();
  assert.equal(body.query,'black seed');
  assert.ok(Array.isArray(body.editorial));
+ assert.ok(Array.isArray(body.tibb));
+ assert.ok(body.tibb.some(x=>x.slug==='black-seed'&&x.safety_note&&x.reference_label));
  assert.equal(body.answer_policy,'source_first_no_fabrication');
  assert.ok(Array.isArray(body.evidence.quran));
  assert.ok(Array.isArray(body.evidence.hadith));
