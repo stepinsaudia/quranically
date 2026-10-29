@@ -11,7 +11,7 @@ export function parseVerseReference(query){
  const q=String(query||'').trim();
  const ref=q.match(/\b(\d{1,3})\s*[:/]\s*(\d{1,3})\b/);
  if(ref){const c=Number(ref[1]),v=Number(ref[2]);return validVerse(c,v)?{chapter:c,verse:v,reference:c+':'+v,kind:'numeric'}:null;}
- for(const n of named)if(n.re.test(q))return {chapter:n.c,verse:n.v,reference:n.c+':'+n.v,kind:'named'};
+ for(const n of named)if(n.re.test(q))return {chapter:n.c,verse:n.v,reference:n.c+':'+n.v,kind:'named',...(n.c===2&&n.v===285?{lastVerse:286}:{})};
  return null;
 }
 const ignored=new Set(['the','and','for','from','what','where','when','which','how','can','will','about','some','find','quran','qur','allah','says','say','speak','speaks','verses','verse','surah','prophet','rasulullah','muhammad','islam','regarding','mention','mentions','mentioned','show','give','tell','does','meaning','with','have','our','are','who','his','her','life','teach','teaching','guidance']);
@@ -33,14 +33,21 @@ async function boundedJson(url,fetcher){
 }
 export async function searchQuran(query,fetcher=fetch){
  const direct=parseVerseReference(query);
+ if(!direct && /\\b\\d{1,3}\\s*[:/]\\s*\\d{1,3}\\b/.test(String(query)))return {status:'invalid_reference',mode:'exact_verse',searched:String(query).slice(0,60),results:[]};
  if(direct){
-  try{
-   const rows=await boundedJson('https://api.alquran.cloud/v1/ayah/'+direct.reference+'/editions/quran-uthmani,en.pickthall',fetcher);
-   if(!Array.isArray(rows)||rows.length<2)throw Error('quran_edition_schema');
-   const [arabic,translated]=rows;
-   for(const a of [arabic,translated])if(Number(a?.surah?.number)!==direct.chapter||Number(a?.numberInSurah)!==direct.verse)throw Error('quran_reference_mismatch');
-   return {status:'available',searched:direct.reference,mode:'exact_verse',results:[{provider:'Al Quran Cloud',kind:'quran',reference:direct.reference,title:'Qur’an '+direct.reference,excerpt:String(translated.text||'').slice(0,700),arabic:String(arabic.text||'').slice(0,900),source_url:'https://quran.com/'+direct.chapter+'/'+direct.verse,translation:'Marmaduke Pickthall (en.pickthall)',review_status:'provider_text_pending_review'}]};
-  }catch{return {status:'temporarily_unavailable',searched:direct.reference,mode:'exact_verse',results:[]};}
+  const verses=direct.lastVerse?[direct.verse,direct.lastVerse]:[direct.verse];
+  const found=await Promise.all(verses.map(async v=>{
+   const reference=direct.chapter+':'+v;
+   try{
+    const rows=await boundedJson('https://api.alquran.cloud/v1/ayah/'+reference+'/editions/quran-uthmani,en.pickthall',fetcher);
+    if(!Array.isArray(rows)||rows.length<2)throw Error('quran_edition_schema');
+    const [arabic,translated]=rows;
+    for(const a of [arabic,translated])if(Number(a?.surah?.number)!==direct.chapter||Number(a?.numberInSurah)!==v)throw Error('quran_reference_mismatch');
+    return {provider:'Al Quran Cloud',kind:'quran',reference,title:'Qur’an '+reference,excerpt:String(translated.text||'').slice(0,700),arabic:String(arabic.text||'').slice(0,900),source_url:'https://quran.com/'+direct.chapter+'/'+v,translation:'Marmaduke Pickthall (en.pickthall)',review_status:'provider_text_pending_review'};
+   }catch{return null;}
+  }));
+  const results=found.filter(Boolean);
+  return {status:results.length===verses.length?'available':results.length?'partial':'temporarily_unavailable',searched:direct.reference,mode:'exact_verse',results};
  }
  const terms=quranSearchTerms(query);
  if(!terms.length)return {status:'no_search_term',searched:'',mode:'translation_keyword',results:[]};
