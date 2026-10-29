@@ -1,0 +1,2 @@
+AUTHORIZE ORIGINAL OPEN DUA SOURCE CORPUS IMPORT
+Official OpenDua Hisn al-Muslim v0.0.4; 267 publisher entries. Staging verified 267/267 original JSON and 267 searchable entries; all 27 parts verified. Import to existing qst-knowledge-v1-db only, backup before mutation. Preserve all original contextual JSON, language and attribution, exclude audio.
