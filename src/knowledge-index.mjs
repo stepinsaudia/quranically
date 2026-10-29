@@ -58,7 +58,7 @@ export async function searchKnowledge(db,q,domain=''){
  if(domain&&!validDomains.has(domain))throw Error('Invalid discipline');
  const slots=terms.map(()=>'?').join(',');
  const sql='SELECT p.id,p.source_id,p.external_ref,p.title,p.domain,p.original_text,p.translation_text,p.explanation_text,'+
-  'p.source_url,p.content_version,p.language,p.expert_review,s.publisher,s.collection_title,s.attribution,'+
+  'p.benefits_text,p.grade_text,p.takhrij_text,p.source_url,p.content_version,p.language,p.expert_review,s.publisher,s.collection_title,s.attribution,'+
   'COUNT(*) AS term_matches,SUM(k.weight) AS search_score FROM knowledge_terms k '+
   'JOIN knowledge_passages p ON p.id=k.passage_id JOIN knowledge_sources s ON s.id=p.source_id '+
   "WHERE k.term IN ("+slots+") AND p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim' "+
@@ -76,8 +76,8 @@ export async function searchKnowledge(db,q,domain=''){
      'p.source_url,p.content_version,p.language,p.expert_review,p.normalized_search,s.publisher,s.collection_title,s.attribution '+
      'FROM knowledge_passages p JOIN knowledge_sources s ON s.id=p.source_id '+
      "WHERE p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim' "+
-     'AND ('+where+') LIMIT 100';
-   const bound=words.map(w=>'%'+w+'%');
+     'AND ('+where+') ORDER BY ('+words.map(()=>"CASE WHEN p.normalized_search LIKE ? THEN 1 ELSE 0 END").join('+')+') DESC,p.id LIMIT 90';
+   const bound=[...words.map(w=>'%'+w+'%'),...words.map(w=>'%'+w+'%')];
    const supplemental=(await db.prepare(fallbackSql).bind(...bound).all()).results||[];
    const ids=new Set(combined.map(x=>x.id));
    for(const row of supplemental){
