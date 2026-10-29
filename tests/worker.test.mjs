@@ -372,3 +372,19 @@ test('on-page canonical answers address weak eyesight, diabetes, and clothing wi
  assert.equal((await crossed.json()).outcome,'no_editorial_answer');
  assert.equal((await get(env,'/api/encyclopedia/answer?q=x')).status,400);
 });
+
+test('unified search rejects invalid queries and returns the canonical evidence schema',async()=>{
+ const e=fixture();
+ assert.equal((await get(e,'/api/unified-search?q=x')).status,400);
+ const response=await get(e,'/api/unified-search?q=black%20seed');
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.query,'black seed');
+ assert.ok(Array.isArray(body.editorial));
+ assert.equal(body.answer_policy,'source_first_no_fabrication');
+ assert.ok(Array.isArray(body.evidence.quran));
+ assert.ok(Array.isArray(body.evidence.hadith));
+ assert.ok(Array.isArray(body.evidence.dua));
+ assert.ok(body.editorial.every(x=>x.slug && x.review_status));
+ assert.ok(!JSON.stringify(body).includes('guaranteed cure'));
+});
