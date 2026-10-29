@@ -45,13 +45,18 @@ async function liveSources(q,domain){
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
   const data=await api('/api/source-discovery?'+params);
   if(mySeq!==sourceSequence)return;
-  // Provider snippets must directly contain every meaningful query word.
-  // A keyword-index hit alone is not evidence about the user's actual concern.
-  const words=q.toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>3&&!['have','with','about','please','prophetic','medicine','there','what','want'].includes(w));
-  const items=(Array.isArray(data.results)?data.results:[]).filter(x=>{
-    const body=(x.title+' '+x.excerpt+' '+x.reference).toLowerCase();
-    return words.length>0&&words.every(w=>body.includes(w));
-  }).slice(0,5);
+  // Rank references by meaningful subject terms. Do not discard every result
+  // because a natural-language query contains extra words like "clothing for men".
+  // Source excerpts are research leads, never automatic scholarly answers.
+  const ignored=new Set(['have','with','about','please','prophetic','medicine','there','what','want','need','from','which','where','when','does','would','could','should','were','their','them','that','this','seerah','biography','islamic','islam','sunnah','hadith','men','women','people','tell','explain','according','teachings','what','how','the','and','for','are','can']);
+  const words=[...new Set(q.toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').split(' ').filter(w=>w.length>2&&!ignored.has(w)))];
+  const sourceItems=Array.isArray(data.results)?data.results:[];
+  const items=sourceItems.map(x=>{
+    const title=String(x.title||'').toLowerCase();
+    const body=(title+' '+String(x.excerpt||'')+' '+String(x.reference||'')).toLowerCase();
+    const hits=words.filter(w=>body.includes(w));
+    return {x,score:hits.length*3+(hits.some(w=>title.includes(w))?2:0),hits:hits.length};
+  }).filter(v=>v.hits>0).sort((a,b)=>b.score-a.score).slice(0,8).map(v=>v.x);
   $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
   const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
   $('sourceResultState').textContent=total+' indexed source match(es) shown · fetched '+new Date(data.fetched_at).toLocaleString()+
