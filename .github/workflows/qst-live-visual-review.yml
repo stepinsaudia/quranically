@@ -60,8 +60,16 @@ jobs:
                     await page.locator('#inlineAnswer .qa-part').first().waitFor({timeout:18000});
                   }else if(name.endsWith('-sources')){
                     await page.locator('#sourceResults .provider-hit').first().waitFor({timeout:30000});
+                    const indexed=page.locator('#sourceResults .provider-hit').filter({hasText:'Indexed original source'}).first();
+                    if(await indexed.count()){
+                      const exp=indexed.locator('details.provider-hit-details');
+                      if(await exp.count()){
+                        await exp.locator('summary').click();
+                        if(!(await exp.innerText()).includes('Publisher explanation'))throw Error('Full source explanation not visible');
+                      }
+                    }
                     const state=await page.locator('#sourceResultState').innerText();
-                    if(!state.includes('relevant source excerpt'))throw Error('Live provider results not surfaced: '+state);
+                    if(!state.includes('sourced passage'))throw Error('Live source corpus not surfaced: '+state);
                   }else{
                     await page.locator('.discipline-hero').waitFor({timeout:16000});
                   }
