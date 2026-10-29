@@ -115,7 +115,22 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
      const shelf=document.querySelector('#sourceShelves');
      shelf.replaceWith(shelf.cloneNode(true));
    });
+   await p.evaluate(()=>{
+     window.__sourceClickCapture=[];
+     document.addEventListener('click',e=>window.__sourceClickCapture.push({
+       phase:'capture',target:e.target.tagName,report:e.target.closest('[data-report]')?.dataset.report,
+       within:document.querySelector('#sourceShelves')?.contains(e.target)
+     }),true);
+     document.addEventListener('click',e=>window.__sourceClickCapture.push({phase:'bubble',target:e.target.tagName}),false);
+   });
    await p.locator('#shelfRecords [data-report]').first().click();
+   await p.waitForTimeout(400);
+   const diagnostic=await p.evaluate(()=>({capture:window.__sourceClickCapture,
+     hidden:document.querySelector('#shelfDetail')?.hidden,
+     detail:document.querySelector('#shelfDetail')?.textContent?.slice(0,150),
+     currentReport:document.querySelector('#shelfRecords [data-report]')?.dataset.report
+   }));
+   console.log('SOURCE CLICK REGRESSION DEBUG',JSON.stringify(diagnostic));
    await p.locator('#shelfDetail h4').first().waitFor({timeout:6000});
    const detail=await p.locator('#shelfDetail').innerText();
    if(!detail.includes('Exact test source translation.')||!detail.includes('Actual test publisher explanation.'))
