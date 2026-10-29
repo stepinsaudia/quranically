@@ -42,12 +42,15 @@ jobs:
           node --input-type=module -e '
             import fs from "node:fs";
             const c=JSON.parse(fs.readFileSync("wrangler.jsonc","utf8"));
-            const endpoint="https://api.cloudflare.com/client/v4/accounts/"+encodeURIComponent(c.account_id)+"/workers/scripts/"+encodeURIComponent(c.name);
-            const r=await fetch(endpoint,{headers:{Authorization:"Bearer "+process.env.CLOUDFLARE_API_TOKEN}});
-            if(!r.ok){console.error("Worker preflight failed: existing script not accessible ("+r.status+"). No deployment.");process.exit(1);}
+            const endpoint="https://api.cloudflare.com/client/v4/accounts/"+encodeURIComponent(c.account_id)+"/workers/scripts/"+encodeURIComponent(c.name)+"/settings";
+            const r=await fetch(endpoint,{headers:{Authorization:"Bearer "+process.env.CLOUDFLARE_API_TOKEN,Accept:"application/json"}});
+            if(!r.ok){console.error("Existing Worker settings unavailable ("+r.status+"); deployment blocked.");process.exit(1);}
             const body=await r.json().catch(()=>null);
-            if(body?.success!==true){console.error("Unable to confirm existing Worker. No deployment.");process.exit(1);}
-            console.log("Confirmed the intended Worker already exists.");
+            if(body?.success!==true){console.error("Unable to verify existing Worker settings; deployment blocked.");process.exit(1);}
+            const expected=c.d1_databases?.[0];
+            const db=body.result?.bindings?.find(b=>b.name===expected?.binding&&b.type==="d1");
+            if(!db||String(db.database_id||db.id)!==expected.database_id){console.error("Existing D1 binding differs from approved database; deployment blocked.");process.exit(1);}
+            console.log("Confirmed existing Worker settings and exact D1 binding.");
           '
       - name: Deploy to EXACT existing Quranically Worker (no D1 migrations)
         env:
