@@ -33,7 +33,9 @@ async function show(q,domain){
           const ref=String(x.reference||'');
           const verse=key==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(ref);
           const jump=verse?'<a href="/study.html?surah='+Number(verse[1])+'&ayah='+Number(verse[2])+'">Read in Qur’an Reader</a>':'';
-          return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong><p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · External source index — not independently reviewed</small>'+jump+'</article>';
+          const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
+          const sourceLabel=x.translation?esc(x.translation):'Source index';
+          return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · '+sourceLabel+' · external text pending Quranically review</small>'+jump+'</article>';
         }).join('')+'</section>';
       }).join('');
       const tibb=(found.tibb||[]).length?'<section class="qa-part"><h4>Prophetic Medicine — tradition, context and safety</h4>'+found.tibb.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Health context:</b> '+esc(x.health_context)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · Review: '+esc(x.review_stage)+'</small>'+(href(x.reference_url)?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href(x.reference_url))+'">Inspect original reference</a>':'')+'</article>').join('')+'</section>':'';
@@ -45,7 +47,7 @@ async function show(q,domain){
       const hasAny=Boolean(referenceGroups||tibb||evidence);
       content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceGroups+tibb+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
       if(!hasAny)content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
-      return hasAny;
+      return true; // The one answer panel owns empty states too; never open a duplicate source index.
     }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
 
     return false;
@@ -74,7 +76,8 @@ async function show(q,domain){
       const leads=[...(found.evidence?.quran||[]),...(found.evidence?.hadith||[])].slice(0,6).map(x=>{
         const match=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
         const reader=match?'<a href="/study.html?surah='+Number(match[1])+'&ayah='+Number(match[2])+'">Read in Qur’an Reader</a>':'';
-        return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong><p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · Provider index, verification pending</small>'+reader+'</article>';
+        const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
+        return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+' · verification pending</small>'+reader+'</article>';
       }).join('');
       if(blocks||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+medicines+leads+'</section>');
     }
