@@ -110,6 +110,8 @@ jobs:
           assert n>=2000 and distinct_ids==n and complete==n and edition.startswith('v'),(n,distinct_ids,complete,edition)
           print('VERIFIED SOURCE CORPUS',n,'distinct, complete, unchanged publisher records; version',edition)
           PY
+      - name: Verify actual full-corpus open-topic retrieval and citations
+        run: node scripts/stage-corpus-search-test.mjs /tmp/quranically-hadeethenc.sql
       - name: Remove temporary proprietary/attributed material
         if: always()
         run: rm -f /tmp/quranically-hadeethenc.sql
