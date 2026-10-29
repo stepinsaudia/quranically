@@ -24,6 +24,9 @@ jobs:
       - run: npm install --no-package-lock
       - name: Worker unit and isolated database migration tests
         run: npm test
+      - name: Official HadeethEnc full-English-export schema probe (read-only)
+        continue-on-error: true
+        run: python3 scripts/hadeethenc-export-probe.py
       - name: OpenDua open source catalogue connectivity and schema
         continue-on-error: true
         run: node scripts/opendua-source-probe.mjs
