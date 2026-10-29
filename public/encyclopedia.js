@@ -88,6 +88,7 @@ async function liveSources(q,domain){
 }
 let refreshSequence=0;
 async function refresh(){
+ document.body.classList.toggle('qst-has-query',filters.q.trim().length>=2);
  const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
  const heading=filters.domain?titles[filters.domain]:'All reference entries';
