@@ -1115,3 +1115,16 @@ test('OpenDua complete record column is present and source licence is independen
  assert.equal(provider.rights_mode,'verified_verbatim');
  assert.equal(new URL(provider.home_url).hostname,'api.opendua.org');
 });
+
+test('public coverage reports actual indexed source passages instead of editorial article inventory',()=>{
+ for(const page of ['index.html','encyclopedia.html']){
+  const html=fs.readFileSync(path.join(root,'public',page),'utf8');
+  assert(html.includes('id="corpusCoverage"'));
+  assert(html.includes('corpus-coverage.js'));
+ }
+ const client=fs.readFileSync(path.join(root,'public','corpus-coverage.js'),'utf8');
+ assert(client.includes('/api/knowledge/coverage'));
+ assert(client.includes('available_in_index'));
+ assert(!client.includes('2328'));
+ assert(!client.includes('267'));
+});
