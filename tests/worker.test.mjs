@@ -1001,7 +1001,7 @@ test('open-topic corpus search finds a genuine indexed passage beyond prewritten
  const sample={external_ref:'OD-test-987',title:'Traveler luggage etiquette',domain:'living_guidance',
   original_text:'حقيبة المسافر في الرحلة',translation_text:'Travelers should arrange their luggage and observe the order of the journey.',
   explanation_text:'Source-based instructions and context are shown in the reading record.',
-  source_url:'https://opendua.org/developers'};
+  source_url:'https://api.opendua.org/v2/entries/entry-000001'};
  const imported=await addKnowledgePassages(env.DB,'opendua-en',[sample],'test-editor');
  assert.equal(imported.inserted_or_updated,1);
  assert(imported.indexed_terms>=8);
@@ -1025,7 +1025,7 @@ test('source rights, edition version, publisher domain, archived records and nor
  const env=fixture();
  const passage={external_ref:'OD-42',title:'أَخْلَاق المسافر',domain:'living_guidance',
  original_text:'نَصٌّ عَرَبِيٌّ مُوَثَّقٌ',translation_text:'Documented traveler manners and preparation',
- source_url:'https://opendua.org/developers'};
+ source_url:'https://api.opendua.org/v2/entries/entry-000001'};
  const ar=await addKnowledgePassages(env.DB,'opendua-en',[passage],'editor');
  assert(ar.indexed_terms>0);
  const matches=(await (await get(env,'/api/knowledge/search?q=اخلاق')).json()).results;
@@ -1040,7 +1040,7 @@ test('source rights, edition version, publisher domain, archived records and nor
 test('importing the same canonical publisher reference updates content without duplicate passages or terms',async()=>{
  const env=fixture(),sample={external_ref:'original-22',title:'River crossing',domain:'seerah',
  original_text:'First primary source wording',translation_text:'Original passage about a river crossing.',
- source_url:'https://opendua.org/developers'};
+ source_url:'https://api.opendua.org/v2/entries/entry-000001'};
  await addKnowledgePassages(env.DB,'opendua-en',[sample],'editor');
  await addKnowledgePassages(env.DB,'opendua-en',[{...sample,translation_text:'Updated passage about a river crossing with new details.'}],'editor');
  assert.equal(env.DB.prepare("SELECT COUNT(*) n FROM knowledge_passages").first().n,1);
