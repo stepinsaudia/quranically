@@ -161,8 +161,12 @@ $('encyclopediaSearch').addEventListener('submit',event=>{
    }
  }
  filters.q=entered;filters.letter='';
- history.pushState({},'',indexLink());refresh();document.getElementById('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});
+ history.pushState({},'',indexLink());refresh();(quranReference(entered)?$('quranJump'):$('inlineAnswer')).scrollIntoView({behavior:'smooth',block:'start'});
 });
+document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{
+ $('query').value=button.dataset.example;
+ $('encyclopediaSearch').requestSubmit();
+}));
 $('subjects').addEventListener('click',event=>{
  const b=event.target.closest('button[data-domain]');if(!b)return;filters.domain=b.dataset.domain;filters.letter='';filters.q='';$('query').value='';
  history.pushState({},'',indexLink());loadSubjects();refresh();$('results').scrollIntoView({behavior:'smooth'});
