@@ -1,0 +1,23 @@
+name: Quranically — focused live source reader diagnosis
+on:
+  push:
+    branches: [main]
+    paths: ['.github/qst-source-detail-debug-authorize.txt']
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2b3ef9b03690079765f69468a17e21a9903144ab
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: |
+          npm install --no-package-lock --no-audit --no-fund
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Compare canonical API and on-page source details at desktop/mobile
+        run: node scripts/debug-live-shelves.mjs
