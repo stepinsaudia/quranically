@@ -18,3 +18,13 @@
 .qst-header .qst-utility .qst-legacy-control{display:none}
 body > .brand-rule{display:none}
 @media(max-width:850px){.qst-header .qst-top,.qst-header .qst-links{width:calc(100% - 32px)}.qst-header .qst-top{min-height:66px}.qst-header .qst-brand strong{font-size:14px}.qst-header .qst-brand small{font-size:8px}.qst-header .qst-edition{display:none}.qst-header .qst-links{gap:12px;min-height:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.qst-header .qst-links a{padding:12px 0 9px;font-size:11px}.qst-header .qst-utility a{font-size:10px}}
+
+/* Explicitly override inherited page-level header rules, including the
+   former Reader's generic header selector, without an extra paint cycle. */
+body > .qst-header{padding:0;border-top:0;box-shadow:none}
+body > .qst-header .qst-top{height:auto;max-width:1320px}
+body > .qst-header .qst-nav{display:block;position:static;width:100%;height:auto;opacity:1;visibility:visible;transform:none}
+body > .qst-header .qst-links{display:flex}
+body > .qst-header .qst-brand{width:auto;min-width:0}
+body > .qst-header .qst-brand img{display:block}
+@media print{body > .qst-header{display:none!important}}
