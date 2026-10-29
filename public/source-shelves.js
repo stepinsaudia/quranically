@@ -142,8 +142,10 @@ function setup(){
   }
  });
 }
+// Event delegation must register at script evaluation, independently of
+// DOMContentLoaded timing and any asynchronous encyclopedia view refresh.
+setup();
 function start(){
- setup();
  // On a first visit the encyclopedia script may execute first.
  load(new URLSearchParams(location.search).get('domain')||'');
 }
