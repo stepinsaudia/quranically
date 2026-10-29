@@ -406,7 +406,7 @@ test('unified search gives source-linked Living Guidance and actual practical st
 test('unified evidence search fails open safely when older D1 has missing editorial tables',async()=>{
  const env=fixture();const original=env.DB;
  env.DB={prepare(sql){
-  if(/FROM (encyclopedia_articles|tibb_entries|journeys)\\b/.test(sql))throw Error('D1_ERROR: no such table');
+  if(/FROM (encyclopedia_articles|tibb_entries|journeys)\b/.test(sql))throw Error('D1_ERROR: no such table');
   return original.prepare(sql);
  }};
  const r=await get(env,'/api/unified-search?q=black%20seed');
