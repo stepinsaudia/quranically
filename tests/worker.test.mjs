@@ -1019,7 +1019,8 @@ test('open-topic corpus search finds a genuine indexed passage beyond prewritten
  assert.equal(noArticle.outcome,'source_evidence');
  assert(noArticle.evidence.some(x=>x.kind==='indexed_source'&&x.reference==='OD-test-987'));
  const other=(await (await get(env,'/api/knowledge/search?domain=sunnah&q=traveler%20luggage')).json());
- assert.equal(other.results.length,0);
+ assert.equal(other.results.length,1,'A discipline is a ranking preference, not a source silo');
+ assert.equal(other.results[0].domain,'living_guidance');
 });
 test('source rights, edition version, publisher domain, archived records and normalized Arabic are enforced',async()=>{
  const env=fixture();
