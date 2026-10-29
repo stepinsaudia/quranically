@@ -1,5 +1,6 @@
 import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
 import {searchQuran} from './quran-search.mjs';
+import {bestArticle,scoreArticle,subjectTokens,normalizeSubject} from './article-match.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -358,11 +359,10 @@ async function publicApi(request,env,url){
   if(pathname==='/api/unified-search'){
     const q=(url.searchParams.get('q')||'').trim();
     if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
-    const normalize=t=>String(t||'').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]+/g,' ').replace(/\s+/g,' ').trim();
-    const ignored=new Set(['what','where','which','when','does','have','that','this','from','about','with','please','prophet','muhammad','rasulullah','islam','islamic','quran','qur','hadith','seerah','sunnah','medicine','the','and','for','are','can','how','did','was','who','his']);
-    const terms=[...new Set(normalize(q).split(' ').filter(t=>t.length>2&&!ignored.has(t)))];
+    const normalize=normalizeSubject;
+    const terms=subjectTokens(q);
     const rows=(await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).results;
-    const editorial=rows.map(a=>{const text=normalize([a.title,a.alternate_names,a.abstract].join(' '));const hits=terms.filter(t=>text.includes(t));return {...a,_score:hits.length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
     const journeyRows=(await env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).results;
     const matches=journeyRows.map(j=>{const hay=normalize([j.title,j.summary,j.tags].join(' '));return {...j,_score:terms.filter(t=>hay.includes(t)).length};}).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
     const guidance=await Promise.all(matches.map(async({_score,...j})=>{
@@ -407,31 +407,8 @@ async function publicApi(request,env,url){
     if(q.length<2)return invalid('Ask a question with at least two characters');
     const domains=['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'];
     if(domain&&!domains.includes(domain))return invalid('Invalid subject');
-    const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').replace(/\s+/g,' ').trim();
-    const stop=new Set(['i','have','a','an','the','is','are','my','me','with','about','tell','can','you','please','what','how','do','to','in','on','of','for','and','prophetic','medicine','seerah','biography','please','want','need','help']);
-    const meaningful=value=>normalize(value).split(' ').filter(t=>t.length>2&&!stop.has(t));
-    const query=normalize(q),queryTokens=meaningful(q);
     const records=(await env.DB.prepare("SELECT * FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).results;
-    let best=null;
-    for(const a of records){
-      const aliases=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(Boolean);
-      let score=0,method='';
-      for(const alias of aliases){
-        const tokens=meaningful(alias);
-        if(!tokens.length)continue;
-        let n=0;
-        if(query===alias){n=150+Math.min(20,tokens.length*3);}
-        else if(query.includes(alias)&&tokens.length>1){n=115+Math.min(20,tokens.length*2);}
-        else if(alias.includes(query)&&queryTokens.length>1){n=75;}
-        else if(queryTokens.length&&tokens.length){
-          const hits=queryTokens.filter(t=>tokens.includes(t));
-          if(hits.length===queryTokens.length&&hits.length>=2)n=70;
-          else if(queryTokens.length===1&&hits.length===1&&tokens.length===1)n=55;
-        }
-        if(n>score){score=n;method=n>=100?'direct_subject':n>=70?'phrase_match':'subject_match';}
-      }
-      if(score>0&&(!best||score>best.score))best={article:a,score,method};
-    }
+    const best=bestArticle(q,records);
     if(!best)return json({outcome:'no_editorial_answer',query:q,domain,notice:'No matching full encyclopedia article has been reviewed for this question. Unrelated source excerpts are deliberately omitted.',answer:null});
     const entry=best.article;
     const [sections,citations,links,passages]=await Promise.all([
