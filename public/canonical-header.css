@@ -52,3 +52,11 @@ body > .qst-header .qst-brand img{display:block}
 .qst-search-hints button:hover{border-color:#a7845a;color:#3b182c}
 .qst-integrity{max-width:720px;margin:30px auto 0;font-size:11px;color:#8c817e;line-height:1.8}
 @media(max-width:600px){.qst-search-home{padding:58px 0 35px}.qst-main-search{padding:6px 6px 6px 12px;gap:8px}.qst-main-search input{font-size:12px}.qst-main-search button{padding:12px;font-size:11px}.qst-main-search>svg{width:18px;height:18px}}
+
+/* Quranic citations rendered within the single answer pane, with source provenance. */
+.qst-evidence{border-top:1px solid #e8e0d7;padding:15px 0;margin-top:8px}
+.qst-evidence strong{font-weight:750;color:#342630}
+.qst-evidence p{font-size:13px;line-height:1.75}
+.qst-evidence small{display:block;color:#8b7b75;font-size:11px;margin-top:8px}
+.qst-evidence a{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#603647;text-decoration:underline;text-underline-offset:3px}
+.qst-arabic-verse{font:24px/2 'Amiri','Noto Naskh Arabic',serif;text-align:right;color:#322b2d;unicode-bidi:isolate}
