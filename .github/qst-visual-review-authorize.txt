@@ -1,4 +1,4 @@
-AUTHORIZE QURANICALLY LIVE VERIFIED SOURCE COUNTS UI
-QA-passed commit: fe6c7a150a0c24bce6a6d76cfb4a256aef110a93
-Existing Worker only qst-living-knowledge-v1; existing D1 only qst-knowledge-v1-db.
-Scope: canonical frontend shows actual index totals from D1; present HadeethEnc 2328 and OpenDua 267 source records separately from 27 editorial articles; no hardcoded counts and no changes to source data.
+AUTHORIZE QURANICALLY VERIFIED CANONICAL SOURCE DETAIL FIX
+QA-passed commit: 5e28593d155db28dc13879db2834ce06928432d9
+Existing Worker qst-living-knowledge-v1, same D1 qst-knowledge-v1-db only.
+Scope: fix live audit failure for source reading by serving exact original Arabic, full English, publisher explanation and benefits from already verified 2328 licensed HadeethEnc source records. No content rewrites, no second Worker, no new database.
