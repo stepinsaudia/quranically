@@ -68,7 +68,7 @@ async function loadRecords(seq,shelf,page=1){
    (page>1?'<button type="button" data-page="'+(page-1)+'">Previous page</button>':'')+
    (data.has_next_page?'<button type="button" data-page="'+(page+1)+'">Next 20 reports</button>':'')+'</nav>';
   records.insertAdjacentHTML('beforeend',pagination);
-  records.dataset.shelf=shelf.id;records.dataset.page=String(page);
+  records.dataset.activeShelf=shelf.id;records.dataset.activePage=String(page);
  }catch(e){if(seq===epoch)state.textContent='Could not retrieve publisher records: '+e.message;}
 }
 async function readDetail(id){
@@ -122,7 +122,13 @@ function setup(){
  document.addEventListener('click',e=>{
   const root=$('sourceShelves');
   if(!root||!root.contains(e.target)||!e.target.closest)return;
-  const choice=e.target.closest('[data-shelf]');
+  // A report is a distinct action. Never match its ancestors, such as the
+  // records container, as a shelf navigation control.
+  const report=e.target.closest('#shelfRecords button[data-report]');
+  if(report){readDetail(report.dataset.report);return;}
+  const more=e.target.closest('#shelfRecords button[data-page]');
+  if(more&&current){loadRecords(++epoch,current.active,Number(more.dataset.page));return;}
+  const choice=e.target.closest('#shelfTabs button[data-shelf]');
   if(choice&&current){
    const shelf=current.shelves.find(x=>x.id===choice.dataset.shelf);
    if(!shelf)return;
@@ -131,9 +137,6 @@ function setup(){
    $('shelfTabs').innerHTML=current.shelves.map(x=>shelfButton(x,x.id===shelf.id)).join('');
    renderCategories();loadRecords(seq,shelf,1);loadTree(seq);return;
   }
-  const report=e.target.closest('[data-report]');if(report){readDetail(report.dataset.report);return;}
-  const more=e.target.closest('[data-page]');
-  if(more&&current)loadRecords(++epoch,current.active,Number(more.dataset.page));
  });
  document.addEventListener('change',e=>{
   if(e.target.id==='shelfCategorySelect'&&current&&$('sourceShelves')?.contains(e.target)){
