@@ -82,11 +82,16 @@ async function readDetail(id){
   if(seq!==detailEpoch)return;
   if(info.status!=='available'){box.innerHTML=fallback;return;}
   const hints=(info.hints||[]).map(h=>'<li>'+esc(h)+'</li>').join('');
-  box.innerHTML='<div class="source-shelf-meta">OFFICIAL HADEETHENC · REPORT '+esc(info.id)+'</div>'+
-   '<h4>'+esc(info.title)+'</h4><p class="source-shelf-matn">'+esc(info.passage)+'</p>'+
+  box.innerHTML='<div class="source-shelf-meta">ORIGINAL PUBLISHER SOURCE · REPORT '+esc(info.id)+'</div>'+
+   '<h4>'+esc(info.title||'Original publisher report')+'</h4>'+
+   (info.original_arabic?'<h5>Original Arabic</h5><p class="source-shelf-arabic" lang="ar" dir="rtl">'+esc(info.original_arabic)+'</p>':'')+
+   '<h5>English translation</h5><p class="source-shelf-matn">'+esc(info.passage||'No verified English translation in this record.')+'</p>'+
    (info.explanation?'<h5>Publisher explanation</h5><p>'+esc(info.explanation)+'</p>':'')+
+   (info.benefits?'<h5>Publisher benefits and lessons</h5><p>'+esc(info.benefits)+'</p>':'')+
+   (info.reported_grade?'<p><strong>Publisher-reported grade:</strong> '+esc(info.reported_grade)+'</p>':'')+
    (hints?'<h5>Publisher notes</h5><ul>'+hints+'</ul>':'')+
-   '<p class="source-shelf-caution">Publisher translation and explanation; not a Quranically-authenticated fatwa or clinically validated treatment. '+esc(info.reported_attribution||'')+'</p>'+
+   '<p class="source-shelf-caution">Publisher original and translation, not a Quranically-authenticated fatwa or clinically validated treatment. '+
+   (info.content_version?'Edition '+esc(info.content_version)+'. ':'')+esc(info.reported_attribution||'')+'</p>'+
    '<a href="'+esc(info.source_url)+'" target="_blank" rel="noopener noreferrer">Inspect official publisher record</a>';
   box.scrollIntoView({block:'nearest',behavior:'smooth'});
  }catch(e){if(seq===detailEpoch)box.innerHTML=fallback;}
