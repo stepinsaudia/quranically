@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS knowledge_passages(
  benefits_text TEXT NOT NULL DEFAULT '',
  grade_text TEXT NOT NULL DEFAULT '',
  takhrij_text TEXT NOT NULL DEFAULT '',
+ normalized_search TEXT NOT NULL DEFAULT '',
  source_url TEXT NOT NULL,
  content_version TEXT NOT NULL,
  content_sha256 TEXT NOT NULL,
