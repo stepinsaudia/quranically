@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';
-import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';import {searchOpenDua} from '../src/opendua-source.mjs';
+import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';import {pubmedSourceSearch} from '../src/pubmed-source.mjs';import {searchOpenDua} from '../src/opendua-source.mjs';
 const root=path.resolve('.');
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql','0024_knowledge_corpus_inverted_index.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
@@ -1073,5 +1073,35 @@ test('open-source complete Hisn al-Muslim entries are retrieved with real contex
   assert(result.records[0].source_url.includes('/v2/entries/entry-000001'));
   assert(result.records[0].attribution.includes('CC BY 4.0'));
   assert(received.every(u=>u.startsWith('https://api.opendua.org/')));
+ }finally{globalThis.fetch=original;}
+});
+
+test('Prophetic Medicine retrieves real identifiable biomedical citations without pretending they prove a treatment',async()=>{
+ const original=globalThis.fetch,urls=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);urls.push(u);
+   if(u.includes('esearch.fcgi'))return new Response(JSON.stringify({esearchresult:{idlist:['39888888'],count:'120'}}));
+   if(u.includes('esummary.fcgi'))return new Response(JSON.stringify({result:{'39888888':{title:'Honey and wound-healing outcomes: controlled study',source:'Medical Journal',pubdate:'2025'}}}));
+   throw Error('Unexpected endpoint '+u);
+  };
+  const result=await pubmedSourceSearch('honey wound healing');
+  assert.equal(result.status,'available');
+  assert.equal(result.total,120);
+  assert.equal(result.records.length,1);
+  assert.equal(result.records[0].reference,'PMID 39888888');
+  assert(result.records[0].source_url.endsWith('/39888888/'));
+  assert(result.records[0].excerpt.includes('does not establish effectiveness or safety'));
+  assert(urls.length===2);
+  assert(urls.every(x=>x.startsWith('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/')));
+ }finally{globalThis.fetch=original;}
+});
+test('PubMed provider errors fail closed and never create clinical claims',async()=>{
+ const original=globalThis.fetch;
+ try{
+  globalThis.fetch=async()=>new Response('Service unavailable',{status:503});
+  const result=await pubmedSourceSearch('diabetes');
+  assert.equal(result.status,'temporarily_unavailable');
+  assert.deepEqual(result.records,[]);
  }finally{globalThis.fetch=original;}
 });
