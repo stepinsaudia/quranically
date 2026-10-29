@@ -28,12 +28,32 @@ function entryCard(x,i){
   +'<div class="entry-meta">'+ic('book')+'<span>Source-indexed · '+esc(x.review_status.replaceAll('_',' '))+'</span></div></div>'
   +'<div class="entry-side"><div class="entry-arabic" lang="ar" dir="rtl">'+esc(x.arabic_title)+'</div><a class="open-entry" href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">Read article '+ic('arrow')+'</a></div></article>';
 }
+// Explicit Qur'an references resolve locally without an external search or AI guess.
+function quranReference(question){
+ const q=String(question||'').trim();
+ const direct=q.match(/(?:\\b(?:surah|surat|sura|chapter|quran|qur'an|verse|ayah|ayat)\\s*)?(\\d{1,3})\\s*[:/]\\s*(\\d{1,3})\\b/i);
+ if(direct){const surah=Number(direct[1]),ayah=Number(direct[2]);if(surah>=1&&surah<=114&&ayah>=1&&ayah<=286)return {surah,ayah,ref:surah+':'+ayah};}
+ const named=[[/\\b(?:ayat(?:ul)?\\s*kursi|ayatul kursi|throne verse)\\b/i,2,255],
+ [/\\b(?:last two verses of (?:surah )?al[- ]baqarah)\\b/i,2,285],
+ [/\\b(?:surah )?(?:al[- ]fatihah|fatiha|the opening)\\b/i,1,1]];
+ for(const [pattern,surah,ayah] of named)if(pattern.test(q))return {surah,ayah,ref:surah+':'+ayah};
+ return null;
+}
+function renderQuranJump(q){
+ const match=quranReference(q);const root=$('quranJump');
+ if(!root)return;
+ if(!match){root.hidden=true;root.innerHTML='';return;}
+ root.hidden=false;
+ root.innerHTML='<div class="qa-kicker">QURANICALLY / DIRECT QURAN REFERENCE</div><h3>Open Qur’an '+match.ref+'</h3><p>Jump directly to the selected verse in our existing Qur’an Reader. The Arabic text, translation and listening tools remain in the Reader.</p><a class="qst-verse-link" href="/study.html?surah='+match.surah+'&ayah='+match.ayah+'">Read Qur’an '+match.ref+' in the Reader '+ic('arrow')+'</a>';
+}
 function renderProviderResult(x){
   const external=String(x.source_url||'');
   let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
+  const verseMatch=x.kind==='quran'&&/^(\\d{1,3}):(\\d{1,3})$/.exec(String(x.reference||''));
+  const readHere=verseMatch?'<a href="/study.html?surah='+Number(verseMatch[1])+'&ayah='+Number(verseMatch[2])+'">Read in Quranically '+ic('arrow')+'</a>':'';
   return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
     +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
-    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
+    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+readHere+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
 }
 let sourceSequence=0;
 async function liveSources(q,domain){
@@ -73,6 +93,7 @@ async function refresh(){
  $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':'Follow subject pathways, alphabetic entries and cross-references.';
  $('loading').textContent='Retrieving referenced entries…';$('resultCount').textContent='Searching…';$('results').innerHTML='';renderAlphabet();
  sourceSequence++;$('federatedResults').hidden=true;
+ renderQuranJump(filters.q);
  const answerTask=window.QuranicallyAnswers.show(filters.q,filters.domain);
  try{
   const data=await api('/api/encyclopedia'+(params.size?'?'+params:''));
