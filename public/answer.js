@@ -37,9 +37,15 @@ async function show(q,domain){
         }).join('')+'</section>';
       }).join('');
       const tibb=(found.tibb||[]).length?'<section class="qa-part"><h4>Prophetic Medicine — tradition, context and safety</h4>'+found.tibb.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Health context:</b> '+esc(x.health_context)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · Review: '+esc(x.review_stage)+'</small>'+(href(x.reference_url)?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href(x.reference_url))+'">Inspect original reference</a>':'')+'</article>').join('')+'</section>':'';
-      const editorial=(found.editorial||[]).length?'<section class="qa-part"><h4>Connected reference articles</h4>'+found.editorial.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> · '+esc(x.review_status||'review pending')+'</p>').join('')+'</section>':'';
-      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+editorial+tibb+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
-      if(!editorial&&!tibb&&!evidence)content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
+      const groupsByDomain={seerah:'Seerah — the Prophet’s life',sunnah:'Sunnah — practice and explanation',quranic_themes:'Qur’anic context',living_guidance:'Living Guidance',prophetic_medicine:'Prophetic Medicine — source studies'};
+      const referenceGroups=Object.entries(groupsByDomain).map(([key,label])=>{
+        const records=(found.editorial||[]).filter(x=>x.domain===key);
+        return records.length?'<section class="qa-part"><h4>'+esc(label)+'</h4>'+records.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>Editorial status: '+esc(x.review_status||'pending')+'</small></p>').join('')+'</section>':'';
+      }).join('');
+      const hasAny=Boolean(referenceGroups||tibb||evidence);
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceGroups+tibb+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      if(!hasAny)content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
+      return hasAny;
     }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
 
     return false;
