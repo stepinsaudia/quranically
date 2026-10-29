@@ -1,4 +1,4 @@
-AUTHORIZE QURANICALLY VERIFIED PUBMED SOURCE DISCOVERY
-Pinned tested commit: e0341a008b8ab4918b19a2d312ccd04cd7c85ccc
-Existing Worker only qst-living-knowledge-v1, existing D1 only qst-knowledge-v1-db
-Scope: independent NIH PubMed bibliographic discovery for Prophetic Medicine; no clinical claims; no new Worker or database. Full 2328-record HadeethEnc corpus retained.
+AUTHORIZE QURANICALLY OPEN-DUA READY CANONICAL WORKER
+Pinned QA-passed commit: f23ba3fb566e35ab2517f8b6ccda29b565f09443
+Existing Worker: qst-living-knowledge-v1. Existing D1: qst-knowledge-v1-db.
+Scope: OpenDua v0.0.4 complete-record preservation schema and corrected PubMed meaningful-term source search; 2,328 original HadeethEnc records unchanged. Bulk OpenDua source import follows separately with private backup.
