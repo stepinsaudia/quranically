@@ -26,3 +26,10 @@ try{
  const j=await r.json();
  console.log(JSON.stringify({name:'opendua_corpus_coverage',collections:(j.items||[]).map(x=>({id:x.id,entries:x.entryCount,chapters:x.chapterCount}))}));
 }catch(e){console.log(JSON.stringify({name:'opendua_corpus_coverage',error:e.message}));}
+
+try{
+ const u='https://api.opendua.org/v2/collections/hisn-al-muslim/entries?page=1&pageSize=50';
+ const r=await fetch(u,{signal:AbortSignal.timeout(10000)});
+ const j=await r.json();
+ console.log(JSON.stringify({name:'opendua_collection_entries',http:r.status,keys:Object.keys(j),pagination:j.pagination,items:j.items?.length||0,first_keys:Object.keys(j.items?.[0]||{}),first_id:j.items?.[0]?.id}));
+}catch(e){console.log(JSON.stringify({name:'opendua_collection_entries',error:e.message}));}
