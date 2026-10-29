@@ -1,0 +1,40 @@
+name: Quranically — Read-only Production Readiness
+on:
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths: [.github/workflows/quranically-readonly-readiness.yml]
+permissions:
+  contents: read
+jobs:
+  inspect-existing-resources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate canonical Worker and database identity
+        run: node scripts/native-admin-preflight.mjs
+      - name: Install Wrangler only; no deployment
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Confirm existing production database contents (READ ONLY)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'No Cloudflare token is connected in GitHub Actions'; exit 1; }
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE status='published') AS articles, (SELECT COUNT(*) FROM tibb_entries WHERE status='published') AS tibb, (SELECT COUNT(*) FROM encyclopedia_citations) AS citations, (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('diabetes-and-prophetic-medicine','mens-clothing-prophetic-era') AND status='published') AS critical_answers;" > /tmp/qst-audit.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const results=JSON.parse(fs.readFileSync('/tmp/qst-audit.json','utf8'));
+          const x=Array.isArray(results)?results[0]?.results?.[0]:null;
+          if(!x)throw Error('Remote D1 did not return expected read-only record counts');
+          for(const [key,val] of Object.entries(x))console.log(key+': '+val);
+          const good=Number(x.articles)>=17&&Number(x.tibb)>=8&&Number(x.citations)>=15&&Number(x.critical_answers)===2;
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Quranically existing D1 read-only audit\n\n'+Object.entries(x).map(([k,v])=>'- '+k+': '+v).join('\n')+'\n\nStatus: '+(good?'READY':'NEEDS EDITORIAL DATA MIGRATION')+'\n');
+          if(!good)throw Error('Existing production content is not ready; deploy blocked and no data changed.');
+          JS
+      - name: Read-only public Worker status
+        run: node scripts/live-smoke.mjs
