@@ -357,7 +357,7 @@ async function publicApi(request,env,url){
   if(pathname==='/api/unified-search'){
     const q=(url.searchParams.get('q')||'').trim();
     if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
-    const normalize=t=>String(t||'').toLowerCase().replace(/[^a-z0-9\\u0600-\\u06ff ]+/g,' ').replace(/\\s+/g,' ').trim();
+    const normalize=t=>String(t||'').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]+/g,' ').replace(/\s+/g,' ').trim();
     const ignored=new Set(['what','where','which','when','does','have','that','this','from','about','with','please','prophet','muhammad','rasulullah','islam','islamic','quran','qur','hadith','seerah','sunnah','medicine','the','and','for','are','can','how','did','was','who','his']);
     const terms=[...new Set(normalize(q).split(' ').filter(t=>t.length>2&&!ignored.has(t)))];
     const rows=(await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).results;
