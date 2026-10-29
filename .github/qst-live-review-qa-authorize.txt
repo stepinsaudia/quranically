@@ -1,1 +1,2 @@
-READ-ONLY QURANICALLY LIVE GUI QA after 2,595 source-record expansion. Verify actual desktop/mobile source passage cards for Hadith, Seerah, Prophetic Medicine and Guidance; expanded Arabic/translation/explanation; no visual regression, duplicate header or missing source counts. No writes or deployment.
+READ-ONLY LIVE QURANICALLY SOURCE READING AUDIT
+After D1-first full Hadith report fix, verify desktop/mobile clicks open 8 distinct discipline report cases, showing actual English, original Arabic, publisher explanations, source links and no duplicate shell. No deployment or data writes.
