@@ -419,3 +419,21 @@ test('unified evidence search fails open safely when older D1 has missing editor
  assert.ok(Array.isArray(data.evidence.hadith));
  assert.equal(data.answer_policy,'source_first_no_fabrication');
 });
+
+test('unified questions return actual on-page answer sections and original citations, not just links',async()=>{
+ const e=fixture();
+ for(const [q,expectedSlug] of [
+   ['I have diabetes and need Prophetic Medicine','diabetes-and-prophetic-medicine'],
+   ['How did men dress in the Seerah?','mens-clothing-prophetic-era']
+ ]){
+   const response=await get(e,'/api/unified-search?q='+encodeURIComponent(q));
+   assert.equal(response.status,200,q);
+   const body=await response.json();
+   const answer=body.contextual_answers.find(x=>x.slug===expectedSlug);
+   assert(answer, 'Missing source-grounded answer for '+q);
+   assert(answer.sections.length>=3, 'Not enough explanation for '+q);
+   assert(answer.sections.every(x=>x.heading&&x.body), 'Missing on-page explanation');
+   assert(answer.citations.length>=1);
+   assert(answer.citations.every(x=>x.citation_ref&&x.source_url&&x.verification_status));
+ }
+});
