@@ -86,14 +86,14 @@ def main():
     import os
     chunk_dir = Path(os.environ["QST_CORPUS_CHUNK_DIR"]) if os.environ.get("QST_CORPUS_CHUNK_DIR") else None
     if chunk_dir: chunk_dir.mkdir(parents=True,exist_ok=True)
-    header = "-- Official HadeethEnc English release v1.25.0. Source wording unchanged.\\n" + "UPDATE knowledge_sources SET version_label="+quote(version)+",publisher_notice="+quote(notice)+",updated_at=datetime('now') WHERE id='hadeethenc-en' AND rights_mode='verified_verbatim';\\n"
+    header = "-- Official HadeethEnc English release v1.25.0. Source wording unchanged.\n" + "UPDATE knowledge_sources SET version_label="+quote(version)+",publisher_notice="+quote(notice)+",updated_at=datetime('now') WHERE id='hadeethenc-en' AND rights_mode='verified_verbatim';\n"
     fields = ("original_text","translation_text","explanation_text","benefits_text","grade_text","takhrij_text","normalized_search")
     indexes = (5,6,7,8,9,10,11)
     # Each SQL statement must remain below D1's smallest practical SQL budget.
     def emit_text(out,stmt):
         raw=stmt.encode("utf-8")
         if len(raw)>=7000: raise ValueError("Oversized SQL statement: "+str(len(raw)))
-        out.write(stmt+"\\n")
+        out.write(stmt+"\n")
     def write_document(out,data):
         ident=data[0]
         blank=list(data)
