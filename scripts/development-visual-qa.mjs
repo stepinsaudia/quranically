@@ -92,6 +92,38 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
  }catch(e){issues.push('local-first source search: '+e.message);}
  await fast.close();
 }
+// Events must survive source shelf DOM replacement during encyclopedia rerenders.
+{
+ const p=await browser.newPage({viewport:{width:1000,height:750}});
+ await p.route('**/api/source-shelves/records?**',route=>route.fulfill({
+   status:200,contentType:'application/json',
+   body:JSON.stringify({status:'available',page:1,page_size:20,
+     reported_total:1,has_next_page:false,records:[{id:'90012',title:'Controlled test source'}]})
+ }));
+ await p.route('**/api/source-shelves/detail?**',route=>route.fulfill({
+   status:200,contentType:'application/json',
+   body:JSON.stringify({status:'available',origin:'canonical_source_corpus',id:'90012',
+     title:'Complete test publisher record',original_arabic:'النص الأصلي',passage:'Exact test source translation.',
+     explanation:'Actual test publisher explanation.',benefits:'Testing in-page attribution.',
+     reported_grade:'Publisher reported',source_url:'https://hadeethenc.com/en',
+     content_version:'v1.25.0'})
+ }));
+ try{
+   await p.goto(base+'/encyclopedia?domain=seerah',{waitUntil:'domcontentloaded'});
+   await p.locator('#shelfRecords [data-report]').first().waitFor({timeout:15000});
+   await p.evaluate(()=>{
+     const shelf=document.querySelector('#sourceShelves');
+     shelf.replaceWith(shelf.cloneNode(true));
+   });
+   await p.locator('#shelfRecords [data-report]').first().click();
+   await p.locator('#shelfDetail h4').first().waitFor({timeout:6000});
+   const detail=await p.locator('#shelfDetail').innerText();
+   if(!detail.includes('Exact test source translation.')||!detail.includes('Actual test publisher explanation.'))
+     throw Error('Canonical publisher report content missing after source shelf replacement');
+   console.log('PASS publisher detail click survives canonical encyclopedia DOM re-render');
+ }catch(e){issues.push('source shelf delegated event handler: '+e.message);}
+ await p.close();
+}
 await browser.close();
 if(issues.length){console.error(issues.join('\n'));process.exitCode=1;}
 else console.log('CANONICAL DEVELOPMENT DESKTOP/MOBILE VISUAL CHECK PASS');
