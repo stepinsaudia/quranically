@@ -24,7 +24,7 @@ test('canonical public header maintains matching structural markup',()=>{
  const normalized=pages.map(name=>{
    const html=read(name);const h=html.match(/<header class="qst-header" role="banner">[\s\S]*?<\/header>/);
    assert.ok(h,name);return h[0]
-    .replace(/aria-current="page"/g,'')
+    .replace(/ aria-current="page"/g,'')
     .replace(/<div class="qst-utility">[\s\S]*?<\/div><\/div><nav/, '<div class="qst-utility"></div></div><nav')
     .replace(/\s+/g,' ').trim();
  });
