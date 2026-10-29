@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS knowledge_ingest_audit(
 INSERT OR IGNORE INTO knowledge_sources(id,publisher,collection_title,domain_hint,home_url,terms_url,rights_mode,attribution,version_label,language)
  VALUES('hadeethenc-en','HadeethEnc','Encyclopedia of Translated Prophetic Hadiths','sunnah','https://hadeethenc.com/en','https://hadeethenc.com/en','verified_verbatim','HadeethEnc.com — original unchanged publisher translation and explanation','publisher_version_required','en');
 INSERT OR IGNORE INTO knowledge_sources(id,publisher,collection_title,domain_hint,home_url,terms_url,rights_mode,attribution,version_label,language)
- VALUES('opendua-en','OpenDua','Hisn al-Muslim supplications','living_guidance','https://opendua.org/','https://opendua.org/developers','verified_verbatim','OpenDua by Ihsan Labs; English/transliteration under CC BY 4.0; underlying religious texts separately credited','v0.0.4','en');
+ VALUES('opendua-en','OpenDua','Hisn al-Muslim supplications','living_guidance','https://api.opendua.org/','https://opendua.org/developers','verified_verbatim','OpenDua by Ihsan Labs; English/transliteration under CC BY 4.0; underlying religious texts separately credited','v0.0.4','en');
 INSERT OR IGNORE INTO knowledge_sources(id,publisher,collection_title,domain_hint,home_url,terms_url,rights_mode,attribution,version_label,language)
  VALUES('tanzil-ar','Tanzil Project','Qur’an Arabic Uthmani','quranic_themes','https://tanzil.net/','https://tanzil.net/docs/Text_License','verified_verbatim','Tanzil Quran Text — CC BY 3.0; verbatim, no modifications','v1.1','ar');
 INSERT OR IGNORE INTO knowledge_sources(id,publisher,collection_title,domain_hint,home_url,terms_url,rights_mode,attribution,version_label,language)
