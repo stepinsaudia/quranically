@@ -126,7 +126,7 @@ async function liveSources(q,domain,{featured=false}={}){
  const offline=(data.providers||[]).filter(x=>x.status==='temporarily_unavailable').map(x=>x.id);
  const fresh=data.fetched_at?new Date(data.fetched_at).toLocaleString():'live';
  $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+combined.length+
-  ' attributed source result(s) · '+indexCount.toLocaleString()+' stored source records · checked '+fresh+
+  ' sourced passage(s) · '+indexCount.toLocaleString()+' stored source records · checked '+fresh+
   (offline.length?' · Unavailable: '+offline.join(', '):'')+
   (!combined.length?' · No relevant source found in the accessible collections. This is not a complete scholarly search.':'');
 }
