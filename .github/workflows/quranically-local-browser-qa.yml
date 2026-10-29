@@ -4,11 +4,19 @@ on:
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'public/canonical-header.css'
+      - 'public/encyclopedia.js'
+      - 'public/answer.js'
+      - 'src/index.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'public/canonical-header.css'
+      - 'public/encyclopedia.js'
+      - 'public/answer.js'
+      - 'src/index.mjs'
 permissions:
   contents: read
 jobs:
