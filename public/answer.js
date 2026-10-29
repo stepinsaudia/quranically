@@ -17,7 +17,30 @@ async function show(q,domain){
   if(!r.ok)throw Error('The knowledge database is temporarily unavailable');
   const data=await r.json();if(id!==sequence)return null;
   if(data.outcome!=='full_article_answer'||!data.answer){
-    content.innerHTML='<div class="qa-kicker">QURANICALLY / ANSWER SEARCH</div><h3>No complete article for this specific question yet</h3><p>We could not establish a relevant, source-backed response for “'+esc(q)+'”. We will not invent a cure, ruling or unrelated answer. You can examine any separately identified research references below.</p>';
+    content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE</div><h3>Searching the Qur’an, Sunnah and available reference material…</h3>';
+    try{
+      const url='/api/unified-search?'+new URLSearchParams({q});
+      const result=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(19000)});
+      if(!result.ok)throw Error('Search temporarily unavailable');
+      const found=await result.json();if(id!==sequence)return null;
+      const groups=[
+        ['The Qur’an','quran'],['Sunnah & Hadith','hadith'],['Supplications','dua']
+      ];
+      const evidence=groups.map(([name,key])=>{
+        const items=found.evidence?.[key]||[];
+        if(!items.length)return '';
+        return '<section class="qa-part"><h4>'+esc(name)+'</h4>'+items.map(x=>{
+          const ref=String(x.reference||'');
+          const verse=key==='quran'&&/^(\\d{1,3}):(\\d{1,3})$/.exec(ref);
+          const jump=verse?'<a href="/study.html?surah='+Number(verse[1])+'&ayah='+Number(verse[2])+'">Read in Qur’an Reader</a>':'';
+          return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong><p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · External source index — not independently reviewed</small>'+jump+'</article>';
+        }).join('')+'</section>';
+      }).join('');
+      const editorial=(found.editorial||[]).length?'<section class="qa-part"><h4>Connected reference articles</h4>'+found.editorial.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> · '+esc(x.review_status||'review pending')+'</p>').join('')+'</section>':'';
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+editorial+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      if(!editorial&&!evidence)content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
+    }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
+
     return false;
   }
   const a=data.answer;
