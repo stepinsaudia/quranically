@@ -31,6 +31,9 @@ jobs:
       - name: OpenDua open source catalogue connectivity and schema
         continue-on-error: true
         run: node scripts/opendua-source-probe.mjs
+      - name: Bulk Bukhari data candidate rights and schema audit (read-only)
+        continue-on-error: true
+        run: node scripts/hadithproject-candidate-probe.mjs
       - name: Official category and clinical provider read-only connectivity
         continue-on-error: true
         run: node scripts/official-library-probe.mjs
