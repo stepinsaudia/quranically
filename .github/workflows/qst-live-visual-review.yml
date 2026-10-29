@@ -78,7 +78,11 @@ jobs:
                     await page.locator('#shelfTabs [data-shelf]').first().waitFor({timeout:16000});
                     await page.locator('#shelfRecords [data-report]').first().waitFor({timeout:18000});
                     await page.locator('#shelfRecords [data-report]').first().click();
-                    await page.locator('#shelfDetail h4').waitFor({timeout:18000});
+                    await page.waitForFunction(()=>{
+                      const panel=document.querySelector('#shelfDetail');
+                      return panel && !panel.hidden && (panel.querySelector('h4') || panel.textContent.includes('temporarily unavailable'));
+                    },{timeout:18000});
+                    if(!await page.locator('#shelfDetail h4').count())throw Error('Individual report failed: '+(await page.locator('#shelfDetail').innerText()).slice(0,250));
                     const detail=await page.locator('#shelfDetail').innerText();
                     if(!detail.includes('Publisher explanation')||!detail.includes('Inspect official publisher record'))throw Error('Full provider text/explanation missing');
                   }
