@@ -15,5 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Syntax check connected-search runtime and frontend
+        run: |
+          node --check src/index.mjs
+          node --check public/answer.js
+          node --check public/encyclopedia.js
       - name: Run canonical header structural tests
         run: node --test tests/header.test.mjs
