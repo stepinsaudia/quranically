@@ -60,3 +60,25 @@ body > .qst-header .qst-brand img{display:block}
 .qst-evidence small{display:block;color:#8b7b75;font-size:11px;margin-top:8px}
 .qst-evidence a{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#603647;text-decoration:underline;text-underline-offset:3px}
 .qst-arabic-verse{font:24px/2 'Amiri','Noto Naskh Arabic',serif;text-align:right;color:#322b2d;unicode-bidi:isolate}
+
+/* Search results: remove homepage-only spacing and ancillary browsing chrome.
+   Keep the landing spacious until a real question is entered. */
+body.qst-has-query #indexView .qst-search-home{padding:20px 0 18px;max-width:1020px}
+body.qst-has-query #indexView .qst-search-home .qst-eyebrow,
+body.qst-has-query #indexView .qst-search-home h1,
+body.qst-has-query #indexView .qst-search-home .qst-lede,
+body.qst-has-query #indexView .qst-search-home .qst-search-hints,
+body.qst-has-query #indexView .qst-search-home .qst-integrity{display:none}
+body.qst-has-query #indexView .reference-work{grid-template-columns:minmax(0,1fr);gap:0;padding-top:12px}
+body.qst-has-query #indexView .reference-work:has(.inline-answer:not([hidden])){grid-template-columns:minmax(0,1fr)}
+body.qst-has-query #indexView .reference-work .subjects,
+body.qst-has-query #indexView .reference-work .reference-rail{display:none}
+body.qst-has-query #indexView .inline-answer{max-width:1020px;margin-inline:auto;width:100%}
+body.qst-has-query #indexView .results-head,
+body.qst-has-query #indexView .alphabet{margin-top:22px}
+body.qst-has-query #indexView .breadcrumbs{padding-block:9px}
+@media(max-width:600px){
+ body.qst-has-query #indexView .qst-search-home{padding:13px 0 11px}
+ body.qst-has-query #indexView .reference-work{padding-top:8px}
+ body.qst-has-query #indexView .inline-answer{margin-bottom:20px}
+}
