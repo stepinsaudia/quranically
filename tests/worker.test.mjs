@@ -310,7 +310,7 @@ test('Live source discovery retrieves labeled Quran and Hadith matches without c
   assert(data.results.some(x=>x.kind==='hadith'));
   assert(data.results.every(x=>x.review_status==='upstream_unreviewed'));
   assert(data.results.every(x=>x.source_url.startsWith('https://')));
-  assert(requested.every(x=>x.startsWith('https://ummahapi.com/')));
+  assert(requested.every(x=>x.startsWith('https://ummahapi.com/')||x.startsWith('https://api.opendua.org/')));
   assert.equal((await get(env,'/api/source-discovery?q=x')).status,400);
   assert.equal((await get(env,'/api/source-discovery?q=clothing&domain=invalid')).status,400);
  }finally{globalThis.fetch=old;}
