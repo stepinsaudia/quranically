@@ -134,7 +134,7 @@ export async function liveSourceSearch(q,domain=''){
   }
   return {id:group.id,status,records:[...unique.values()],total,queries:tried};
  });
- if(domain==='prophetic_medicine'){tasks.push(researchSearch(q));tasks.push(pubmedSourceSearch(q));}
+ if(domain==='prophetic_medicine'){tasks.push(researchSearch(q));tasks.push(pubmedSourceSearch(term));}
  if(['sunnah','seerah','living_guidance',''].includes(domain))tasks.push(searchOpenDua(q));
  const all=await Promise.all(tasks);
  const raw=all.flatMap(g=>g.records);
