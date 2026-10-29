@@ -1,6 +1,7 @@
 // Read-only diagnostics; no full source text copied into workflow logs.
 for(const [name,url] of [
- ['opendua-search','https://api.opendua.org/v2/search?q=patience'],
+ ['opendua-search','https://api.opendua.org/v2/search?q=morning'],
+ ['opendua-search-sleep','https://api.opendua.org/v2/search?q=sleep'],
  ['opendua-collections','https://api.opendua.org/v2/collections'],
  ['opendua-detail','https://api.opendua.org/v2/entries/entry-000001']
 ]){
