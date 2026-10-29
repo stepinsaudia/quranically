@@ -468,8 +468,33 @@ async function publicApi(request,env,url){
   if(pathname==='/api/source-shelves/detail'){
     const id=(url.searchParams.get('id')||'').trim();
     if(!/^\d{1,9}$/.test(id))return invalid('Invalid publisher report identifier');
+    // The publisher's official complete v1.25.0 edition is already stored
+    // verbatim in the canonical D1. Prefer it over unreliable upstream detail
+    // requests. This path deliberately never uses article aliases or topic IDs.
+    const canonical=await env.DB.prepare(
+      "SELECT p.external_ref,p.title,p.original_text,p.translation_text,p.explanation_text,"+
+      "p.benefits_text,p.grade_text,p.takhrij_text,p.content_version,p.source_url,"+
+      "p.expert_review,s.publisher,s.attribution FROM knowledge_passages p "+
+      "JOIN knowledge_sources s ON s.id=p.source_id "+
+      "WHERE p.source_id='hadeethenc-en' AND p.external_ref=? AND p.status='published' "+
+      "AND s.status='active' AND s.rights_mode='verified_verbatim' LIMIT 1"
+    ).bind(id).first();
+    if(canonical){
+      return json({
+        status:'available',id,title:canonical.title,passage:canonical.translation_text,
+        original_arabic:canonical.original_text,explanation:canonical.explanation_text,
+        benefits:canonical.benefits_text,reported_grade:canonical.grade_text,
+        reported_attribution:canonical.takhrij_text,content_version:canonical.content_version,
+        source_url:canonical.source_url,provider:canonical.publisher,
+        attribution:canonical.attribution,review_status:canonical.expert_review,
+        origin:'canonical_source_corpus',
+        notice:'Original unchanged publisher text from the indexed edition, not an independent fatwa or medical endorsement.'
+      });
+    }
+    // Only records absent from the licensed canonical edition may use the
+    // publisher API. Cache successful responses, never unavailable records.
     const cache=typeof caches!=='undefined'?caches.default:null;
-    const key=new Request(new URL('/api/source-shelves/detail?id='+id,url.origin));
+    const key=new Request(new URL('/api/source-shelves/detail?revision=canonical-v2&id='+id,url.origin));
     if(cache){const hit=await cache.match(key);if(hit)return hit;}
     const record=await curatedHadithDetail(id);
     if(record.status!=='available')return json(record);
