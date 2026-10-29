@@ -16,3 +16,9 @@ for(const [name,url] of checks){
   console.log(JSON.stringify({name,http:resp.status,shape_ok:shape,records:Array.isArray(parsed.data)?parsed.data.length:Array.isArray(parsed.resultList?.result)?parsed.resultList.result.length:null,bytes:body.length}));
  }catch(e){console.log(JSON.stringify({name,status:'unavailable',reason:String(e.message).slice(0,110)}));}
 }
+try{
+ const u='https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=honey%20wound&retmode=json&retmax=2&tool=QuranicallyResearch';
+ const response=await fetch(u,{headers:{accept:'application/json'},signal:AbortSignal.timeout(9000)});
+ const data=await response.json();
+ console.log(JSON.stringify({name:'NCBI PubMed literature search',http:response.status,valid:Array.isArray(data.esearchresult?.idlist),matches:data.esearchresult?.idlist?.length||0}));
+}catch(e){console.log(JSON.stringify({name:'NCBI PubMed literature search',status:'unavailable',reason:String(e.message).slice(0,120)}));}
