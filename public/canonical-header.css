@@ -28,3 +28,10 @@ body > .qst-header .qst-links{display:flex}
 body > .qst-header .qst-brand{width:auto;min-width:0}
 body > .qst-header .qst-brand img{display:block}
 @media print{body > .qst-header{display:none!important}}
+
+/* Quran verse deep links retain the search-first experience. */
+.qst-jump{background:#fffdf8;border:1px solid #e6d8c6;border-left:4px solid #987548;border-radius:10px;padding:22px 25px;margin:0 0 24px;color:#2d2530}
+.qst-jump h3{font-family:Georgia,serif;font-size:23px;margin:4px 0 9px;color:#241d25}
+.qst-jump p{margin:0 0 14px;color:#60575d;font-size:13px;line-height:1.7}
+.qst-jump .qst-verse-link{display:inline-flex;align-items:center;gap:8px;background:#381a2b;border-radius:6px;color:#fff;text-decoration:none;font-weight:750;font-size:12px;padding:10px 16px}
+.qst-jump .qst-verse-link svg{width:16px;height:16px}
