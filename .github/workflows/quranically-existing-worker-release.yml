@@ -1,0 +1,77 @@
+name: QURANICALLY — Deploy tested build to EXISTING Worker
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type DEPLOY EXISTING QURANICALLY to authorize the live update'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: quranically-native-admin
+  cancel-in-progress: false
+jobs:
+  existing-worker-only:
+    if: ${{ github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the approved release commit
+        uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check known Worker and D1 configuration (no provisioning)
+        run: node scripts/native-admin-preflight.mjs
+      - name: Install pinned dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check syntax and application behavior BEFORE deployment
+        run: |
+          node --check src/index.mjs
+          node --check public/answer.js
+          node --check public/encyclopedia.js
+          npm test
+          npx wrangler deploy --dry-run
+      - name: Confirm Cloudflare credential and EXISTING Worker (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN GitHub Actions secret'; exit 1; }
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const c=JSON.parse(fs.readFileSync("wrangler.jsonc","utf8"));
+            const endpoint="https://api.cloudflare.com/client/v4/accounts/"+encodeURIComponent(c.account_id)+"/workers/scripts/"+encodeURIComponent(c.name);
+            const r=await fetch(endpoint,{headers:{Authorization:"Bearer "+process.env.CLOUDFLARE_API_TOKEN}});
+            if(!r.ok){console.error("Worker preflight failed: existing script not accessible ("+r.status+"). No deployment.");process.exit(1);}
+            const body=await r.json().catch(()=>null);
+            if(body?.success!==true){console.error("Unable to confirm existing Worker. No deployment.");process.exit(1);}
+            console.log("Confirmed the intended Worker already exists.");
+          '
+      - name: Deploy to EXACT existing Quranically Worker (no D1 migrations)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: npx wrangler deploy
+      - name: Read-only live release smoke check
+        run: |
+          node --input-type=module -e '
+            const root="https://qst-living-knowledge-v1.stepinsaudia.workers.dev";
+            for(const route of ["/","/study.html","/api/health","/api/unified-search?q=black%20seed"]){
+              const r=await fetch(root+route,{signal:AbortSignal.timeout(20000)});
+              if(r.status!==200)throw Error("Live check failed at "+route+" ("+r.status+")");
+              if(route.includes("unified-search")){
+                const data=await r.json();
+                if(!Array.isArray(data.tibb)||!data.evidence)throw Error("Unified search response invalid");
+              }
+              console.log("PASS",route,r.status);
+            }
+          '
+      - name: Record release for review
+        run: |
+          echo '### Quranically — existing Worker release' >> "$GITHUB_STEP_SUMMARY"
+          echo "Git commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Worker: qst-living-knowledge-v1 (existing)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'D1: qst-knowledge-v1-db (no migrations in this workflow)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Live URL: https://qst-living-knowledge-v1.stepinsaudia.workers.dev' >> "$GITHUB_STEP_SUMMARY"
