@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: fe6c7a150a0c24bce6a6d76cfb4a256aef110a93
+          ref: 5e28593d155db28dc13879db2834ce06928432d9
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -124,6 +124,14 @@ jobs:
           if(!registry.sources?.some(s=>s.id==='hadeethenc-en')||!registry.sources?.some(s=>s.id==='openiti'&&s.rights_mode==='permission_pending'))throw Error('Source corpus governance unavailable');
           const corpusSearch=await (await grab('/api/knowledge/search?q=clothing&domain=seerah')).json();
           if(!Array.isArray(corpusSearch.results))throw Error('Open-topic corpus search API missing');
+          const indexedSource=corpusSearch.results.find(x=>x.source_id==='hadeethenc-en'&&/^\d+$/.test(String(x.external_ref||'')));
+          if(!indexedSource)throw Error('No canonical original Hadith source found for open topic');
+          const complete=await (await grab('/api/source-shelves/detail?id='+indexedSource.external_ref)).json();
+          if(complete.origin!=='canonical_source_corpus'||!complete.original_arabic||!complete.passage||!complete.explanation)
+            throw Error('Hadith details not delivered from D1 first, with complete bilingual text and explanation');
+          if(complete.passage!==indexedSource.translation_text||complete.original_arabic!==indexedSource.original_text)
+            throw Error('Original publisher text changed in canonical report-reading endpoint');
+          console.log('CANONICAL SOURCE READING PASS',indexedSource.external_ref,'Arabic+English+explanation preserved');
           const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
           if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
           for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
