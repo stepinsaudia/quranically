@@ -35,3 +35,20 @@ body > .qst-header .qst-brand img{display:block}
 .qst-jump p{margin:0 0 14px;color:#60575d;font-size:13px;line-height:1.7}
 .qst-jump .qst-verse-link{display:inline-flex;align-items:center;gap:8px;background:#381a2b;border-radius:6px;color:#fff;text-decoration:none;font-weight:750;font-size:12px;padding:10px 16px}
 .qst-jump .qst-verse-link svg{width:16px;height:16px}
+
+/* Search-first Quranically homepage: one input before any reference index. */
+.qst-search-home{padding:clamp(54px,8vw,112px) 20px 56px;text-align:center;max-width:1040px}
+.qst-search-home .qst-eyebrow{color:#987347;font:800 10px/1.5 Manrope,sans-serif;letter-spacing:.17em}
+.qst-search-home h1{color:#29212a;font:500 clamp(36px,5vw,65px)/1.14 'Playfair Display',Georgia,serif;letter-spacing:-.035em;margin:14px 0}
+.qst-search-home .qst-lede{color:#72656a;max-width:670px;margin:0 auto 30px;font-size:14px;line-height:1.8}
+.qst-main-search{width:100%;max-width:830px;margin:0 auto;border:1px solid #d5c3ae;border-radius:13px;display:flex;align-items:center;gap:13px;background:#fff;padding:10px 10px 10px 22px;box-shadow:0 15px 45px #4b203019}
+.qst-main-search>svg{color:#876851;flex-shrink:0;width:21px;height:21px}
+.qst-main-search input{border:0;outline:0;flex:1;min-width:0;padding:13px 0;color:#29212a;font-size:14px;background:transparent}
+.qst-main-search button{border:0;border-radius:8px;padding:14px 24px;background:#3b182c;color:white;font-weight:800;font-size:13px;display:flex;align-items:center;gap:10px}
+.qst-main-search button svg{width:15px;height:15px}
+.qst-search-hints{margin:20px auto 0;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
+.qst-search-hints span{font-size:11px;color:#837774}
+.qst-search-hints button{border:1px solid #e1d6c8;border-radius:30px;color:#65545d;background:#fffcf8;padding:8px 12px;font-size:11px;line-height:1.3;cursor:pointer}
+.qst-search-hints button:hover{border-color:#a7845a;color:#3b182c}
+.qst-integrity{max-width:720px;margin:30px auto 0;font-size:11px;color:#8c817e;line-height:1.8}
+@media(max-width:600px){.qst-search-home{padding:58px 0 35px}.qst-main-search{padding:6px 6px 6px 12px;gap:8px}.qst-main-search input{font-size:12px}.qst-main-search button{padding:12px;font-size:11px}.qst-main-search>svg{width:18px;height:18px}}
