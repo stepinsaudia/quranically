@@ -352,6 +352,27 @@ async function publicApi(request,env,url){
     if(cache)await cache.put(requestKey,response.clone());
     return response;
   }
+  // One search across editorial records and connected primary-source indexes.
+  // Source snippets are presented as research evidence, NEVER as verified fatwa or medical cures.
+  if(pathname==='/api/unified-search'){
+    const q=(url.searchParams.get('q')||'').trim();
+    if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
+    const normalize=t=>String(t||'').toLowerCase().replace(/[^a-z0-9\\u0600-\\u06ff ]+/g,' ').replace(/\\s+/g,' ').trim();
+    const ignored=new Set(['what','where','which','when','does','have','that','this','from','about','with','please','prophet','muhammad','rasulullah','islam','islamic','quran','qur','hadith','seerah','sunnah','medicine','the','and','for','are','can','how','did','was','who','his']);
+    const terms=[...new Set(normalize(q).split(' ').filter(t=>t.length>2&&!ignored.has(t)))];
+    const rows=(await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).results;
+    const editorial=rows.map(a=>{const text=normalize([a.title,a.alternate_names,a.abstract].join(' '));const hits=terms.filter(t=>text.includes(t));return {...a,_score:hits.length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    let remote={results:[],providers:[],review_notice:'External indexes unavailable'};
+    try{remote=await liveSourceSearch(q,'');}catch{}
+    const ranked=(remote.results||[]).map(x=>{
+      const body=normalize([x.title,x.excerpt,x.reference].join(' '));
+      const score=terms.filter(t=>body.includes(t)).length;
+      return {...x,_score:score};
+    }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,12).map(({_score,...rest})=>rest);
+    const buckets={quran:[],hadith:[],dua:[]};
+    for(const item of ranked)if(buckets[item.kind])buckets[item.kind].push(item);
+    return json({query:q,editorial,evidence:buckets,providers:remote.providers||[],review_notice:'Source-index results are unreviewed quotations or excerpts. Religious interpretation and medical recommendations require separate expert assessment. No source match is not evidence of absence.',answer_policy:'source_first_no_fabrication'});
+  }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
   // This is controlled retrieval, never fabricated 'AI' medical or religious advice.
