@@ -20,3 +20,9 @@ try{
  const v=entry.variations?.[0]||{},st=v.steps?.[0]||{},unit=st.items?.[0]||{};
  console.log(JSON.stringify({name:'opendua_nested_fields',entry_keys:keys(entry),variations_count:entry.variations?.length||0,variation_keys:keys(v),steps_count:v.steps?.length||0,step_keys:keys(st),unit_keys:keys(unit),dua_keys:keys(unit.dua),nested_entry_steps:keys(entry.steps?.[0]),reference_keys:keys(entry.references?.[0])}));
 }catch(e){console.log(JSON.stringify({name:'opendua_nested_fields',error:e.message}));}
+
+try{
+ const r=await fetch('https://api.opendua.org/v2/collections',{signal:AbortSignal.timeout(9000)});
+ const j=await r.json();
+ console.log(JSON.stringify({name:'opendua_corpus_coverage',collections:(j.items||[]).map(x=>({id:x.id,entries:x.entryCount,chapters:x.chapterCount}))}));
+}catch(e){console.log(JSON.stringify({name:'opendua_corpus_coverage',error:e.message}));}
