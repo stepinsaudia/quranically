@@ -52,6 +52,20 @@ jobs:
             if(!db||String(db.database_id||db.id)!==expected.database_id){console.error("Existing D1 binding differs from approved database; deployment blocked.");process.exit(1);}
             console.log("Confirmed existing Worker settings and exact D1 binding.");
           '
+      - name: Refuse to publish an empty or unseeded knowledge database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE status='published') AS articles, (SELECT COUNT(*) FROM tibb_entries WHERE status='published') AS tibb, (SELECT COUNT(*) FROM encyclopedia_citations) AS citations, (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('diabetes-and-prophetic-medicine','mens-clothing-prophetic-era') AND status='published') AS critical_answers;" > /tmp/qst-release-readonly.json
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const data=JSON.parse(fs.readFileSync("/tmp/qst-release-readonly.json","utf8"));
+            const check=Array.isArray(data)?data[0]?.results?.[0]:null;
+            if(!check||Number(check.articles)<17||Number(check.tibb)<8||Number(check.citations)<15||Number(check.critical_answers)!==2){console.error("Missing published knowledge records; deployment refused without modifying D1.");process.exit(1);}
+            console.log("Verified existing D1 contains published articles, Prophetic Medicine, citations, and both tested real-world answers.");
+          '
       - name: Deploy to EXACT existing Quranically Worker (no D1 migrations)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
