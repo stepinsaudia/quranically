@@ -361,8 +361,20 @@ async function publicApi(request,env,url){
     if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
     const normalize=normalizeSubject;
     const terms=subjectTokens(q);
-    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).then(x=>x.results).catch(()=>[]);
+    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).then(x=>x.results).catch(()=>[]);
     const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    // Full source-grounded excerpts for relevant editorial answers: do not replace
+    // primary evidence with automatically generated medical or religious claims.
+    const contextualAnswers=await Promise.all(editorial.slice(0,2).map(async article=>{
+      try{
+        const [sections,citations]=await Promise.all([
+          env.DB.prepare('SELECT heading,section_type,body FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id LIMIT 6').bind(article.id).all(),
+          env.DB.prepare('SELECT citation_type,source_title,citation_ref,source_url,verification_status FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id LIMIT 12').bind(article.id).all()
+        ]);
+        if(!sections.results.length||!citations.results.length)return null;
+        return {slug:article.slug,title:article.title,domain:article.domain,abstract:article.abstract,review_status:article.review_status,sections:sections.results,citations:citations.results};
+      }catch{return null;}
+    }));
     const journeyRows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).then(x=>x.results).catch(()=>[]);
     const matches=journeyRows.map(j=>{const hay=normalize([j.title,j.summary,j.tags].join(' '));return {...j,_score:terms.filter(t=>hay.includes(t)).length};}).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
     const guidance=await Promise.all(matches.map(async({_score,...j})=>{
@@ -396,7 +408,7 @@ async function publicApi(request,env,url){
       if(item.kind==='quran')uniqueVerses.add(item.reference);
     }
     buckets.quran=buckets.quran.slice(0,12);
-    return json({query:q,editorial,tibb,guidance,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. External Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    return json({query:q,editorial,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. External Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
