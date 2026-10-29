@@ -16,10 +16,14 @@ export function parseVerseReference(query){
 }
 const ignored=new Set(['the','and','for','from','what','where','when','which','how','can','will','about','some','find','quran','qur','allah','says','say','speak','speaks','verses','verse','surah','prophet','rasulullah','muhammad','islam','regarding','mention','mentions','mentioned','show','give','tell','does','meaning','with','have','our','are','who','his','her','life','teach','teaching','guidance']);
 const variants=new Map([['maryam','mary'],['mariam','mary'],['isa','jesus'],['ibrahim','abraham'],['musa','moses'],['sabr','patience'],['salah','prayer'],['salat','prayer'],['zakat','alms'],['riba','usury'],['hijab','veil'],['qiyamah','resurrection'],['jannah','garden'],['jahannam','hell'],['sawm','fast'],['roza','fast'],['tawbah','repentance'],['tauba','repentance'],['rizq','provision'],['shifa','healing']]);
-export function quranSearchWord(query){
- const words=String(query||'').toLowerCase().replace(/[^a-z\u0600-\u06ff ]/g,' ').split(/\s+/).filter(x=>x.length>=3&&!ignored.has(x));
- const subject=words[words.length-1];return subject?(variants.get(subject)||subject).slice(0,40):'';
+const queryFillers=new Set(['prohibited','prohibition','forbidden','forbid','allowed','permitted','commanded','command','discussed','discussion','topic','topics','religion','religious','interpretation','interpreted','mentions','related','relatedly','explain','explains','understand','understanding','about','passage','passages','history']);
+export function quranSearchTerms(query){
+ const words=String(query||'').toLowerCase().replace(/[^a-z\u0600-\u06ff ]/g,' ').split(/\s+/).filter(x=>x.length>=3&&!ignored.has(x)&&!queryFillers.has(x));
+ const special=words.filter(x=>variants.has(x)).map(x=>variants.get(x));
+ const other=words.filter(x=>!variants.has(x));
+ return [...new Set([...special,...other])].slice(0,2).map(x=>x.slice(0,40));
 }
+export function quranSearchWord(query){return quranSearchTerms(query)[0]||'';}
 async function boundedJson(url,fetcher){
  const r=await fetcher(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(8500),cf:{cacheEverything:true,cacheTtl:1800}});
  if(!r.ok)throw Error('quran_provider_'+r.status);
@@ -38,16 +42,23 @@ export async function searchQuran(query,fetcher=fetch){
    return {status:'available',searched:direct.reference,mode:'exact_verse',results:[{provider:'Al Quran Cloud',kind:'quran',reference:direct.reference,title:'Qur’an '+direct.reference,excerpt:String(translated.text||'').slice(0,700),arabic:String(arabic.text||'').slice(0,900),source_url:'https://quran.com/'+direct.chapter+'/'+direct.verse,translation:'Marmaduke Pickthall (en.pickthall)',review_status:'provider_text_pending_review'}]};
   }catch{return {status:'temporarily_unavailable',searched:direct.reference,mode:'exact_verse',results:[]};}
  }
- const term=quranSearchWord(query);
- if(!term)return {status:'no_search_term',searched:'',mode:'translation_keyword',results:[]};
- try{
-  const d=await boundedJson('https://api.alquran.cloud/v1/search/'+encodeURIComponent(term)+'/all/en.pickthall',fetcher);
-  if(!Array.isArray(d.matches))throw Error('quran_match_schema');
-  const results=d.matches.slice(0,12).map(x=>{
-   const c=Number(x?.surah?.number),v=Number(x?.numberInSurah);
-   if(!validVerse(c,v)||!x.text)return null;
-   return {provider:'Al Quran Cloud',kind:'quran',reference:c+':'+v,title:'Qur’an '+c+':'+v,excerpt:String(x.text).slice(0,700),source_url:'https://quran.com/'+c+'/'+v,translation:'Marmaduke Pickthall (en.pickthall)',review_status:'provider_text_pending_review'};
-  }).filter(Boolean);
-  return {status:'available',searched:term,mode:'translation_keyword',total:Number(d.count)||results.length,results};
- }catch{return {status:'temporarily_unavailable',searched:term,mode:'translation_keyword',results:[]};}
+ const terms=quranSearchTerms(query);
+ if(!terms.length)return {status:'no_search_term',searched:'',mode:'translation_keyword',results:[]};
+ const looked=await Promise.all(terms.map(async term=>{
+  try{
+   const data=await boundedJson('https://api.alquran.cloud/v1/search/'+encodeURIComponent(term)+'/all/en.pickthall',fetcher);
+   if(!Array.isArray(data.matches))throw Error('quran_match_schema');
+   return {term,status:'available',matches:data.matches.slice(0,18),total:Number(data.count)||0};
+  }catch{return {term,status:'temporarily_unavailable',matches:[],total:0};}
+ }));
+ const unique=new Map();
+ for(const item of looked)for(const x of item.matches){
+  const c=Number(x?.surah?.number),v=Number(x?.numberInSurah);
+  if(!validVerse(c,v)||!x.text)continue;
+  const reference=c+':'+v;
+  if(!unique.has(reference))unique.set(reference,{provider:'Al Quran Cloud',kind:'quran',reference,title:'Qur’an '+reference,excerpt:String(x.text).slice(0,700),source_url:'https://quran.com/'+c+'/'+v,translation:'Marmaduke Pickthall (en.pickthall)',review_status:'provider_text_pending_review'});
+ }
+ const ranked=[...unique.values()].map(x=>({...x,_score:terms.filter(t=>x.excerpt.toLowerCase().includes(t.toLowerCase())).length})).sort((a,b)=>b._score-a._score).slice(0,12).map(({_score,...x})=>x);
+ const successful=looked.filter(x=>x.status==='available');
+ return {status:successful.length===looked.length?'available':successful.length?'partial':'temporarily_unavailable',searched:terms.join(', '),mode:'translation_keyword',total:ranked.length,results:ranked};
 }
