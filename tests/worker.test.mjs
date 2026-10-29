@@ -390,3 +390,15 @@ test('unified search rejects invalid queries and returns the canonical evidence 
  assert.ok(body.editorial.every(x=>x.slug && x.review_status));
  assert.ok(!JSON.stringify(body).includes('guaranteed cure'));
 });
+
+test('unified search gives source-linked Living Guidance and actual practical steps',async()=>{
+ const env=fixture();
+ const response=await get(env,'/api/unified-search?q=anxiety');
+ assert.equal(response.status,200);
+ const data=await response.json();
+ const guidance=data.guidance.find(item=>item.slug==='anxiety');
+ assert(guidance);
+ assert(guidance.evidence.some(x=>x.reference==='Sahih al-Bukhari 6369'&&x.source_url));
+ assert(guidance.steps.some(x=>/support|healthcare/i.test(x.instruction)));
+ assert(guidance.clinical_note);
+});
