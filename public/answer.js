@@ -71,7 +71,12 @@ async function show(q,domain){
       const blocks=other.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>'+esc(x.review_status||'review pending')+'</small></p>').join('');
       const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
       const medicines=matches.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · '+esc(x.review_stage)+'</small></article>').join('');
-      if(blocks||medicines)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives</h4>'+blocks+medicines+'</section>');
+      const leads=[...(found.evidence?.quran||[]),...(found.evidence?.hadith||[])].slice(0,6).map(x=>{
+        const match=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
+        const reader=match?'<a href="/study.html?surah='+Number(match[1])+'&ayah='+Number(match[2])+'">Read in Qur’an Reader</a>':'';
+        return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong><p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · Provider index, verification pending</small>'+reader+'</article>';
+      }).join('');
+      if(blocks||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+medicines+leads+'</section>');
     }
   }catch{/* Preserve the complete, canonical article if secondary providers fail. */}
   return true;
