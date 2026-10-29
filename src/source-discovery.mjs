@@ -1,3 +1,4 @@
+import {searchOpenDua} from './opendua-source.mjs';
 // Quranically's bounded, attributed live source lookup.
 // Live source evidence is never promoted to a scholarly verdict or clinical conclusion.
 const origin='https://ummahapi.com';
@@ -133,6 +134,7 @@ export async function liveSourceSearch(q,domain=''){
   return {id:group.id,status,records:[...unique.values()],total,queries:tried};
  });
  if(domain==='prophetic_medicine')tasks.push(researchSearch(q));
+ if(['sunnah','seerah','living_guidance',''].includes(domain))tasks.push(searchOpenDua(q));
  const all=await Promise.all(tasks);
  const raw=all.flatMap(g=>g.records);
  const evidence=rankSourceEvidence(raw,q,9);
@@ -142,6 +144,7 @@ export const CONNECTORS=[
  {id:'ummah_quran',title:'Qur’an verse index',source:'UmmahAPI',mode:'live_search',coverage:'Provider Qur’an search index',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/api/docs'},
  {id:'ummah_hadith',title:'Hadith collection index',source:'UmmahAPI',mode:'live_search',coverage:'Provider indexed narrations in multiple collections; grade is not independently verified',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/hadith-api'},
  {id:'ummah_dua',title:'Supplication index',source:'UmmahAPI',mode:'live_search',coverage:'Provider indexed supplications and reference labels',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/duas-api'},
+ {id:'opendua',title:'Hisn al-Muslim collection',source:'OpenDua',mode:'live_search',coverage:'Versioned full collection with 267 entries; search and complete contextual records',verification:'publisher_editorial_not_independently_reviewed',source_url:'https://opendua.org/developers'},
  {id:'hadeethenc',title:'Hadith encyclopedia',source:'HadeethEnc',mode:'official_category_api',coverage:'Translated hadith and category browsing; provenance and terms apply',verification:'publisher_source',source_url:'https://hadeethenc.com/en/home'},
  {id:'sunnah_com',title:'Sunnah.com',source:'Sunnah.com',mode:'access_required',coverage:'API key approval required',verification:'permission_pending',source_url:'https://sunnah.com/developers'},
  {id:'dorar',title:'Dorar Hadith Encyclopedia',source:'Dorar.net',mode:'access_required',coverage:'Provider token required',verification:'permission_pending',source_url:'https://dorar.net/api-services/hadith'},
