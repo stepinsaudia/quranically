@@ -293,3 +293,6 @@ header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst
 .corpus-coverage strong{color:#20221f;font-weight:800;font-size:13px}
 .corpus-coverage span{color:#865617}
 .corpus-coverage small{display:block;width:100%;font:500 10px/1.5 Manrope,sans-serif;color:#77726b}
+
+.source-shelf-arabic{font:400 clamp(20px,2.25vw,27px)/2.15 Amiri,serif!important;text-align:right;direction:rtl;white-space:pre-wrap;overflow-wrap:anywhere;background:#fbf7ed;border:1px solid #eee3d1;border-radius:8px;padding:14px 17px;color:#2c2924!important}
+.source-shelf-detail .source-shelf-matn{white-space:pre-wrap;overflow-wrap:anywhere}
