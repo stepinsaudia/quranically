@@ -69,3 +69,23 @@ test('two keyword searches merge exact verses and retain availability when a pro
  assert.equal(result.results[0].reference,'2:153');
  assert.equal(urls.length,2);
 });
+
+test('nonexistent numeric Quran references fail closed',async()=>{
+ const result=await searchQuran('Surah 1:100',async()=>{throw Error('Must not call external source');});
+ assert.equal(result.status,'invalid_reference');assert.equal(result.results.length,0);
+});
+test('last two verses are both returned and checked independently',async()=>{
+ const asked=[];
+ const mock=async u=>{
+  const v=Number(u.match(/ayah\/2:(285|286)\/editions/)[1]);
+  asked.push(v);
+  return {ok:true,headers:new Headers(),text:async()=>JSON.stringify({code:200,data:[
+   {surah:{number:2},numberInSurah:v,text:'Arabic '+v},
+   {surah:{number:2},numberInSurah:v,text:'Translation '+v}
+  ]})};
+ };
+ const result=await searchQuran('last two verses of al Baqarah',mock);
+ assert.deepEqual(asked.sort(),[285,286]);
+ assert.deepEqual(result.results.map(x=>x.reference),['2:285','2:286']);
+ assert.equal(result.status,'available');
+});
