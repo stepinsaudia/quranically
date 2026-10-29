@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: eeac42798d066c1ee178fe958e4653c19c4408ba
+          ref: 681f4eff26ae34200dfbd8aa06cfbd2649811095
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -34,6 +34,9 @@ jobs:
           node --check src/site-shell.mjs
           node --check src/source-discovery.mjs
           node --check src/hadeethenc-library.mjs
+          node --check src/knowledge-index.mjs
+          node --check src/opendua-source.mjs
+          node --check public/knowledge-admin.js
           node --check public/source-shelves.js
           node --check public/answer.js
           node --check public/encyclopedia.js
@@ -115,6 +118,10 @@ jobs:
           const deep=await (await grab('/api/source-shelves/records?domain=sunnah&shelf=sunnah-virtues&page=21')).json();
           if(deep.status!=='available'||deep.page!==21||!deep.records?.length||deep.page_size!==20)throw Error('Full source pagination still limited to preview');
           console.log('FULL LIBRARY HIERARCHY',categoryTree.categories.length,'categories; page 21',deep.records.length,'records');
+          const registry=await (await grab('/api/knowledge/coverage')).json();
+          if(!registry.sources?.some(s=>s.id==='hadeethenc-en')||!registry.sources?.some(s=>s.id==='openiti'&&s.rights_mode==='permission_pending'))throw Error('Source corpus governance unavailable');
+          const corpusSearch=await (await grab('/api/knowledge/search?q=clothing&domain=seerah')).json();
+          if(!Array.isArray(corpusSearch.results))throw Error('Open-topic corpus search API missing');
           const admin=await fetch(origin+'/api/admin/bootstrap',{signal:AbortSignal.timeout(20000)});
           if(![401,403,503].includes(admin.status))throw Error('Admin access not protected');
           for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
