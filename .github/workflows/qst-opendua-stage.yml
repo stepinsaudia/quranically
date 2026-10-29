@@ -1,0 +1,43 @@
+name: Quranically — stage complete OpenDua collection without deployment
+on:
+  push:
+    branches: [main]
+    paths: ['.github/qst-opendua-stage-authorize.txt']
+permissions:
+  contents: read
+jobs:
+  open-dua-stage:
+    if: ${{ github.event.head_commit.message == 'AUTHORIZE QURANICALLY OPEN DUA CORPUS STAGING' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9a7262fc38cf87b399ace5a6cae905fb4e462336
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build all official OpenDua contextual entries rate-limited
+        run: QST_CORPUS_CHUNK_DIR=/tmp/quranically-opendua node scripts/build-opendua-corpus.mjs
+      - name: Validate complete contextual source records against isolated SQLite
+        run: |
+          python3 - <<'PY'
+          import sqlite3, pathlib, json
+          db=sqlite3.connect(':memory:')
+          for file in ['migrations/0024_knowledge_corpus_inverted_index.sql','migrations/0025_complete_publisher_record.sql']:
+              db.executescript(pathlib.Path(file).read_text())
+          files=sorted(pathlib.Path('/tmp/quranically-opendua').glob('corpus-part-*.sql'))
+          assert len(files)==27,('Expected 27 batches',len(files))
+          for f in files:
+              with f.open('rb') as stream: largest=max(map(len,stream),default=0)
+              assert largest<7000,(f,largest)
+              db.executescript(f.read_text())
+          n,u,original,eng,context=db.execute("""SELECT COUNT(*), COUNT(DISTINCT external_ref),
+              SUM(LENGTH(publisher_record_json)>200), SUM(LENGTH(translation_text)>0), SUM(LENGTH(normalized_search)>0)
+              FROM knowledge_passages WHERE source_id='opendua-en' AND status='published'""").fetchone()
+          version=db.execute("SELECT version_label FROM knowledge_sources WHERE id='opendua-en'").fetchone()[0]
+          assert n==267 and u==267 and original==267 and context>=200 and version=='v0.0.4',(n,u,original,eng,context,version)
+          print('OPEN DUA CORPUS VERIFIED', json.dumps({'records':n,'source_payloads':original,'translated':eng,'indexed':context,'edition':version,'parts':len(files)}))
+          PY
+      - if: always()
+        run: rm -rf /tmp/quranically-opendua
