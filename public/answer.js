@@ -61,6 +61,19 @@ async function show(q,domain){
    +'<section class="qa-bibliography"><h4>References and evidence</h4><p>These are source links for independent examination; they do not replace the answer or establish clinical efficacy.</p><ol>'+a.citations.map(citation).join('')+'</ol></section>'
    +(related?'<div class="qa-related"><strong>Related reference articles</strong>'+related+'</div>':'')
    +'<div class="qa-foot"><a data-open="'+esc(a.slug)+'" href="/encyclopedia/'+encodeURIComponent(a.slug)+'">Open permanent article</a><small>Live D1 record managed in Quranically Admin. Scholarly or clinical review may still be pending.</small></div>';
+  // A matching editorial article must not suppress other disciplines:
+  // load complementary evidence without presenting provider snippets as validated answers.
+  try{
+    const response=await fetch('/api/unified-search?'+new URLSearchParams({q}),{headers:{accept:'application/json'},signal:AbortSignal.timeout(14000)});
+    if(response.ok){
+      const found=await response.json();if(id!==sequence)return null;
+      const other=(found.editorial||[]).filter(x=>x.slug!==a.slug);
+      const blocks=other.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>'+esc(x.review_status||'review pending')+'</small></p>').join('');
+      const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
+      const medicines=matches.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · '+esc(x.review_stage)+'</small></article>').join('');
+      if(blocks||medicines)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives</h4>'+blocks+medicines+'</section>');
+    }
+  }catch{/* Preserve the complete, canonical article if secondary providers fail. */}
   return true;
  }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Answer service unavailable</h3><p>'+esc(e.message)+'. Please retry. We will not substitute unrelated source excerpts.</p>';return false;}
 }
