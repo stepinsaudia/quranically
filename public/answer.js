@@ -31,7 +31,7 @@ async function show(q,domain){
         if(!items.length)return '';
         return '<section class="qa-part"><h4>'+esc(name)+'</h4>'+items.map(x=>{
           const ref=String(x.reference||'');
-          const verse=key==='quran'&&/^(\\d{1,3}):(\\d{1,3})$/.exec(ref);
+          const verse=key==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(ref);
           const jump=verse?'<a href="/study.html?surah='+Number(verse[1])+'&ayah='+Number(verse[2])+'">Read in Qur’an Reader</a>':'';
           return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong><p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · External source index — not independently reviewed</small>'+jump+'</article>';
         }).join('')+'</section>';
