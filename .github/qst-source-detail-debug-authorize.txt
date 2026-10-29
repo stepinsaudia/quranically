@@ -1,0 +1,1 @@
+READ-ONLY focused production DOM+API diagnosis for HadeethEnc first report on Quranically Seerah, desktop 1440 and mobile 390. No deployment or writes.
