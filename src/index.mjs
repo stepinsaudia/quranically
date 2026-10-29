@@ -362,6 +362,8 @@ async function publicApi(request,env,url){
     const terms=[...new Set(normalize(q).split(' ').filter(t=>t.length>2&&!ignored.has(t)))];
     const rows=(await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).results;
     const editorial=rows.map(a=>{const text=normalize([a.title,a.alternate_names,a.abstract].join(' '));const hits=terms.filter(t=>text.includes(t));return {...a,_score:hits.length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    const ingredients=(await env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).results;
+    const tibb=ingredients.map(x=>{const hay=normalize([x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '));return {...x,_score:terms.filter(t=>hay.includes(t)).length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
     let remote={results:[],providers:[],review_notice:'External indexes unavailable'};
     try{remote=await liveSourceSearch(q,'');}catch{}
     const ranked=(remote.results||[]).map(x=>{
@@ -371,7 +373,7 @@ async function publicApi(request,env,url){
     }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,12).map(({_score,...rest})=>rest);
     const buckets={quran:[],hadith:[],dua:[]};
     for(const item of ranked)if(buckets[item.kind])buckets[item.kind].push(item);
-    return json({query:q,editorial,evidence:buckets,providers:remote.providers||[],review_notice:'Source-index results are unreviewed quotations or excerpts. Religious interpretation and medical recommendations require separate expert assessment. No source match is not evidence of absence.',answer_policy:'source_first_no_fabrication'});
+    return json({query:q,editorial,tibb,evidence:buckets,providers:remote.providers||[],review_notice:'Source-index results are unreviewed quotations or excerpts. Religious interpretation and medical recommendations require separate expert assessment. No source match is not evidence of absence.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
