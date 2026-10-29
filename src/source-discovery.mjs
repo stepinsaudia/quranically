@@ -1,3 +1,4 @@
+import {validVerse} from './quran-search.mjs';
 // Quranically federated source discovery. No full-corpus mirroring and no AI-generated citations.
 // The API returns small, attributed pointers to provider data, not approved encyclopedia articles.
 const origin='https://ummahapi.com';
@@ -37,7 +38,7 @@ export async function liveSourceSearch(q,domain=''){
       const records=arr.slice(0,group.id==='hadith_collections'?12:8).map(x=>{
         if(group.id==='quran_verses'){
           const chapter=Number(x.surah_number),ayah=Number(x.ayah);
-          if(!(chapter>=1&&chapter<=114&&ayah>=1&&ayah<=286))return null;
+          if(!validVerse(chapter,ayah))return null;
           return {provider:'UmmahAPI / Quran index',kind:'quran',reference:chapter+':'+ayah,title:'Quran '+chapter+':'+ayah,excerpt:short(x.translation,240),source_url:'https://quran.com/'+chapter+'/'+ayah,review_status:'upstream_unreviewed'};
         }
         if(group.id==='hadith_collections'){
