@@ -1,0 +1,4 @@
+AUTHORIZE VERIFIED FULL HADEETHENC ENGLISH CORPUS IMPORT TO EXISTING QURANICALLY D1
+Only qst-knowledge-v1-db / qst-living-knowledge-v1.
+Source https://hadeethenc.com/en/browse/download/en, official translation edition v1.25.0 dated 2026-05-10, 2328 unique records.
+Retain original Arabic, English translation, explanations, benefits, grading, references and official source header verbatim. No new resources. Private preimport backup and live broad-topic verification required.
