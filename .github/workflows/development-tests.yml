@@ -87,3 +87,29 @@ jobs:
             wrangler-preview.log
           if-no-files-found: ignore
           retention-days: 5
+
+  corpus-stage:
+    if: contains(github.event.head_commit.message, '[corpus]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build complete publisher SQL in ephemeral runner
+        run: python3 scripts/build-hadeethenc-corpus.py /tmp/quranically-hadeethenc.sql
+      - name: Validate all official records in temporary SQLite, no deployment
+        run: |
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db=sqlite3.connect(':memory:')
+          db.executescript(Path('migrations/0024_knowledge_corpus_inverted_index.sql').read_text())
+          db.executescript(Path('/tmp/quranically-hadeethenc.sql').read_text())
+          n,distinct_ids=db.execute("SELECT COUNT(*),COUNT(DISTINCT external_ref) FROM knowledge_passages WHERE source_id='hadeethenc-en'").fetchone()
+          edition=db.execute("SELECT version_label FROM knowledge_sources WHERE id='hadeethenc-en'").fetchone()[0]
+          complete=db.execute("SELECT COUNT(*) FROM knowledge_passages WHERE source_id='hadeethenc-en' AND LENGTH(original_text)>0 AND LENGTH(translation_text)>0 AND LENGTH(source_url)>0 AND LENGTH(normalized_search)>0").fetchone()[0]
+          assert n>=2000 and distinct_ids==n and complete==n and edition.startswith('v'),(n,distinct_ids,complete,edition)
+          print('VERIFIED SOURCE CORPUS',n,'distinct, complete, unchanged publisher records; version',edition)
+          PY
+      - name: Remove temporary proprietary/attributed material
+        if: always()
+        run: rm -f /tmp/quranically-hadeethenc.sql
