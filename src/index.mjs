@@ -486,9 +486,16 @@ async function publicApi(request,env,url){
     if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid subject');
     // Coarse query cache prevents one reader action from turning into 3 provider API calls every time.
     const cache=typeof caches!=='undefined'?caches.default:null;
-    const requestKey=new Request(new URL('/api/source-discovery?'+new URLSearchParams({q:q.toLowerCase(),domain,revision:'v2'}),url.origin));
+    const requestKey=new Request(new URL('/api/source-discovery?'+new URLSearchParams({q:q.toLowerCase(),domain,revision:'v3'}),url.origin));
     if(cache){const hit=await cache.match(requestKey);if(hit)return hit;}
-    const result=await liveSourceSearch(q,domain);
+    const [result,indexed]=await Promise.all([liveSourceSearch(q,domain),searchKnowledge(env.DB,q,domain)]);
+    const passages=indexed.results.map(p=>({kind:'indexed_source',provider:p.publisher,title:p.title,
+      reference:p.external_ref,excerpt:p.translation_text||p.original_text,arabic_excerpt:p.original_text,
+      explanation:p.explanation_text,benefits:p.benefits_text,reported_grade:p.grade_text,
+      reported_reference:p.takhrij_text,source_url:p.source_url,content_version:p.content_version,
+      review_status:p.expert_review}));
+    result.results=[...passages,...(result.results||[])].slice(0,20);
+    result.providers=[{id:'canonical_corpus',status:'available',match_count:passages.length,indexed_total:indexed.total_indexed},...(result.providers||[])];
     const response=new Response(JSON.stringify(result),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=300','x-content-type-options':'nosniff'}});
     if(cache)await cache.put(requestKey,response.clone());
     return response;
@@ -590,7 +597,7 @@ async function publicApi(request,env,url){
       const indexed=await searchKnowledge(env.DB,q,domain);
       const corpusEvidence=indexed.results.map(p=>({kind:'indexed_source',provider:p.publisher,reference:p.external_ref,
         title:p.title,excerpt:p.translation_text||p.original_text,source_url:p.source_url,
-        explanation:p.explanation_text,content_version:p.content_version,review_status:p.expert_review,source_id:p.source_id}));
+        explanation:p.explanation_text,benefits:p.benefits_text,reported_grade:p.grade_text,reported_reference:p.takhrij_text,content_version:p.content_version,review_status:p.expert_review,source_id:p.source_id}));
       // Full canonical passages are searched first; when they don't cover the
       // question, consult other live source providers without assuming a
       // prewritten article exists.
