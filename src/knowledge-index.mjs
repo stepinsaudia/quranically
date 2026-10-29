@@ -62,9 +62,9 @@ export async function searchKnowledge(db,q,domain=''){
   'COUNT(*) AS term_matches,SUM(k.weight) AS search_score FROM knowledge_terms k '+
   'JOIN knowledge_passages p ON p.id=k.passage_id JOIN knowledge_sources s ON s.id=p.source_id '+
   "WHERE k.term IN ("+slots+") AND p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim' "+
-  (domain?'AND p.domain=? ':'')+
+  ''+
   'GROUP BY p.id ORDER BY term_matches DESC,search_score DESC,p.id LIMIT 12';
- const params=domain?[...terms,domain]:terms;
+ const params=terms;
  const rows=(await db.prepare(sql).bind(...params).all()).results||[];
  let combined=[...rows];
  if(combined.length<10){
@@ -76,8 +76,8 @@ export async function searchKnowledge(db,q,domain=''){
      'p.source_url,p.content_version,p.language,p.expert_review,p.normalized_search,s.publisher,s.collection_title,s.attribution '+
      'FROM knowledge_passages p JOIN knowledge_sources s ON s.id=p.source_id '+
      "WHERE p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim' "+
-     (domain?'AND p.domain=? ':'')+'AND ('+where+') LIMIT 100';
-   const bound=domain?[domain,...words.map(w=>'%'+w+'%')]:words.map(w=>'%'+w+'%');
+     'AND ('+where+') LIMIT 100';
+   const bound=words.map(w=>'%'+w+'%');
    const supplemental=(await db.prepare(fallbackSql).bind(...bound).all()).results||[];
    const ids=new Set(combined.map(x=>x.id));
    for(const row of supplemental){
@@ -89,11 +89,11 @@ export async function searchKnowledge(db,q,domain=''){
     ids.add(row.id);
    }
  }
- combined.sort((a,b)=>b.term_matches-a.term_matches||b.search_score-a.search_score||a.id.localeCompare(b.id));
+ combined.sort((a,b)=>b.term_matches-a.term_matches||(Number(b.domain===domain)-Number(a.domain===domain))||b.search_score-a.search_score||a.id.localeCompare(b.id));
  combined=combined.slice(0,12);
  const count=(await db.prepare("SELECT COUNT(*) AS n FROM knowledge_passages p JOIN knowledge_sources s ON s.id=p.source_id WHERE p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim'").first())?.n||0;
  return {results:combined.map(r=>({...r,matching_scope:r.term_matches===terms.length?'all_query_subject_words':'partial_query_subject_words',
   independent_review:r.expert_review==='unreviewed'?'not_yet_reviewed':r.expert_review})),
   matched_terms:terms,total_indexed:Number(count),
-  provenance:'Exact passages indexed from rights-cleared source collections. An excerpt is not itself a scholarly verdict or clinical finding.'};
+  provenance:'Open cross-discipline retrieval: the chosen discipline affects ranking, never excludes relevant verified-source passages. Text provenance is retained; no scholarly or clinical verdict is inferred.'};
 }
