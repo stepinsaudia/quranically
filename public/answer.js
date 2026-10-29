@@ -38,7 +38,9 @@ async function show(q,domain){
           const jump=verse?'<a href="/study.html?surah='+Number(verse[1])+'&ayah='+Number(verse[2])+'">Read in Qur’an Reader</a>':'';
           const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
           const sourceLabel=x.translation?esc(x.translation):'Source index';
-          return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · '+sourceLabel+' · external text pending Quranically review</small>'+jump+'</article>';
+          const reported=x.reported_grade?' · Provider-reported grading: '+esc(x.reported_grade)+' (not independently checked)':'';
+          const inspect=href(x.source_url)?'<a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a>':'';
+          return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · '+sourceLabel+reported+' · external text pending Quranically review</small>'+jump+inspect+'</article>';
         }).join('')+'</section>';
       }).join('');
       const guidance=(found.guidance||[]).length?'<section class="qa-part"><h4>Living Guidance — sourced teachings and practical steps</h4>'+found.guidance.map(j=>{
@@ -86,7 +88,9 @@ async function show(q,domain){
         const match=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
         const reader=match?'<a href="/study.html?surah='+Number(match[1])+'&ayah='+Number(match[2])+'">Read in Qur’an Reader</a>':'';
         const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
-        return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+' · verification pending</small>'+reader+'</article>';
+        const grade=x.reported_grade?' · Provider-reported grade: '+esc(x.reported_grade)+' (unverified)':'';
+        const inspect=href(x.source_url)?'<a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a>':'';
+        return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+grade+' · verification pending</small>'+reader+inspect+'</article>';
       }).join('');
       if(blocks||complementaryGuidance||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+complementaryGuidance+medicines+leads+'</section>');
     }
