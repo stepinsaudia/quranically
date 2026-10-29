@@ -66,6 +66,32 @@ for(const size of [{id:'desktop',width:1440,height:900},{id:'mobile',width:390,h
  }
  await page.close();
 }
+// Query results must appear from D1 before slow external APIs return.
+{
+ const fast=await browser.newPage({viewport:{width:1000,height:750}});
+ await fast.route('**/api/knowledge/search?**',route=>route.fulfill({
+   status:200,contentType:'application/json',body:JSON.stringify({total_indexed:2595,
+    results:[{id:'test-indexed',source_id:'hadeethenc-en',external_ref:'99887',title:'Verified local original',
+      publisher:'HadeethEnc',domain:'sunnah',original_text:'نص أصلي',translation_text:'Full original passage about traveler luggage.',
+      explanation_text:'Source explanation is available locally.',source_url:'https://hadeethenc.com/en/browse/hadith/99887',
+      expert_review:'unreviewed',content_version:'v1.25.0'}]})
+ }));
+ await fast.route('**/api/source-discovery?**',async route=>{
+   await new Promise(resolve=>setTimeout(resolve,8500));
+   await route.fulfill({status:200,contentType:'application/json',
+     body:JSON.stringify({results:[],providers:[],fetched_at:new Date().toISOString()})}).catch(()=>{});
+ });
+ try{
+   await fast.goto(base+'/encyclopedia?domain=seerah&q=traveler%20luggage',{waitUntil:'domcontentloaded',timeout:25000});
+   await fast.locator('#sourceResults .provider-hit').first().waitFor({timeout:6500});
+   const text=await fast.locator('#sourceResults').innerText();
+   if(!text.includes('Full original passage about traveler luggage.'))throw Error('Indexed source not visible before remote');
+   const state=await fast.locator('#sourceResultState').innerText();
+   if(!state.includes('checking supplementary publisher indexes'))throw Error('Indexed source was not rendered before provider response: '+state);
+   console.log('PASS local-first indexed original text renders before delayed provider');
+ }catch(e){issues.push('local-first source search: '+e.message);}
+ await fast.close();
+}
 await browser.close();
 if(issues.length){console.error(issues.join('\n'));process.exitCode=1;}
 else console.log('CANONICAL DEVELOPMENT DESKTOP/MOBILE VISUAL CHECK PASS');
