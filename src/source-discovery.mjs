@@ -57,6 +57,7 @@ export async function liveSourceSearch(q,domain=''){
   return {term,results:responses.flatMap(x=>x.records),providers:responses.map(({id,status,total})=>({id,status,match_count:total})),fetched_at:new Date().toISOString(),review_notice:'These are independently attributed provider search records, not Quranically-verified religious rulings or medical advice.'};
 }
 export const CONNECTORS=[
+ {id:'alquran_cloud',title:'Qur’an word and exact-verse search',source:'Al Quran Cloud',mode:'live_translation_search',coverage:'All 114 chapters in provider-hosted English translation, with exact Arabic verse lookup and read-in-Reader links',verification:'provider_text_pending_review',source_url:'https://alquran.cloud/api'},
  {id:'ummah_quran',title:'Quran verse index',source:'UmmahAPI',mode:'live_search',coverage:'Quran search index; provider claims 6,236 verses',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/api/docs'},
  {id:'ummah_hadith',title:'Hadith collection index',source:'UmmahAPI',mode:'live_search',coverage:'Provider claims 36,000+ narrations in 10 collections; not independently authenticated by Quranically',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/hadith-api'},
  {id:'ummah_dua',title:'Supplication index',source:'UmmahAPI',mode:'live_search',coverage:'Provider indexed duas with source labels',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/duas-api'},
