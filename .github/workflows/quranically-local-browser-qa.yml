@@ -1,5 +1,9 @@
 name: Quranically — Search-first visual and answer QA (no deployment)
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-local-browser-qa.yml'
+      - 'scripts/local-search-visual-qa.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
