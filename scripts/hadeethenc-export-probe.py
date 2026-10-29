@@ -28,7 +28,7 @@ try:
                             inline=cell.find('x:is',n)
                             val=v.text if v is not None else ''.join(inline.itertext()) if inline is not None else ''
                             if cell.get('t')=='s' and str(val).isdigit() and int(val)<len(shared):val=shared[int(val)]
-                            cells.append([cell.get('r'),str(val)[:70]])
+                            cells.append([cell.get('r'),str(val)[:550] if rows==1 else str(val)[:70]])
                         first.append(cells)
                     elem.clear()
         print(json.dumps({'sheet':sheet,'rows':rows,'header_samples':first,'sharedStrings':len(shared),'bytes':len(body)},ensure_ascii=False))
