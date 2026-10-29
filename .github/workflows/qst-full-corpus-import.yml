@@ -1,0 +1,92 @@
+name: Quranically — official HadeethEnc corpus import into existing D1
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/qst-hadeethenc-import-authorize.txt'
+permissions:
+  contents: read
+concurrency:
+  group: quranically-native-admin
+  cancel-in-progress: false
+jobs:
+  source-ingest:
+    if: ${{ github.event.head_commit.message == 'AUTHORIZE QURANICALLY OFFICIAL CORPUS IMPORT' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 681f4eff26ae34200dfbd8aa06cfbd2649811095
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --no-package-lock --no-audit --no-fund
+          node scripts/native-admin-preflight.mjs
+          npm test
+      - name: Confirm only existing Quranically DB is accessible
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations list qst-knowledge-v1-db --remote
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --command="SELECT COUNT(*) AS n FROM knowledge_sources WHERE id='hadeethenc-en';" --yes
+      - name: Download and validate full original licensed English collection
+        run: |
+          python3 scripts/build-hadeethenc-corpus.py /tmp/quranically-hadeethenc-english.sql
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          f=Path('/tmp/quranically-hadeethenc-english.sql')
+          with f.open('rb') as handle:
+              biggest=max(map(len,handle),default=0)
+          assert biggest<95000,('SQL statement exceeds D1 limits',biggest)
+          db=sqlite3.connect(':memory:')
+          db.executescript(Path('migrations/0024_knowledge_corpus_inverted_index.sql').read_text())
+          db.executescript(f.read_text())
+          n,unique=db.execute("SELECT COUNT(*),COUNT(DISTINCT external_ref) FROM knowledge_passages WHERE source_id='hadeethenc-en'").fetchone()
+          edition=db.execute("SELECT version_label FROM knowledge_sources WHERE id='hadeethenc-en'").fetchone()[0]
+          assert n==2328 and unique==2328 and edition=='v1.25.0',(n,unique,edition)
+          print('CORPUS SOURCE INTEGRITY PASS:',n,'English records, all original IDs unique, edition',edition,'largest statement',biggest)
+          PY
+      - name: Capture private pre-import D1 backup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          umask 077
+          npx wrangler d1 export qst-knowledge-v1-db --remote --output=/tmp/quranically-pre-corpus-backup.sql >/dev/null
+          test -s /tmp/quranically-pre-corpus-backup.sql
+          echo 'Private D1 backup verified in ephemeral runner; not uploaded.'
+      - name: Import official English texts to the canonical existing D1 (idempotent)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: npx wrangler d1 execute qst-knowledge-v1-db --remote --file=/tmp/quranically-hadeethenc-english.sql --yes
+      - name: Verify actual live broad-source search, not original article count
+        run: |
+          node --input-type=module <<'JS'
+          const base='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
+          async function read(path){
+            const resp=await fetch(base+path,{headers:{accept:'application/json'},signal:AbortSignal.timeout(26000)});
+            if(!resp.ok)throw Error(path+': HTTP '+resp.status);
+            return resp.json();
+          }
+          const coverage=await read('/api/knowledge/coverage');
+          const source=coverage.sources.find(s=>s.id==='hadeethenc-en');
+          if(!source||source.available_in_index!==2328)throw Error('Whole publisher corpus is not indexed: '+JSON.stringify(source));
+          for(const q of ['clothing','mosque','marriage','journey']){
+            const params=new URLSearchParams({q,domain:'seerah'});
+            const result=await read('/api/knowledge/search?'+params);
+            if(!result.results.length||!result.results[0].original_text||!result.results[0].translation_text)throw Error('Unusable full-text source result for '+q);
+            console.log('LIVE CORPUS SOURCE QUERY',q,'matches',result.results.length,'indexed',result.total_indexed);
+          }
+          console.log('REAL SOURCE CORPUS IMPORT PASS: 2328 original Hadith records searchable via the Worker.');
+          JS
+      - name: Destroy ephemeral downloaded original texts and backup
+        if: always()
+        run: rm -f /tmp/quranically-hadeethenc-english.sql /tmp/quranically-pre-corpus-backup.sql
