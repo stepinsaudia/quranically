@@ -1,6 +1,7 @@
 import {liveSourceSearch,rankSourceEvidence,CONNECTORS} from './source-discovery.mjs';
 import {curatedHadithList,curatedHadithDetail,publisherCategoryTree} from './hadeethenc-library.mjs';
 import {renderCanonicalShell} from './site-shell.mjs';
+import {searchKnowledge,addKnowledgePassages} from './knowledge-index.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -209,6 +210,35 @@ async function adminApi(request,env,url,identity){
   const route=url.pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
   const entity=route[0]||'bootstrap';
 
+  if(entity==='knowledge'){
+    if(request.method==='GET'){
+      const [sources,counts]=await Promise.all([
+        env.DB.prepare("SELECT id,publisher,collection_title,domain_hint,home_url,terms_url,rights_mode,attribution,version_label,language,status FROM knowledge_sources ORDER BY publisher,id").all(),
+        env.DB.prepare("SELECT source_id,domain,COUNT(*) AS indexed FROM knowledge_passages WHERE status='published' GROUP BY source_id,domain ORDER BY source_id,domain").all()
+      ]);
+      return json({sources:sources.results,coverage:counts.results,notice:'Only actual imported source passages are counted. External provider catalogue sizes are never reported as indexed corpus size.'});
+    }
+    if(!originValid(request))return json({error:'Cross-origin edit blocked'},403);
+    if(request.method==='PUT'&&route[1]==='sources'&&route[2]){
+      const id=route[2];
+      if(!/^[a-z0-9-]{3,80}$/.test(id))return invalid('Invalid source');
+      const body=await parseBody(request);
+      if(Object.keys(body).length!==1||typeof body.version_label!=='string'||!/^v?[0-9]+(?:\.[0-9]+){0,4}$/.test(body.version_label))return invalid('Provide a verified exact publisher version');
+      const result=await env.DB.prepare("UPDATE knowledge_sources SET version_label=?,updated_at=datetime('now') WHERE id=? AND rights_mode='verified_verbatim'").bind(body.version_label,id).run();
+      if(!result.meta?.changes)return json({error:'Approved source not found'},404);
+      await audit(env.DB,identity.email,'version','knowledge_sources',id);
+      return json({ok:true,id,version_label:body.version_label});
+    }
+    if(request.method==='POST'&&route[1]==='import'){
+      const body=await parseBody(request);
+      try{
+        const result=await addKnowledgePassages(env.DB,body.source_id,body.documents,identity.email);
+        await audit(env.DB,identity.email,'import','knowledge_passages',result.audit_id);
+        return json({ok:true,...result});
+      }catch(e){return invalid(String(e.message).slice(0,200));}
+    }
+    return json({error:'Unsupported knowledge management action'},405);
+  }
   if(entity==='media'){
     if(request.method==='GET'){
       const rows=(await env.DB.prepare("SELECT id,alt_text,mime_type,byte_size,status,created_at FROM media_assets ORDER BY created_at DESC LIMIT 120").all()).results;
@@ -388,6 +418,20 @@ async function publicApi(request,env,url){
     const byId=new Map(states.map(x=>[x.source_id,x]));
     return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked'})),notice:'Provider availability and scholarly validation are distinct.'});
   }
+  if(pathname==='/api/knowledge/coverage'){
+    const [sources,counts]=await Promise.all([
+      env.DB.prepare("SELECT id,publisher,collection_title,domain_hint,home_url,rights_mode,version_label FROM knowledge_sources WHERE status='active' ORDER BY publisher").all(),
+      env.DB.prepare("SELECT domain,source_id,COUNT(*) AS passages FROM knowledge_passages WHERE status='published' GROUP BY domain,source_id").all()
+    ]);
+    return json({sources:sources.results.map(x=>({...x,available_in_index:counts.results.filter(c=>c.source_id===x.id).reduce((n,c)=>n+c.passages,0)})),
+      coverage:counts.results,notice:'Indexed passage count reflects real stored content only; published-provider catalogue counts are not included.'});
+  }
+  if(pathname==='/api/knowledge/search'){
+    const q=(url.searchParams.get('q')||'').trim(),domain=(url.searchParams.get('domain')||'').trim();
+    if(q.length<2||q.length>140)return invalid('Enter a question between 2 and 140 characters');
+    try{return json(await searchKnowledge(env.DB,q,domain));}
+    catch(e){return invalid(String(e.message).slice(0,160));}
+  }
   if(pathname==='/api/source-shelves'){
     const domain=(url.searchParams.get('domain')||'').trim();
     const allowed=['sunnah','seerah','prophetic_medicine','living_guidance'];
@@ -543,10 +587,15 @@ async function publicApi(request,env,url){
     if(!best){
       // Search usable live evidence on demand instead of stopping at the small editorial index.
       // A provider excerpt is never silently promoted to a reviewed, complete Islamic answer.
-      const discovery=await liveSourceSearch(q,domain);
-      // Provider ranking is shared with the source desk and is not an
-      // exact-phrase gate. Do not discard legitimate subject-linked evidence.
-      const accepted=rankSourceEvidence(discovery.results||[],q,6);
+      const indexed=await searchKnowledge(env.DB,q,domain);
+      const corpusEvidence=indexed.results.map(p=>({kind:'indexed_source',provider:p.publisher,reference:p.external_ref,
+        title:p.title,excerpt:p.translation_text||p.original_text,source_url:p.source_url,
+        explanation:p.explanation_text,content_version:p.content_version,review_status:p.expert_review,source_id:p.source_id}));
+      // Full canonical passages are searched first; when they don't cover the
+      // question, consult other live source providers without assuming a
+      // prewritten article exists.
+      const discovery=corpusEvidence.length>=5?{results:[],providers:[],fetched_at:null}:await liveSourceSearch(q,domain);
+      const accepted=[...corpusEvidence,...rankSourceEvidence(discovery.results||[],q,6)].slice(0,10);
       return json({outcome:accepted.length?'source_evidence':'no_editorial_answer',query:q,domain,
         notice:accepted.length?'Relevant external source excerpts were found, but no complete editorial article is ready. Source verification remains pending.':'No suitably matching reviewed editorial article or relevant available provider excerpts were located.',
         evidence:accepted,providers:discovery.providers||[],fetched_at:discovery.fetched_at||null,answer:null});
