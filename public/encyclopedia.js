@@ -75,24 +75,60 @@ function renderProviderResult(x){
     '</div></article>';
 }
 let sourceSequence=0;
+// Local source records render first; slow third-party APIs must never hide a
+// complete D1 corpus passage or turn a successful search into a blank screen.
 async function liveSources(q,domain,{featured=false}={}){
  const root=$('federatedResults');
  if(!q||q.length<2){sourceSequence++;root.hidden=true;return;}
- root.hidden=false;$('sourceResultState').textContent=featured?'Exploring a sample subject from connected reference indexes…':'Searching the canonical source corpus and connected publisher indexes…';$('sourceResults').innerHTML='';
- const mySeq=++sourceSequence;
- try{
-  const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
-  const data=await api('/api/source-discovery?'+params);
-  if(mySeq!==sourceSequence)return;
-  // The Worker already rejects off-topic evidence and ranks matches by subject.
-  // Never discard useful citations because the excerpt omits question filler words.
-  const items=(Array.isArray(data.results)?data.results:[]).slice(0,12);
-  $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
-  const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
-  $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+total+' sourced passage(s) · indexed library: '+Number((data.providers||[]).find(p=>p.id==='canonical_corpus')?.indexed_total||0).toLocaleString()+' records · fetched '+new Date(data.fetched_at).toLocaleString()+
-    (offline.length?' · Unavailable: '+offline.join(', '):'')+
-    (total===0?' · No matching excerpts returned by the available providers. This is not a complete scholarly search.':'');
- }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
+ root.hidden=false;
+ $('sourceResultState').textContent='Searching Quranically’s indexed source texts…';
+ $('sourceResults').innerHTML='';
+ const mySeq=++sourceSequence,params=new URLSearchParams({q});
+ if(domain)params.set('domain',domain);
+ let local=[],indexCount=0;
+ const remotePromise=api('/api/source-discovery?'+params)
+  .then(data=>({ok:true,data})).catch(error=>({ok:false,error}));
+ const localPromise=api('/api/knowledge/search?'+params)
+  .then(data=>({ok:true,data})).catch(error=>({ok:false,error}));
+ const immediate=await localPromise;
+ if(mySeq!==sourceSequence)return;
+ if(immediate.ok){
+  indexCount=Number(immediate.data.total_indexed||0);
+  local=(immediate.data.results||[]).slice(0,12).map(x=>({
+   kind:'indexed_source',provider:x.publisher,title:x.title,
+   excerpt:x.translation_text||x.original_text,arabic_excerpt:x.original_text,
+   explanation:x.explanation_text,benefits:x.benefits_text,
+   reported_grade:x.grade_text,reported_reference:x.takhrij_text,
+   reference:x.external_ref,source_url:x.source_url,
+   content_version:x.content_version,review_status:x.expert_review
+  }));
+  if(local.length){
+   $('sourceResults').innerHTML=local.map(renderProviderResult).join('');
+   $('sourceResultState').textContent=local.length+' original source passage(s) from Quranically D1 · checking supplementary publisher indexes…';
+  }
+ }
+ const remote=await remotePromise;
+ if(mySeq!==sourceSequence)return;
+ if(!remote.ok){
+  $('sourceResultState').textContent=local.length
+   ?local.length+' indexed source passage(s) · supplementary publisher search temporarily unavailable.'
+   :'No source results could be retrieved right now. Indexed and external providers may be temporarily unavailable.';
+  return;
+ }
+ const data=remote.data;
+ indexCount=Math.max(indexCount,Number((data.providers||[]).find(p=>p.id==='canonical_corpus')?.indexed_total||0));
+ const seen=new Set();
+ const combined=[...local,...(Array.isArray(data.results)?data.results:[])].filter(x=>{
+  const key=String(x.kind||'')+'|'+String(x.reference||'')+'|'+String(x.source_url||'');
+  if(seen.has(key))return false;seen.add(key);return true;
+ }).slice(0,15);
+ $('sourceResults').innerHTML=combined.map(renderProviderResult).join('');
+ const offline=(data.providers||[]).filter(x=>x.status==='temporarily_unavailable').map(x=>x.id);
+ const fresh=data.fetched_at?new Date(data.fetched_at).toLocaleString():'live';
+ $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+combined.length+
+  ' attributed source result(s) · '+indexCount.toLocaleString()+' stored source records · checked '+fresh+
+  (offline.length?' · Unavailable: '+offline.join(', '):'')+
+  (!combined.length?' · No relevant source found in the accessible collections. This is not a complete scholarly search.':'');
 }
 let refreshSequence=0;
 async function refresh(){
