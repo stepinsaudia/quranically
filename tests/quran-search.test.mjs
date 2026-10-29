@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AYAH_COUNTS,validVerse,parseVerseReference,quranSearchWord,searchQuran} from '../src/quran-search.mjs';
+import {AYAH_COUNTS,validVerse,parseVerseReference,quranSearchWord,quranSearchTerms,searchQuran} from '../src/quran-search.mjs';
 test('Quran limits cover all 114 surahs and 6236 verses; never invent an ayah',()=>{
  assert.equal(AYAH_COUNTS.length,114);
  assert.equal(AYAH_COUNTS.reduce((sum,n)=>sum+n,0),6236);
@@ -50,4 +50,22 @@ test('mismatched provider verse cannot appear as another verse',async()=>{
  ]})});
  const r=await searchQuran('2:255',mock);
  assert.equal(r.status,'temporarily_unavailable');assert.equal(r.results.length,0);
+});
+test('multi-concept questions prioritize known Islamic terms and exclude question filler',()=>{
+ assert.deepEqual(quranSearchTerms('Where in the Quran is riba prohibited?'),['usury']);
+ assert.deepEqual(quranSearchTerms('What does the Quran teach about patience when anxious?'),['patience','anxious']);
+ assert.equal(quranSearchWord('Which Surah discusses Maryam?'),'mary');
+});
+test('two keyword searches merge exact verses and retain availability when a provider query fails',async()=>{
+ const urls=[];
+ const fetcher=async u=>{
+  urls.push(u);
+  if(u.includes('/anxious/'))throw Error('temporary outage');
+  return {ok:true,headers:new Headers(),text:async()=>JSON.stringify({code:200,data:{count:1,matches:[{surah:{number:2},numberInSurah:153,text:'Seek help in patience and prayer'}]}})};
+ };
+ const result=await searchQuran('Quran patience when anxious',fetcher);
+ assert.equal(result.status,'partial');
+ assert.equal(result.results.length,1);
+ assert.equal(result.results[0].reference,'2:153');
+ assert.equal(urls.length,2);
 });
