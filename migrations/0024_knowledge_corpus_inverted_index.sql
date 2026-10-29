@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS knowledge_sources(
  terms_url TEXT NOT NULL,
  rights_mode TEXT NOT NULL CHECK(rights_mode IN ('verified_verbatim','metadata_only','api_only','permission_pending')),
  attribution TEXT NOT NULL,
+ publisher_notice TEXT NOT NULL DEFAULT '',
  version_label TEXT NOT NULL DEFAULT '',
  language TEXT NOT NULL DEFAULT 'en',
  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused','archived')),
