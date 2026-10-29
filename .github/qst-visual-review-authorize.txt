@@ -1,4 +1,4 @@
-AUTHORIZE QURANICALLY OPEN-DUA READY CANONICAL WORKER
-Pinned QA-passed commit: f23ba3fb566e35ab2517f8b6ccda29b565f09443
-Existing Worker: qst-living-knowledge-v1. Existing D1: qst-knowledge-v1-db.
-Scope: OpenDua v0.0.4 complete-record preservation schema and corrected PubMed meaningful-term source search; 2,328 original HadeethEnc records unchanged. Bulk OpenDua source import follows separately with private backup.
+AUTHORIZE QURANICALLY LIVE VERIFIED SOURCE COUNTS UI
+QA-passed commit: fe6c7a150a0c24bce6a6d76cfb4a256aef110a93
+Existing Worker only qst-living-knowledge-v1; existing D1 only qst-knowledge-v1-db.
+Scope: canonical frontend shows actual index totals from D1; present HadeethEnc 2328 and OpenDua 267 source records separately from 27 editorial articles; no hardcoded counts and no changes to source data.
