@@ -13,11 +13,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   existing-worker-only:
-    if: ${{ github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' }}
+    if: ${{ github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' && github.ref_name == 'fix/relevant-source-search-20261029' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out the approved release commit
+      - name: Check out approved Quranically development branch ONLY
         uses: actions/checkout@v4
       - name: Set up Node 22
         uses: actions/setup-node@v4
