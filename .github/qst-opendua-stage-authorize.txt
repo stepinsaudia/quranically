@@ -1,0 +1,1 @@
+Authorize isolated nondeploying inspection of complete official OpenDua v0.0.4 267-entry dataset; verify every original JSON and searchable text in temporary database. Do not modify production.
