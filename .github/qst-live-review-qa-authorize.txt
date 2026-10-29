@@ -1,1 +1,1 @@
-Read-only final Worker GUI audit of the new canonical source-library cards. Verify desktop and mobile visible real HadeethEnc category cards and expandable publisher explanations, in addition to source search, header and footer. No writes or deployments.
+READ-ONLY QURANICALLY LIVE GUI QA after 2,595 source-record expansion. Verify actual desktop/mobile source passage cards for Hadith, Seerah, Prophetic Medicine and Guidance; expanded Arabic/translation/explanation; no visual regression, duplicate header or missing source counts. No writes or deployment.
