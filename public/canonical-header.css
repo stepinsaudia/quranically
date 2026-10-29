@@ -1,0 +1,20 @@
+/* Canonical Quranically public masthead — first-paint HTML, no JS injection */
+.qst-header{position:relative;z-index:80;background:#fffaf2;color:#242126;border-bottom:1px solid #e6ddd1;font-family:Manrope,'DM Sans',sans-serif}
+.qst-header *{box-sizing:border-box}
+.qst-header .qst-top{width:min(calc(100% - 80px),1320px);margin:auto;min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.qst-header .qst-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#211c20;flex-shrink:0}
+.qst-header .qst-brand img{width:43px;height:43px;object-fit:contain}
+.qst-header .qst-brand strong{display:block;font-size:16px;font-weight:800;letter-spacing:.08em;line-height:1.3;color:#231d22}
+.qst-header .qst-brand small{display:block;font-size:9px;font-weight:700;letter-spacing:.11em;color:#74636c}
+.qst-header .qst-edition{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#74636c}
+.qst-header .qst-nav{background:#fffaf2;border-top:1px solid #eee5da}
+.qst-header .qst-links{width:min(calc(100% - 80px),1320px);margin:auto;display:flex;align-items:center;gap:clamp(10px,2vw,30px);min-height:48px;flex-wrap:wrap}
+.qst-header .qst-links a{color:#423941;text-decoration:none;font-size:12px;font-weight:700;line-height:1.4;padding:15px 0 12px;border-bottom:3px solid transparent;white-space:nowrap}
+.qst-header .qst-links a[aria-current="page"]{color:#371a2b;border-bottom-color:#371a2b}
+.qst-header .qst-links a:hover{color:#6c2946}
+.qst-header .qst-utility{display:flex;align-items:center;gap:10px;font-size:11px}
+.qst-header .qst-utility a{color:#4c3040;text-decoration:none;font-weight:700}
+.qst-header .qst-utility button{border:1px solid #e8d9c9;background:transparent;color:#3c2632;padding:7px 10px;border-radius:6px;cursor:pointer}
+.qst-header .qst-utility .qst-legacy-control{display:none}
+body > .brand-rule{display:none}
+@media(max-width:850px){.qst-header .qst-top,.qst-header .qst-links{width:calc(100% - 32px)}.qst-header .qst-top{min-height:66px}.qst-header .qst-brand strong{font-size:14px}.qst-header .qst-brand small{font-size:8px}.qst-header .qst-edition{display:none}.qst-header .qst-links{gap:12px;min-height:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.qst-header .qst-links a{padding:12px 0 9px;font-size:11px}.qst-header .qst-utility a{font-size:10px}}
