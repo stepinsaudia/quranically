@@ -1,0 +1,42 @@
+name: Quranically — Search-first visual and answer QA (no deployment)
+on:
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-local-browser-qa.yml'
+      - 'scripts/local-search-visual-qa.mjs'
+permissions:
+  contents: read
+jobs:
+  local-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and local tooling
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Run local Worker with canonical D1 seed records (no production writes)
+        run: |
+          node scripts/local-preview.mjs > /tmp/quranically-local-preview.log 2>&1 &
+          for i in $(seq 1 25); do
+            curl -fsS http://127.0.0.1:8799/ > /dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8799/api/health
+      - name: Browser QA of direct answer, Quran reference, header and mobile overflow
+        run: node scripts/local-search-visual-qa.mjs
+      - name: Preserve screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-local-search-visual-qa
+          path: artifacts/*.png
+          if-no-files-found: warn
+      - name: Local preview diagnostics if needed
+        if: failure()
+        run: tail -120 /tmp/quranically-local-preview.log
