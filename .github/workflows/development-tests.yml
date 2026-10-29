@@ -38,6 +38,9 @@ jobs:
           node --check src/index.mjs
           node --check src/site-shell.mjs
           node --check src/source-discovery.mjs
+          node --check src/knowledge-index.mjs
+          node --check src/opendua-source.mjs
+          node --check public/knowledge-admin.js
           node --check src/hadeethenc-library.mjs
           node --check public/source-shelves.js
           node --check public/answer.js
