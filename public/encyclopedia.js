@@ -31,11 +31,11 @@ function entryCard(x,i){
 // Explicit Qur'an references resolve locally without an external search or AI guess.
 function quranReference(question){
  const q=String(question||'').trim();
- const direct=q.match(/(?:\\b(?:surah|surat|sura|chapter|quran|qur'an|verse|ayah|ayat)\\s*)?(\\d{1,3})\\s*[:/]\\s*(\\d{1,3})\\b/i);
+ const direct=q.match(/(?:\b(?:surah|surat|sura|chapter|quran|qur'an|verse|ayah|ayat)\s*)?(\d{1,3})\s*[:/]\s*(\d{1,3})\b/i);
  if(direct){const surah=Number(direct[1]),ayah=Number(direct[2]);if(surah>=1&&surah<=114&&ayah>=1&&ayah<=286)return {surah,ayah,ref:surah+':'+ayah};}
- const named=[[/\\b(?:ayat(?:ul)?\\s*kursi|ayatul kursi|throne verse)\\b/i,2,255],
- [/\\b(?:last two verses of (?:surah )?al[- ]baqarah)\\b/i,2,285],
- [/\\b(?:surah )?(?:al[- ]fatihah|fatiha|the opening)\\b/i,1,1]];
+ const named=[[/\b(?:ayat(?:ul)?\s*kursi|ayatul kursi|throne verse)\b/i,2,255],
+ [/\b(?:last two verses of (?:surah )?al[- ]baqarah)\b/i,2,285],
+ [/\b(?:surah )?(?:al[- ]fatihah|fatiha|the opening)\b/i,1,1]];
  for(const [pattern,surah,ayah] of named)if(pattern.test(q))return {surah,ayah,ref:surah+':'+ayah};
  return null;
 }
@@ -49,7 +49,7 @@ function renderQuranJump(q){
 function renderProviderResult(x){
   const external=String(x.source_url||'');
   let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
-  const verseMatch=x.kind==='quran'&&/^(\\d{1,3}):(\\d{1,3})$/.exec(String(x.reference||''));
+  const verseMatch=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
   const readHere=verseMatch?'<a href="/study.html?surah='+Number(verseMatch[1])+'&ayah='+Number(verseMatch[2])+'">Read in Quranically '+ic('arrow')+'</a>':'';
   return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
     +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
