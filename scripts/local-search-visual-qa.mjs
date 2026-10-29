@@ -23,6 +23,9 @@ try {
    await page.locator('#query').fill(query);
    await page.locator('#encyclopediaSearch button[type="submit"]').click();
    await page.locator('#inlineAnswer:not([hidden]) .qa-bibliography li').first().waitFor({timeout:25000});
+   if(!await page.locator('body.qst-has-query').count())throw Error('Did not enter compact answer-first mode');
+   const answerTop=await page.locator('#inlineAnswer').evaluate(el=>el.getBoundingClientRect().top+window.scrollY);
+   if(answerTop>(viewport.name==='desktop'?520:420))throw Error('Answer buried beneath homepage chrome: '+viewport.name+' y='+answerTop);
    const heading=await page.locator('#inlineAnswer h3').first().innerText();
    if(!heading.toLowerCase().includes(title.toLowerCase()))throw Error(query+': incorrect answer '+heading);
    const sections=await page.locator('#inlineAnswer .qa-part').count();
