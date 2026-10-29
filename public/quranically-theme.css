@@ -288,3 +288,8 @@ header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst
 .provider-hit-arabic{font:400 clamp(20px,2.2vw,27px)/2.1 Amiri,serif;padding:15px;border-radius:8px;background:#f9f5eb;color:#272724;white-space:pre-wrap;overflow-wrap:anywhere;text-align:right}
 .provider-source-notice{border-top:1px solid #e6dfd3;padding-top:10px;color:#776d62!important;font-size:11px!important}
 @media(max-width:700px){.provider-hit-arabic{font-size:22px}}
+
+.corpus-coverage{display:flex;flex-wrap:wrap;align-items:center;gap:7px 14px;border:1px solid #e8dfd1;background:#fcfaf5;border-radius:10px;margin:0 0 16px;padding:12px 17px;font:600 11px/1.7 Manrope,sans-serif;color:#4e4b45}
+.corpus-coverage strong{color:#20221f;font-weight:800;font-size:13px}
+.corpus-coverage span{color:#865617}
+.corpus-coverage small{display:block;width:100%;font:500 10px/1.5 Manrope,sans-serif;color:#77726b}
