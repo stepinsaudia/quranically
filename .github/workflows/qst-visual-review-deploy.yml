@@ -18,7 +18,7 @@ jobs:
       - name: Check out tested canonical review commit
         uses: actions/checkout@v4
         with:
-          ref: 63ff4c7df9e780046699fcb0d92b128131719208
+          ref: e0341a008b8ab4918b19a2d312ccd04cd7c85ccc
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -36,6 +36,7 @@ jobs:
           node --check src/hadeethenc-library.mjs
           node --check src/knowledge-index.mjs
           node --check src/opendua-source.mjs
+          node --check src/pubmed-source.mjs
           node --check public/knowledge-admin.js
           node --check public/source-shelves.js
           node --check public/answer.js
