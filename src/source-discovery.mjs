@@ -1,3 +1,4 @@
+import {pubmedSourceSearch} from './pubmed-source.mjs';
 import {searchOpenDua} from './opendua-source.mjs';
 // Quranically's bounded, attributed live source lookup.
 // Live source evidence is never promoted to a scholarly verdict or clinical conclusion.
@@ -133,7 +134,7 @@ export async function liveSourceSearch(q,domain=''){
   }
   return {id:group.id,status,records:[...unique.values()],total,queries:tried};
  });
- if(domain==='prophetic_medicine')tasks.push(researchSearch(q));
+ if(domain==='prophetic_medicine'){tasks.push(researchSearch(q));tasks.push(pubmedSourceSearch(q));}
  if(['sunnah','seerah','living_guidance',''].includes(domain))tasks.push(searchOpenDua(q));
  const all=await Promise.all(tasks);
  const raw=all.flatMap(g=>g.records);
@@ -149,5 +150,6 @@ export const CONNECTORS=[
  {id:'sunnah_com',title:'Sunnah.com',source:'Sunnah.com',mode:'access_required',coverage:'API key approval required',verification:'permission_pending',source_url:'https://sunnah.com/developers'},
  {id:'dorar',title:'Dorar Hadith Encyclopedia',source:'Dorar.net',mode:'access_required',coverage:'Provider token required',verification:'permission_pending',source_url:'https://dorar.net/api-services/hadith'},
  {id:'quran_foundation',title:'Quran Foundation Content & Search',source:'Quran Foundation',mode:'access_required',coverage:'Licensed Qur’an content/search; production permissions required',verification:'permission_pending',source_url:'https://api-docs.quran.com/'},
+ {id:'pubmed',title:'PubMed biomedical publications',source:'NCBI / NIH',mode:'live_search',coverage:'Live PubMed citations and journal metadata, not clinical effectiveness conclusions',verification:'independent_medical_review_required',source_url:'https://pubmed.ncbi.nlm.nih.gov/'},
  {id:'europe_pmc',title:'Biomedical publication index',source:'Europe PMC / EMBL-EBI',mode:'live_search',coverage:'Real bibliographic paper search only; claims require full clinical appraisal',verification:'independent_medical_review_required',source_url:'https://europepmc.org/RestfulWebService'}
 ];
