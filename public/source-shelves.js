@@ -117,8 +117,11 @@ async function load(domain){
  }catch(e){if(seq===epoch)$('shelfStatus').textContent='Unable to load source collections: '+e.message;}
 }
 function setup(){
- const root=$('sourceShelves');if(!root)return;
- root.addEventListener('click',e=>{
+ // Delegate from the stable document: encyclopedia view rendering can replace
+ // the source-shelf element after the script has initially loaded.
+ document.addEventListener('click',e=>{
+  const root=$('sourceShelves');
+  if(!root||!root.contains(e.target)||!e.target.closest)return;
   const choice=e.target.closest('[data-shelf]');
   if(choice&&current){
    const shelf=current.shelves.find(x=>x.id===choice.dataset.shelf);
@@ -132,8 +135,8 @@ function setup(){
   const more=e.target.closest('[data-page]');
   if(more&&current)loadRecords(++epoch,current.active,Number(more.dataset.page));
  });
- root.addEventListener('change',e=>{
-  if(e.target.id==='shelfCategorySelect'&&current){
+ document.addEventListener('change',e=>{
+  if(e.target.id==='shelfCategorySelect'&&current&&$('sourceShelves')?.contains(e.target)){
    current.categoryId=e.target.value;
    loadRecords(++epoch,current.active,1);
   }
