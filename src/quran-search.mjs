@@ -33,7 +33,7 @@ async function boundedJson(url,fetcher){
 }
 export async function searchQuran(query,fetcher=fetch){
  const direct=parseVerseReference(query);
- if(!direct && /\\b\\d{1,3}\\s*[:/]\\s*\\d{1,3}\\b/.test(String(query)))return {status:'invalid_reference',mode:'exact_verse',searched:String(query).slice(0,60),results:[]};
+ if(!direct && /\b\d{1,3}\s*[:/]\s*\d{1,3}\b/.test(String(query)))return {status:'invalid_reference',mode:'exact_verse',searched:String(query).slice(0,60),results:[]};
  if(direct){
   const verses=direct.lastVerse?[direct.verse,direct.lastVerse]:[direct.verse];
   const found=await Promise.all(verses.map(async v=>{
