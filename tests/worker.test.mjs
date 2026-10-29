@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';
-import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';
+import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';import {searchOpenDua} from '../src/opendua-source.mjs';
 const root=path.resolve('.');
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql','0024_knowledge_corpus_inverted_index.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
@@ -1050,4 +1050,27 @@ test('importing the same canonical publisher reference updates content without d
  const coverage=(await (await get(env,'/api/knowledge/coverage')).json());
  assert(coverage.sources.some(s=>s.id==='openiti'&&s.rights_mode==='permission_pending'));
  assert(coverage.sources.some(s=>s.id==='opendua-en'&&s.available_in_index===1));
+});
+
+test('open-source complete Hisn al-Muslim entries are retrieved with real context and attribution',async()=>{
+ const original=globalThis.fetch,received=[];
+ try{
+  globalThis.fetch=async url=>{
+   const u=String(url);received.push(u);
+   if(u.includes('/v2/search'))return new Response(JSON.stringify({items:[{id:'entry-000001',title:'When you wake up'}],pagination:{totalItems:1,page:1,pageSize:10}}));
+   if(u.includes('/v2/entries/entry-000001'))return new Response(JSON.stringify({
+    id:'entry-000001',title:'When you wake up',sourceReference:'1',variations:[{steps:[{items:[{dua:{arabic:'الحمد لله',translation:'Praise belongs to Allah when we awaken from sleep.'}}]}]}]
+   }));
+   throw Error('Unexpected endpoint '+u);
+  };
+  const result=await searchOpenDua('waking');
+  assert.equal(result.status,'available');
+  assert.equal(result.records.length,1);
+  assert.equal(result.records[0].reference,'Hisn al-Muslim 1');
+  assert(result.records[0].excerpt.includes('Praise belongs to Allah'));
+  assert(result.records[0].arabic_excerpt.includes('الحمد'));
+  assert(result.records[0].source_url.includes('/v2/entries/entry-000001'));
+  assert(result.records[0].attribution.includes('CC BY 4.0'));
+  assert(received.every(u=>u.startsWith('https://api.opendua.org/')));
+ }finally{globalThis.fetch=original;}
 });
