@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'migrations/**'
       - 'tests/**'
+      - 'scripts/**'
       - 'package.json'
       - '.github/workflows/development-tests.yml'
 permissions:
