@@ -11,7 +11,7 @@ export function passageTerms(record){
    if(weight.size>=180)break;
   }
  }
- add(record.title,6);add(record.external_ref,5);add(record.translation_text,3);add(record.original_text,3);add(record.explanation_text,1);
+ add(record.title,6);add(record.external_ref,5);add(record.translation_text,3);add(record.original_text,3);add(record.explanation_text,1);add(record.benefits_text,1);add(record.takhrij_text,2);
  return [...weight].map(([term,w])=>({term,weight:w}));
 }
 const validDomains=new Set(['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']);
@@ -27,20 +27,21 @@ export async function addKnowledgePassages(db,sourceId,documents,actor){
  for(const d of documents){
   if(!d||typeof d!=='object'||!validDomains.has(d.domain))throw Error('Invalid passage or domain');
   const ref=String(d.external_ref||''),title=String(d.title||''),original=String(d.original_text||''),
-    translation=String(d.translation_text||''),explanation=String(d.explanation_text||''),url=String(d.source_url||'');
+    translation=String(d.translation_text||''),explanation=String(d.explanation_text||''),benefits=String(d.benefits_text||''),grade=String(d.grade_text||''),takhrij=String(d.takhrij_text||''),url=String(d.source_url||'');
   if(ref.length<1||ref.length>180||title.length<2||title.length>350)throw Error('Invalid source reference or title');
   if(!original&&!translation)throw Error('A source passage requires real original or translated content');
-  if([original,translation,explanation].some(t=>t.length>14500)||original.length+translation.length+explanation.length>22000)throw Error('Passage exceeds bounded storage limits');
+  if([original,translation,explanation,benefits,takhrij].some(t=>t.length>14500)||original.length+translation.length+explanation.length+benefits.length+takhrij.length>30000)throw Error('Passage exceeds bounded storage limits');
   let parsed;try{parsed=new URL(url);}catch{throw Error('Invalid publisher URL');}
   if(parsed.protocol!=='https:'||url.length>900||parsed.hostname!==new URL(source.home_url).hostname)throw Error('Passage URL does not belong to declared publisher');
-  const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([sourceId,ref,original,translation,explanation])))));
+  const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([sourceId,ref,original,translation,explanation,benefits,grade,takhrij])))));
   const id=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(sourceId+'|'+ref)))).slice(0,40);
-  const doc={...d,external_ref:ref,title,original_text:original,translation_text:translation,explanation_text:explanation};
+  const doc={...d,external_ref:ref,title,original_text:original,translation_text:translation,explanation_text:explanation,benefits_text:benefits,grade_text:grade,takhrij_text:takhrij};
+  const normalized=canonical([title,ref,original,translation,explanation,benefits,takhrij].join(' ')).slice(0,39000);
   const terms=passageTerms(doc);if(!terms.length)throw Error('Empty indexable source');
   tokenCount+=terms.length;
-  const statement='INSERT INTO knowledge_passages (id,source_id,external_ref,title,domain,original_text,translation_text,explanation_text,source_url,content_version,content_sha256,language,expert_review,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '+
-   "ON CONFLICT(id) DO UPDATE SET title=excluded.title,domain=excluded.domain,original_text=excluded.original_text,translation_text=excluded.translation_text,explanation_text=excluded.explanation_text,source_url=excluded.source_url,content_version=excluded.content_version,content_sha256=excluded.content_sha256,expert_review='unreviewed',status='published',updated_at=datetime('now')";
-  statements.push(db.prepare(statement).bind(id,sourceId,ref,title,d.domain,original,translation,explanation,url,source.version_label,digest,source.language,'unreviewed','published'));
+  const statement='INSERT INTO knowledge_passages (id,source_id,external_ref,title,domain,original_text,translation_text,explanation_text,benefits_text,grade_text,takhrij_text,normalized_search,source_url,content_version,content_sha256,language,expert_review,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '+
+   "ON CONFLICT(id) DO UPDATE SET title=excluded.title,domain=excluded.domain,original_text=excluded.original_text,translation_text=excluded.translation_text,explanation_text=excluded.explanation_text,benefits_text=excluded.benefits_text,grade_text=excluded.grade_text,takhrij_text=excluded.takhrij_text,normalized_search=excluded.normalized_search,source_url=excluded.source_url,content_version=excluded.content_version,content_sha256=excluded.content_sha256,expert_review='unreviewed',status='published',updated_at=datetime('now')";
+  statements.push(db.prepare(statement).bind(id,sourceId,ref,title,d.domain,original,translation,explanation,benefits,grade,takhrij,normalized,url,source.version_label,digest,source.language,'unreviewed','published'));
   statements.push(db.prepare('DELETE FROM knowledge_terms WHERE passage_id=?').bind(id));
   for(const t of terms)statements.push(db.prepare('INSERT INTO knowledge_terms(term,passage_id,weight) VALUES(?,?,?)').bind(t.term,id,t.weight));
  }
@@ -65,8 +66,33 @@ export async function searchKnowledge(db,q,domain=''){
   'GROUP BY p.id ORDER BY term_matches DESC,search_score DESC,p.id LIMIT 12';
  const params=domain?[...terms,domain]:terms;
  const rows=(await db.prepare(sql).bind(...params).all()).results||[];
+ let combined=[...rows];
+ if(combined.length<10){
+   // Reliable full-text fallback for bulk imports without a per-token index.
+   // Uses ordinary D1 tables to retain verifiable database backups.
+   const words=terms.slice(0,6);
+   const where=words.map(()=>'p.normalized_search LIKE ?').join(' OR ');
+   const fallbackSql='SELECT p.id,p.source_id,p.external_ref,p.title,p.domain,p.original_text,p.translation_text,p.explanation_text,p.benefits_text,p.grade_text,p.takhrij_text,'+
+     'p.source_url,p.content_version,p.language,p.expert_review,p.normalized_search,s.publisher,s.collection_title,s.attribution '+
+     'FROM knowledge_passages p JOIN knowledge_sources s ON s.id=p.source_id '+
+     "WHERE p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim' "+
+     (domain?'AND p.domain=? ':'')+'AND ('+where+') LIMIT 100';
+   const bound=domain?[domain,...words.map(w=>'%'+w+'%')]:words.map(w=>'%'+w+'%');
+   const supplemental=(await db.prepare(fallbackSql).bind(...bound).all()).results||[];
+   const ids=new Set(combined.map(x=>x.id));
+   for(const row of supplemental){
+    if(ids.has(row.id))continue;
+    const haystack=' '+row.normalized_search+' ';
+    const hits=words.filter(w=>haystack.includes(' '+w+' '));
+    if(!hits.length)continue;
+    combined.push({...row,term_matches:hits.length,search_score:hits.length*2});
+    ids.add(row.id);
+   }
+ }
+ combined.sort((a,b)=>b.term_matches-a.term_matches||b.search_score-a.search_score||a.id.localeCompare(b.id));
+ combined=combined.slice(0,12);
  const count=(await db.prepare("SELECT COUNT(*) AS n FROM knowledge_passages p JOIN knowledge_sources s ON s.id=p.source_id WHERE p.status='published' AND s.status='active' AND s.rights_mode='verified_verbatim'").first())?.n||0;
- return {results:rows.map(r=>({...r,matching_scope:r.term_matches===terms.length?'all_query_subject_words':'partial_query_subject_words',
+ return {results:combined.map(r=>({...r,matching_scope:r.term_matches===terms.length?'all_query_subject_words':'partial_query_subject_words',
   independent_review:r.expert_review==='unreviewed'?'not_yet_reviewed':r.expert_review})),
   matched_terms:terms,total_indexed:Number(count),
   provenance:'Exact passages indexed from rights-cleared source collections. An excerpt is not itself a scholarly verdict or clinical finding.'};
