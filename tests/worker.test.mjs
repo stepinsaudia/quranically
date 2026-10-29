@@ -1,8 +1,8 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';
-import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';
+import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql','0024_knowledge_corpus_inverted_index.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -994,4 +994,60 @@ test('successful publisher reports are cacheable, missing reports are not cached
   await get(env,'/api/source-shelves/detail?id=9999');
   assert.equal(fetched,3,'Unavailable publisher records must not be cached as success');
  }finally{globalThis.fetch=oldFetch;if(oldCaches===undefined)delete globalThis.caches;else globalThis.caches=oldCaches;}
+});
+
+test('open-topic corpus search finds a genuine indexed passage beyond prewritten article aliases',async()=>{
+ const env=fixture();
+ const sample={external_ref:'OD-test-987',title:'Traveler luggage etiquette',domain:'living_guidance',
+  original_text:'حقيبة المسافر في الرحلة',translation_text:'Travelers should arrange their luggage and observe the order of the journey.',
+  explanation_text:'Source-based instructions and context are shown in the reading record.',
+  source_url:'https://opendua.org/developers'};
+ const imported=await addKnowledgePassages(env.DB,'opendua-en',[sample],'test-editor');
+ assert.equal(imported.inserted_or_updated,1);
+ assert(imported.indexed_terms>=8);
+ assert.deepEqual(questionTerms('What does the source say about a TRAVELER’s luggage?').slice(0,2),['source','traveler']);
+ const answer=(await (await get(env,'/api/knowledge/search?q=traveler%20luggage')).json());
+ assert.equal(answer.results.length,1);
+ assert.equal(answer.results[0].reference,undefined);
+ assert.equal(answer.results[0].external_ref,'OD-test-987');
+ assert.equal(answer.results[0].publisher,'OpenDua');
+ assert.equal(answer.results[0].matching_scope,'all_query_subject_words');
+ assert.equal(answer.total_indexed,1);
+ const broad=(await (await get(env,'/api/knowledge/search?q=journey')).json());
+ assert.equal(broad.results.length,1);
+ const noArticle=(await (await get(env,'/api/encyclopedia/answer?domain=living_guidance&q=traveler%20luggage')).json());
+ assert.equal(noArticle.outcome,'source_evidence');
+ assert(noArticle.evidence.some(x=>x.kind==='indexed_source'&&x.reference==='OD-test-987'));
+ const other=(await (await get(env,'/api/knowledge/search?domain=sunnah&q=traveler%20luggage')).json());
+ assert.equal(other.results.length,0);
+});
+test('source rights, edition version, publisher domain, archived records and normalized Arabic are enforced',async()=>{
+ const env=fixture();
+ const passage={external_ref:'OD-42',title:'أَخْلَاق المسافر',domain:'living_guidance',
+ original_text:'نَصٌّ عَرَبِيٌّ مُوَثَّقٌ',translation_text:'Documented traveler manners and preparation',
+ source_url:'https://opendua.org/developers'};
+ const ar=await addKnowledgePassages(env.DB,'opendua-en',[passage],'editor');
+ assert(ar.indexed_terms>0);
+ const matches=(await (await get(env,'/api/knowledge/search?q=اخلاق')).json()).results;
+ assert.equal(matches.length,1);
+ await assert.rejects(()=>addKnowledgePassages(env.DB,'openiti',[passage],'editor'),/not authorised/);
+ await assert.rejects(()=>addKnowledgePassages(env.DB,'quran-foundation',[passage],'editor'),/not authorised/);
+ await assert.rejects(()=>addKnowledgePassages(env.DB,'hadeethenc-en',[{...passage,source_url:'https://hadeethenc.com/en'}],'editor'),/Confirm a specific publisher edition/);
+ await assert.rejects(()=>addKnowledgePassages(env.DB,'opendua-en',[{...passage,source_url:'https://evil.example'}],'editor'),/does not belong/);
+ env.DB.prepare("UPDATE knowledge_passages SET status='archived' WHERE external_ref='OD-42'").run();
+ assert.equal((await (await get(env,'/api/knowledge/search?q=اخلاق')).json()).results.length,0);
+});
+test('importing the same canonical publisher reference updates content without duplicate passages or terms',async()=>{
+ const env=fixture(),sample={external_ref:'original-22',title:'River crossing',domain:'seerah',
+ original_text:'First primary source wording',translation_text:'Original passage about a river crossing.',
+ source_url:'https://opendua.org/developers'};
+ await addKnowledgePassages(env.DB,'opendua-en',[sample],'editor');
+ await addKnowledgePassages(env.DB,'opendua-en',[{...sample,translation_text:'Updated passage about a river crossing with new details.'}],'editor');
+ assert.equal(env.DB.prepare("SELECT COUNT(*) n FROM knowledge_passages").first().n,1);
+ assert.equal(env.DB.prepare("SELECT COUNT(*) n FROM knowledge_terms WHERE term='river'").first().n,1);
+ assert.equal((await searchKnowledge(env.DB,'updated river')).results.length,1);
+ assert.equal((await get(env,'/api/admin/knowledge')).status,503);
+ const coverage=(await (await get(env,'/api/knowledge/coverage')).json());
+ assert(coverage.sources.some(s=>s.id==='openiti'&&s.rights_mode==='permission_pending'));
+ assert(coverage.sources.some(s=>s.id==='opendua-en'&&s.available_in_index===1));
 });
