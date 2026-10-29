@@ -278,3 +278,13 @@ header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst
 #knowledgePanel input[type=file],#knowledgePanel select,#knowledgePanel input[type=text]{max-width:100%;padding:9px;border:1px solid #dfdbd1;border-radius:6px}
 #knowledgePanel button{margin:7px 8px 7px 0;cursor:pointer}
 #knowledgePanel p{font-size:11px;line-height:1.65}
+
+/* The public search is a reader for real source records, not a tiny article teaser. */
+.provider-hit-details{margin:12px 0;border-top:1px solid #e9e2d7;padding:12px 0;color:#373430}
+.provider-hit-details summary{cursor:pointer;list-style:disclosure-closed;font:700 12px/1.6 Manrope,sans-serif;color:#975b12}
+.provider-hit-details[open] summary{margin-bottom:14px}
+.provider-hit-details h5{font:700 12px/1.5 Manrope,sans-serif;color:#33291e;margin:18px 0 5px}
+.provider-hit-details p{font:400 13px/1.8 Manrope,sans-serif;white-space:pre-line;overflow-wrap:anywhere}
+.provider-hit-arabic{font:400 clamp(20px,2.2vw,27px)/2.1 Amiri,serif;padding:15px;border-radius:8px;background:#f9f5eb;color:#272724;white-space:pre-wrap;overflow-wrap:anywhere;text-align:right}
+.provider-source-notice{border-top:1px solid #e6dfd3;padding-top:10px;color:#776d62!important;font-size:11px!important}
+@media(max-width:700px){.provider-hit-arabic{font-size:22px}}
