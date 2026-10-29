@@ -361,9 +361,9 @@ async function publicApi(request,env,url){
     if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
     const normalize=normalizeSubject;
     const terms=subjectTokens(q);
-    const rows=await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all().then(x=>x.results).catch(()=>[]);
+    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).then(x=>x.results).catch(()=>[]);
     const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
-    const journeyRows=await env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all().then(x=>x.results).catch(()=>[]);
+    const journeyRows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).then(x=>x.results).catch(()=>[]);
     const matches=journeyRows.map(j=>{const hay=normalize([j.title,j.summary,j.tags].join(' '));return {...j,_score:terms.filter(t=>hay.includes(t)).length};}).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
     const guidance=await Promise.all(matches.map(async({_score,...j})=>{
       const [evidence,steps]=await Promise.all([
@@ -372,7 +372,7 @@ async function publicApi(request,env,url){
       ]);
       return {slug:j.slug,title:j.title,summary:j.summary,clinical_note:j.clinical_note,evidence:evidence.results,steps:steps.results,review_policy:'Published editorial material; independent scholar review may be pending'};
     }));
-    const ingredients=await env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all().then(x=>x.results).catch(()=>[]);
+    const ingredients=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).then(x=>x.results).catch(()=>[]);
     const tibb=ingredients.map(x=>{const hay=normalize([x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '));return {...x,_score:terms.filter(t=>hay.includes(t)).length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
     const [remote,quranFullText]=await Promise.all([
       liveSourceSearch(q,'').catch(()=>({results:[],providers:[],review_notice:'External indexes unavailable'})),
