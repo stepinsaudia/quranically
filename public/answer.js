@@ -13,9 +13,12 @@ async function show(q,domain){
  root.hidden=false;content.innerHTML='<p class="qa-state">Retrieving a complete source-linked answer from Quranically…</p>';
  try{
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
-  const r=await fetch('/api/encyclopedia/answer?'+params,{headers:{accept:'application/json'},signal:AbortSignal.timeout(18000)});
-  if(!r.ok)throw Error('The knowledge database is temporarily unavailable');
-  const data=await r.json();if(id!==sequence)return null;
+  let data={outcome:'no_editorial_answer',answer:null};
+  try{
+   const r=await fetch('/api/encyclopedia/answer?'+params,{headers:{accept:'application/json'},signal:AbortSignal.timeout(12000)});
+   if(r.ok)data=await r.json();
+  }catch{/* The independent, source-only search below remains available. */}
+  if(id!==sequence)return null;
   if(data.outcome!=='full_article_answer'||!data.answer){
     content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE</div><h3>Searching the Qur’an, Sunnah and available reference material…</h3>';
     try{
