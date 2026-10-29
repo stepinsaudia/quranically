@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';import {renderCanonicalShell} from '../src/site-shell.mjs';import {questionTerms,addKnowledgePassages,searchKnowledge} from '../src/knowledge-index.mjs';import {pubmedSourceSearch} from '../src/pubmed-source.mjs';import {searchOpenDua} from '../src/opendua-source.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql','0024_knowledge_corpus_inverted_index.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql','0014_discipline_pages.sql','0015_site_panels_navigation_footer.sql','0016_homepage_disciplines.sql','0017_five_discipline_verified_topic_expansion.sql','0018_canonical_page_seo.sql','0019_media_assets.sql','0020_licensed_editorial_visual_refs.sql','0021_canonical_discipline_pathways.sql','0022_prophetic_food_source_references.sql','0023_canonical_source_shelves.sql','0024_knowledge_corpus_inverted_index.sql','0025_complete_publisher_record.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -1104,4 +1104,14 @@ test('PubMed provider errors fail closed and never create clinical claims',async
   assert.equal(result.status,'temporarily_unavailable');
   assert.deepEqual(result.records,[]);
  }finally{globalThis.fetch=original;}
+});
+
+test('OpenDua complete record column is present and source licence is independently tracked',()=>{
+ const env=fixture();
+ const columns=env.DB.prepare("PRAGMA table_info('knowledge_passages')").all().results;
+ assert(columns.some(x=>x.name==='publisher_record_json'));
+ const provider=env.DB.prepare("SELECT id,version_label,rights_mode,home_url FROM knowledge_sources WHERE id='opendua-en'").first();
+ assert.equal(provider.version_label,'v0.0.4');
+ assert.equal(provider.rights_mode,'verified_verbatim');
+ assert.equal(new URL(provider.home_url).hostname,'api.opendua.org');
 });
