@@ -24,6 +24,9 @@ jobs:
       - run: npm install --no-package-lock
       - name: Worker unit and isolated database migration tests
         run: npm test
+      - name: OpenDua open source catalogue connectivity and schema
+        continue-on-error: true
+        run: node scripts/opendua-source-probe.mjs
       - name: Official category and clinical provider read-only connectivity
         continue-on-error: true
         run: node scripts/official-library-probe.mjs
