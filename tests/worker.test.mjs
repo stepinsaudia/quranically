@@ -402,3 +402,20 @@ test('unified search gives source-linked Living Guidance and actual practical st
  assert(guidance.steps.some(x=>/support|healthcare/i.test(x.instruction)));
  assert(guidance.clinical_note);
 });
+
+test('unified evidence search fails open safely when older D1 has missing editorial tables',async()=>{
+ const env=fixture();const original=env.DB;
+ env.DB={prepare(sql){
+  if(/FROM (encyclopedia_articles|tibb_entries|journeys)\\b/.test(sql))throw Error('D1_ERROR: no such table');
+  return original.prepare(sql);
+ }};
+ const r=await get(env,'/api/unified-search?q=black%20seed');
+ assert.equal(r.status,200);
+ const data=await r.json();
+ assert.deepEqual(data.editorial,[]);
+ assert.deepEqual(data.tibb,[]);
+ assert.deepEqual(data.guidance,[]);
+ assert.ok(Array.isArray(data.evidence.quran));
+ assert.ok(Array.isArray(data.evidence.hadith));
+ assert.equal(data.answer_policy,'source_first_no_fabrication');
+});
