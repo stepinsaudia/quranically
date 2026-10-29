@@ -81,12 +81,50 @@ def main():
     if len(prepared)<2000:raise ValueError("Official export unexpectedly incomplete")
     dest.parent.mkdir(parents=True,exist_ok=True)
     names="id,source_id,external_ref,title,domain,original_text,translation_text,explanation_text,benefits_text,grade_text,takhrij_text,normalized_search,source_url,content_version,content_sha256,language,expert_review,status"
+    # Do not send the full text of a long Hadith as one D1 statement.
+    # This also supports bounded, idempotent remote imports in 100-record chunks.
+    import os
+    chunk_dir = Path(os.environ["QST_CORPUS_CHUNK_DIR"]) if os.environ.get("QST_CORPUS_CHUNK_DIR") else None
+    if chunk_dir: chunk_dir.mkdir(parents=True,exist_ok=True)
+    header = "-- Official HadeethEnc English release v1.25.0. Source wording unchanged.\\n" + "UPDATE knowledge_sources SET version_label="+quote(version)+",publisher_notice="+quote(notice)+",updated_at=datetime('now') WHERE id='hadeethenc-en' AND rights_mode='verified_verbatim';\\n"
+    fields = ("original_text","translation_text","explanation_text","benefits_text","grade_text","takhrij_text","normalized_search")
+    indexes = (5,6,7,8,9,10,11)
+    # Each SQL statement must remain below D1's smallest practical SQL budget.
+    def emit_text(out,stmt):
+        raw=stmt.encode("utf-8")
+        if len(raw)>=7000: raise ValueError("Oversized SQL statement: "+str(len(raw)))
+        out.write(stmt+"\\n")
+    def write_document(out,data):
+        ident=data[0]
+        blank=list(data)
+        for ix in indexes:blank[ix]=""
+        blank[-1]="draft"
+        values=",".join(quote(x) for x in blank)
+        initial=("INSERT INTO knowledge_passages("+names+") VALUES("+values+") "+
+                 "ON CONFLICT(id) DO UPDATE SET title=excluded.title,domain=excluded.domain,"+
+                 "original_text='',translation_text='',explanation_text='',benefits_text='',grade_text='',"+
+                 "takhrij_text='',normalized_search='',source_url=excluded.source_url,content_version=excluded.content_version,"+
+                 "content_sha256=excluded.content_sha256,language=excluded.language,expert_review='unreviewed',"+
+                 "status='draft',updated_at=datetime('now');")
+        emit_text(out,initial)
+        for col,ix in zip(fields,indexes):
+            original=data[ix]
+            for offset in range(0,len(original),600):
+                exact=original[offset:offset+600]
+                emit_text(out,"UPDATE knowledge_passages SET "+col+"="+col+"||"+quote(exact)+" WHERE id="+quote(ident)+";")
+        emit_text(out,"UPDATE knowledge_passages SET status='published' WHERE id="+quote(ident)+";")
     with dest.open("w",encoding="utf-8") as out:
-        out.write("-- HadeethEnc official English release. Original source wording must never be altered.\n")
-        out.write("-- Publisher terms: https://hadeethenc.com/en\n")
-        out.write("UPDATE knowledge_sources SET version_label="+quote(version)+",publisher_notice="+quote(notice)+",updated_at=datetime('now') WHERE id='hadeethenc-en' AND rights_mode='verified_verbatim';\n")
-        for data in prepared:
-            values=",".join(quote(x) for x in data)
-            out.write("INSERT INTO knowledge_passages("+names+") VALUES("+values+") ON CONFLICT(id) DO UPDATE SET original_text=excluded.original_text,translation_text=excluded.translation_text,explanation_text=excluded.explanation_text,benefits_text=excluded.benefits_text,grade_text=excluded.grade_text,takhrij_text=excluded.takhrij_text,normalized_search=excluded.normalized_search,source_url=excluded.source_url,content_version=excluded.content_version,content_sha256=excluded.content_sha256,updated_at=datetime('now');\n")
-    print(json.dumps({"publisher":"HadeethEnc","language":"en","edition":version,"records":len(prepared),"unique_ids":len(seen),"size_bytes":dest.stat().st_size,"publisher_notice_preserved":bool(notice)}))
+        out.write(header)
+        if chunk_dir:
+            for part,start in enumerate(range(0,len(prepared),100),1):
+                chunk=chunk_dir/("corpus-part-%04d.sql"%part)
+                with chunk.open("w",encoding="utf-8") as batch:
+                    if part==1: batch.write(header)
+                    for data in prepared[start:start+100]:
+                        write_document(out,data)
+                        write_document(batch,data)
+        else:
+            for data in prepared: write_document(out,data)
+    largest=max((len(line.encode("utf-8")) for line in dest.open(encoding="utf-8")),default=0)
+    print(json.dumps({"publisher":"HadeethEnc","language":"en","edition":version,"records":len(prepared),"unique_ids":len(seen),"size_bytes":dest.stat().st_size,"publisher_notice_preserved":bool(notice),"largest_statement_bytes":largest,"parts":len(list(chunk_dir.glob('corpus-part-*.sql'))) if chunk_dir else 0}))
 if __name__=="__main__":main()
