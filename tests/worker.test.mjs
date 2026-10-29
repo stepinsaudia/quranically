@@ -1128,3 +1128,46 @@ test('public coverage reports actual indexed source passages instead of editoria
  assert(!client.includes('2328'));
  assert(!client.includes('267'));
 });
+
+test('every imported official Hadith report reads in full from D1 even when upstream API is completely offline',async()=>{
+ const env=fixture(),prior=globalThis.fetch;
+ env.DB.prepare("UPDATE knowledge_sources SET version_label='v1.25.0' WHERE id='hadeethenc-en'").run();
+ const arabic='عَنْ أَبِي هُرَيْرَةَ رضي الله عنه، قَالَ رَسُولُ الله صلى الله عليه وسلم';
+ const translation='The exact publisher English Hadith translation is preserved without shortening.';
+ const explanation='The complete publisher explanation is displayed directly inside Quranically rather than a link.';
+ const benefits='The publisher benefits section remains separate from its translated Hadith.';
+ const reference='Original takhrij reference';
+ await addKnowledgePassages(env.DB,'hadeethenc-en',[{
+  external_ref:'2962',title:'An indexed original source about trust',
+  original_text:arabic,translation_text:translation,explanation_text:explanation,
+  benefits_text:benefits,grade_text:'Sahih',takhrij_text:reference,
+  source_url:'https://hadeethenc.com/en/browse/hadith/2962',
+  domain:'sunnah'
+ }],'test');
+ try{
+  globalThis.fetch=async()=>{throw Error('Publisher offline: local indexed corpus must answer');};
+  const res=await get(env,'/api/source-shelves/detail?id=2962');
+  assert.equal(res.status,200);
+  const record=await res.json();
+  assert.equal(record.status,'available');
+  assert.equal(record.origin,'canonical_source_corpus');
+  assert.equal(record.passage,translation);
+  assert.equal(record.original_arabic,arabic);
+  assert.equal(record.explanation,explanation);
+  assert.equal(record.benefits,benefits);
+  assert.equal(record.reported_grade,'Sahih');
+  assert.equal(record.reported_attribution,reference);
+  assert.equal(record.content_version,'v1.25.0');
+  assert.equal(record.review_status,'unreviewed');
+  assert(record.source_url.startsWith('https://hadeethenc.com/'));
+  assert.equal((await get(env,'/api/source-shelves/detail?id=https%3A%2F%2Fexample.com')).status,400);
+ }finally{globalThis.fetch=prior;}
+});
+test('the original-source shelf reader renders Arabic, English, publisher benefits and citations',()=>{
+ const ui=fs.readFileSync(path.join(root,'public','source-shelves.js'),'utf8');
+ assert(ui.includes('info.original_arabic'));
+ assert(ui.includes('info.benefits'));
+ assert(ui.includes('Publisher-reported grade'));
+ assert(ui.includes('info.content_version'));
+ assert(ui.includes('Inspect official publisher record'));
+});
