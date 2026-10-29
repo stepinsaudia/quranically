@@ -23,11 +23,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
       - name: Check known Worker and D1 configuration (no provisioning)
         run: node scripts/native-admin-preflight.mjs
       - name: Install pinned dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check syntax and application behavior BEFORE deployment
         run: |
           node --check src/index.mjs
