@@ -13,7 +13,7 @@ try {
   await page.locator('form#encyclopediaSearch').waitFor({timeout:10000});
   if(await page.locator('form#encyclopediaSearch').count()!==1)throw Error('Duplicate main search');
   if(!await page.locator('#query').isVisible())throw Error('Main search hidden on '+viewport.name);
-  const headerCount=await page.locator('header').count();
+  const headerCount=await page.locator('header.qst-header').count();
   if(headerCount!==1)throw Error('Expected one canonical header on '+viewport.name+', got '+headerCount);
   await page.screenshot({path:'artifacts/quranically-home-'+viewport.name+'.png',fullPage:true});
   for(const [query,title,slug] of [
