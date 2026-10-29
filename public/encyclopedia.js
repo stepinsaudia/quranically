@@ -53,16 +53,32 @@ function entryCard(x,i){
 function renderProviderResult(x){
   const external=String(x.source_url||'');
   let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
-  return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':x.kind==='research'?'Biomedical bibliography':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
-    +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
-    +(x.kind==='research'?'<small class="research-caveat">Bibliographic reference only · clinical effectiveness and safety not established</small>':'')
-    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
+  const indexed=x.kind==='indexed_source';
+  const label=indexed?'Indexed original source':x.kind==='quran'?'Qur’an verse':x.kind==='hadith'?'Hadith collection':x.kind==='research'?'Biomedical bibliography':'Supplication';
+  const grade=x.reported_grade||'',ref=x.reported_reference||x.reference||'';
+  const full=Boolean(x.explanation||x.benefits||x.arabic_excerpt||grade||x.reported_reference);
+  const details=full?'<details class="provider-hit-details"><summary>Read full source, explanation & references</summary>'+
+    (x.arabic_excerpt?'<div class="provider-hit-arabic" lang="ar" dir="rtl">'+esc(x.arabic_excerpt)+'</div>':'')+
+    (x.explanation?'<h5>Publisher explanation</h5><p>'+esc(x.explanation)+'</p>':'')+
+    (x.benefits?'<h5>Benefits and lessons in the publisher edition</h5><p>'+esc(x.benefits)+'</p>':'')+
+    (grade?'<p><strong>Publisher-reported grade:</strong> '+esc(grade)+'</p>':'')+
+    (x.reported_reference?'<p><strong>Original reference:</strong> '+esc(x.reported_reference)+'</p>':'')+
+    (x.content_version?'<p><strong>Edition:</strong> '+esc(x.content_version)+'</p>':'')+
+    '<p class="provider-source-notice">Publisher text is attributed to its source; a matching passage is not a new fatwa, medical recommendation or scholarly endorsement.</p></details>':'';
+  return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(label)+'</span><small>'+esc(indexed?'Publisher text · independent review pending':'Provider-indexed · verification varies')+'</small></div>'+
+    '<h4>'+esc(x.title||x.reference||'Source reference')+'</h4>'+
+    '<p>'+esc(x.excerpt||'The indexed publisher record has a reference without a visible excerpt.')+'</p>'+
+    details+
+    (x.kind==='research'?'<small class="research-caveat">Bibliographic record only; clinical effectiveness and safety are not established</small>':'')+
+    '<div class="provider-hit-footer"><span>'+esc(ref)+'</span>'+
+    (safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+
+    '</div></article>';
 }
 let sourceSequence=0;
 async function liveSources(q,domain,{featured=false}={}){
  const root=$('federatedResults');
  if(!q||q.length<2){sourceSequence++;root.hidden=true;return;}
- root.hidden=false;$('sourceResultState').textContent=featured?'Exploring a sample subject from connected reference indexes…':'Searching connected Qur’an, Hadith and supplication indexes…';$('sourceResults').innerHTML='';
+ root.hidden=false;$('sourceResultState').textContent=featured?'Exploring a sample subject from connected reference indexes…':'Searching the canonical source corpus and connected publisher indexes…';$('sourceResults').innerHTML='';
  const mySeq=++sourceSequence;
  try{
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
@@ -70,10 +86,10 @@ async function liveSources(q,domain,{featured=false}={}){
   if(mySeq!==sourceSequence)return;
   // The Worker already rejects off-topic evidence and ranks matches by subject.
   // Never discard useful citations because the excerpt omits question filler words.
-  const items=(Array.isArray(data.results)?data.results:[]).slice(0,9);
+  const items=(Array.isArray(data.results)?data.results:[]).slice(0,12);
   $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
   const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
-  $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+total+' relevant source excerpt(s) · fetched '+new Date(data.fetched_at).toLocaleString()+
+  $('sourceResultState').textContent=(featured?'Sample topic: “'+q+'” · ':'')+total+' sourced passage(s) · indexed library: '+Number((data.providers||[]).find(p=>p.id==='canonical_corpus')?.indexed_total||0).toLocaleString()+' records · fetched '+new Date(data.fetched_at).toLocaleString()+
     (offline.length?' · Unavailable: '+offline.join(', '):'')+
     (total===0?' · No matching excerpts returned by the available providers. This is not a complete scholarly search.':'');
  }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
