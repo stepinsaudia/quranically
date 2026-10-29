@@ -1,5 +1,5 @@
-AUTHORIZE QURANICALLY EXISTING WORKER SOURCE DETAIL RELIABILITY UPDATE
-QA-passed commit: eeac42798d066c1ee178fe958e4653c19c4408ba
+AUTHORIZE QURANICALLY EXISTING WORKER CANONICAL FULL-SOURCE ENGINE
+Pinned tested commit: 681f4eff26ae34200dfbd8aa06cfbd2649811095
 Existing Worker: qst-living-knowledge-v1
 Existing D1: qst-knowledge-v1-db
-Scope: cache successful official publisher detail responses for 1 hour at Cloudflare edge; never cache errors. Keeps full category browsing and Admin settings unchanged. No new paid infrastructure.
+Scope: source registry, original-passage corpus, open-vocabulary search, rights-aware Admin, OpenDua provider, unchanged public pages and existing records. Bulk publisher data imported separately after backup.
