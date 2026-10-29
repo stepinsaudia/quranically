@@ -363,6 +363,15 @@ async function publicApi(request,env,url){
     const terms=[...new Set(normalize(q).split(' ').filter(t=>t.length>2&&!ignored.has(t)))];
     const rows=(await env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).results;
     const editorial=rows.map(a=>{const text=normalize([a.title,a.alternate_names,a.abstract].join(' '));const hits=terms.filter(t=>text.includes(t));return {...a,_score:hits.length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    const journeyRows=(await env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).results;
+    const matches=journeyRows.map(j=>{const hay=normalize([j.title,j.summary,j.tags].join(' '));return {...j,_score:terms.filter(t=>hay.includes(t)).length};}).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
+    const guidance=await Promise.all(matches.map(async({_score,...j})=>{
+      const [evidence,steps]=await Promise.all([
+        env.DB.prepare("SELECT e.evidence_type,e.title,e.reference,e.meaning,e.explanation,e.source_url,e.source_grade,e.review_status,s.title AS source_title FROM evidence e JOIN sources s ON s.id=e.source_id WHERE e.journey_id=? AND e.publish_status='published' ORDER BY e.sort_order LIMIT 8").bind(j.id).all(),
+        env.DB.prepare("SELECT instruction,category FROM steps WHERE journey_id=? ORDER BY sort_order LIMIT 6").bind(j.id).all()
+      ]);
+      return {slug:j.slug,title:j.title,summary:j.summary,clinical_note:j.clinical_note,evidence:evidence.results,steps:steps.results,review_policy:'Published editorial material; independent scholar review may be pending'};
+    }));
     const ingredients=(await env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).results;
     const tibb=ingredients.map(x=>{const hay=normalize([x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '));return {...x,_score:terms.filter(t=>hay.includes(t)).length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
     const [remote,quranFullText]=await Promise.all([
@@ -387,7 +396,7 @@ async function publicApi(request,env,url){
       if(item.kind==='quran')uniqueVerses.add(item.reference);
     }
     buckets.quran=buckets.quran.slice(0,12);
-    return json({query:q,editorial,tibb,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. External Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    return json({query:q,editorial,tibb,guidance,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. External Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
