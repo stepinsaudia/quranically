@@ -38,14 +38,19 @@ async function show(q,domain){
           return '<article class="qst-evidence"><strong>'+esc(x.title||ref)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(ref)+' · '+sourceLabel+' · external text pending Quranically review</small>'+jump+'</article>';
         }).join('')+'</section>';
       }).join('');
+      const guidance=(found.guidance||[]).length?'<section class="qa-part"><h4>Living Guidance — sourced teachings and practical steps</h4>'+found.guidance.map(j=>{
+        const refs=(j.evidence||[]).map(e=>'<li><strong>'+esc(e.title)+'</strong> — '+esc(e.meaning)+' <small>'+esc(e.reference)+' · '+esc(e.review_status||'review pending')+'</small>'+(href(e.source_url)?'<a href="'+esc(href(e.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect source</a>':'')+'</li>').join('');
+        const steps=(j.steps||[]).map(x=>'<li>'+esc(x.instruction)+'</li>').join('');
+        return '<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(refs?'<h6>Referenced teachings</h6><ul>'+refs+'</ul>':'')+(steps?'<h6>Everyday application</h6><ol>'+steps+'</ol>':'')+(j.clinical_note?'<p class="qa-foot">'+esc(j.clinical_note)+'</p>':'')+'</div>';
+      }).join('')+'</section>':'';
       const tibb=(found.tibb||[]).length?'<section class="qa-part"><h4>Prophetic Medicine — tradition, context and safety</h4>'+found.tibb.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Health context:</b> '+esc(x.health_context)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · Review: '+esc(x.review_stage)+'</small>'+(href(x.reference_url)?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href(x.reference_url))+'">Inspect original reference</a>':'')+'</article>').join('')+'</section>':'';
       const groupsByDomain={seerah:'Seerah — the Prophet’s life',sunnah:'Sunnah — practice and explanation',quranic_themes:'Qur’anic context',living_guidance:'Living Guidance',prophetic_medicine:'Prophetic Medicine — source studies'};
       const referenceGroups=Object.entries(groupsByDomain).map(([key,label])=>{
         const records=(found.editorial||[]).filter(x=>x.domain===key);
         return records.length?'<section class="qa-part"><h4>'+esc(label)+'</h4>'+records.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>Editorial status: '+esc(x.review_status||'pending')+'</small></p>').join('')+'</section>':'';
       }).join('');
-      const hasAny=Boolean(referenceGroups||tibb||evidence);
-      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceGroups+tibb+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      const hasAny=Boolean(referenceGroups||tibb||guidance||evidence);
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceGroups+guidance+tibb+evidence+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
       if(!hasAny)content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
       return true; // The one answer panel owns empty states too; never open a duplicate source index.
     }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
@@ -71,6 +76,7 @@ async function show(q,domain){
       const found=await response.json();if(id!==sequence)return null;
       const other=(found.editorial||[]).filter(x=>x.slug!==a.slug);
       const blocks=other.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>'+esc(x.review_status||'review pending')+'</small></p>').join('');
+      const complementaryGuidance=(found.guidance||[]).map(j=>'<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(j.evidence||[]).map(e=>'<p>'+esc(e.meaning)+' <small>'+esc(e.reference)+' · '+esc(e.review_status||'pending')+'</small></p>').join('')+'</div>').join('');
       const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
       const medicines=matches.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · '+esc(x.review_stage)+'</small></article>').join('');
       const leads=[...(found.evidence?.quran||[]),...(found.evidence?.hadith||[])].slice(0,6).map(x=>{
@@ -79,7 +85,7 @@ async function show(q,domain){
         const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
         return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+' · verification pending</small>'+reader+'</article>';
       }).join('');
-      if(blocks||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+medicines+leads+'</section>');
+      if(blocks||complementaryGuidance||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+complementaryGuidance+medicines+leads+'</section>');
     }
   }catch{/* Preserve the complete, canonical article if secondary providers fail. */}
   return true;
