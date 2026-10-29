@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import handler from '../src/index.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const db=new DatabaseSync(':memory:');
-for (const m of ['0001_init.sql','0002_seed.sql'])db.exec(fs.readFileSync(path.join(root,'migrations',m),'utf8'));
+for(const m of fs.readdirSync(path.join(root,'migrations')).filter(x=>/^\d{4}_.*\.sql$/.test(x)).sort())db.exec(fs.readFileSync(path.join(root,'migrations',m),'utf8'));
 const DB={prepare:(sql)=>({
  bind(...params){return {
   first(){return db.prepare(sql).get(...params)||null},
