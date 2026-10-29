@@ -1171,3 +1171,13 @@ test('the original-source shelf reader renders Arabic, English, publisher benefi
  assert(ui.includes('info.content_version'));
  assert(ui.includes('Inspect official publisher record'));
 });
+
+test('report-card buttons are never mistaken for the records container shelf',()=>{
+ const ui=fs.readFileSync(path.join(root,'public','source-shelves.js'),'utf8');
+ assert(ui.includes("closest('#shelfRecords button[data-report]')"));
+ assert(ui.includes("closest('#shelfTabs button[data-shelf]')"));
+ assert(ui.includes('records.dataset.activeShelf=shelf.id'));
+ assert(!ui.includes('records.dataset.shelf=shelf.id'));
+ assert(ui.indexOf("closest('#shelfRecords button[data-report]')")<
+        ui.indexOf("closest('#shelfTabs button[data-shelf]')"));
+});
