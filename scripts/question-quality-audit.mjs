@@ -56,6 +56,8 @@ async function inspect(item){
   const record={
    domain:item.domain,query:item.q,expect:item.expect||'source_discovery',
    answer_type:intro.type,
+   quality_status:data.answer_quality?.status||'not_classified',
+   quality_flags:data.answer_quality?.flags||[],
    editorial:reviewed.length,quran:verses.length,hadith:hadith.length,
    guidance:(data.guidance||[]).length,medicine:(data.tibb||[]).length,
    clinical_bibliography:(data.biomedical_evidence||[]).length,
@@ -80,12 +82,18 @@ const summary={
  total:records.length,
  fatal:records.filter(x=>x.fatal).length,
  no_sourced_answer:records.filter(x=>x.gap==='NO_RELEVANT_SOURCED_ANSWER').length,
+ published_reference_available:records.filter(x=>x.quality_status==='published_reference_available').length,
+ source_leads_only:records.filter(x=>x.quality_status==='source_leads_only').length,
+ seerah_unverified:records.filter(x=>x.quality_flags?.includes('historical_seerah_narrative_not_established')).length,
+ clinical_efficacy_unverified:records.filter(x=>x.quality_flags?.includes('clinical_efficacy_not_established')).length,
  total_quran_references:records.reduce((a,x)=>a+(x.quran||0),0),
  total_hadith_references:records.reduce((a,x)=>a+(x.hadith||0),0),
  per_discipline:Object.fromEntries([...new Set(questions.map(q=>q.domain))].map(d=>[d,{
   tested:records.filter(x=>x.domain===d).length,
   sourced:records.filter(x=>x.domain===d&&!x.fatal&&x.answer_type!=='insufficient_evidence').length,
-  gaps:records.filter(x=>x.domain===d&&!!x.gap).length
+  gaps:records.filter(x=>x.domain===d&&!!x.gap).length,
+  published:records.filter(x=>x.domain===d&&x.quality_status==='published_reference_available').length,
+  leads:records.filter(x=>x.domain===d&&x.quality_status==='source_leads_only').length
  }]))
 };
 fs.mkdirSync('artifacts',{recursive:true});
@@ -93,13 +101,13 @@ fs.writeFileSync('artifacts/quranically-question-quality.json',JSON.stringify({s
 const markdown=[
  '# Quranically: Real-question evidence audit','',
  'Local preview only. Live source availability and relevance must be reviewed by editors. Source count is not a guarantee of religious correctness.','',
- '| Discipline | Questions | With sourced response | Empty |',
- '| --- | ---: | ---: | ---: |',
- ...Object.entries(summary.per_discipline).map(([d,x])=>`| ${d} | ${x.tested} | ${x.sourced} | ${x.gaps} |`),
+ '| Discipline | Questions | Published reference | Source leads only | Empty |',
+ '| --- | ---: | ---: | ---: | ---: |',
+ ...Object.entries(summary.per_discipline).map(([d,x])=>`| ${d} | ${x.tested} | ${x.published} | ${x.leads} | ${x.gaps} |`),
  '', '## Questions with missing evidence or test failures',
  ...records.filter(x=>x.gap||x.fatal).map(x=>`- **${x.domain}:** ${x.query}: ${x.error||x.gap}`),
  '', '## Full observed results',
- ...records.map(x=>`- ${x.domain}: ${x.query} — ${x.fatal?'FAILED '+x.error:'editorial='+x.editorial+', Quran='+x.quran+', Hadith='+x.hadith+', Tibb='+x.medicine+', guidance='+x.guidance+', biomedical='+x.clinical_bibliography+', answer='+x.answer_type}`)
+ ...records.map(x=>`- ${x.domain}: ${x.query} — ${x.fatal?'FAILED '+x.error:'editorial='+x.editorial+', Quran='+x.quran+', Hadith='+x.hadith+', Tibb='+x.medicine+', guidance='+x.guidance+', biomedical='+x.clinical_bibliography+', answer='+x.answer_type+', quality='+x.quality_status}`)
 ].join('\n');
 fs.writeFileSync('artifacts/quranically-question-quality.md',markdown);
 if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,markdown);
