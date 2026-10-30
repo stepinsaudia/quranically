@@ -83,40 +83,11 @@ jobs:
       - name: Release exact existing Worker (no D1 changes)
         id: release
         run: npx wrangler deploy
-      - name: Smoke-test homepage, Reader, canonical Admin, Quran index, sourced Seerah and Medicine
+      - name: Run the exact canonical release smoke suite against the existing live Worker
         id: live_qa
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'JS'
-          const origin='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
-          const fetchJson=async (pathname,check)=>{
-            let last;
-            for(let attempt=0;attempt<3;attempt++){
-              try{
-                const r=await fetch(origin+pathname,{headers:{accept:'application/json'},signal:AbortSignal.timeout(30000)});
-                if(!r.ok)throw Error(pathname+': HTTP '+r.status);
-                const data=await r.json();
-                if(!check(data))throw Error(pathname+': returned incomplete source-grounded data');
-                console.log('PASS',pathname,'(attempt '+(attempt+1)+')');
-                return;
-              }catch(e){last=e;}
-            }
-            throw last;
-          };
-          for(const path of ['/','/study.html','/admin/index.html']){
-            const r=await fetch(origin+path,{signal:AbortSignal.timeout(30000)});
-            if(!r.ok)throw Error(path+' HTTP '+r.status);
-            const text=await r.text();
-            if(!text.includes('<html')&&!text.includes('<!doctype'))throw Error(path+' did not serve HTML');
-            console.log('PASS',path);
-          }
-          await fetchJson('/api/health',d=>d.ok===true);
-          await fetchJson('/api/quran/search?q=patience&limit=12',d=>d.source_corpus?.verses===6236&&d.results?.length===12&&d.next_offset===12);
-          await fetchJson('/api/encyclopedia/answer?domain=seerah&q=What%20happened%20at%20the%20Battle%20of%20Badr%3F',d=>d.outcome==='full_article_answer'&&d.answer?.slug==='battle-of-badr-sourced-account'&&d.answer.citations?.length>=3);
-          await fetchJson('/api/encyclopedia/answer?domain=prophetic_medicine&q=Does%20Prophetic%20Medicine%20cure%20asthma%3F',d=>d.outcome==='full_article_answer'&&d.answer?.slug==='asthma-prophetic-medicine-boundaries');
-          await fetchJson('/api/unified-search?domain=seerah&q=What%20happened%20during%20the%20Hijrah%3F',d=>d.answer_brief&&d.answer_quality?.status==='published_reference_available'&&d.contextual_answers?.some(a=>a.slug==='hijrah-to-madinah'));
-          console.log('SOFT RELEASE LIVE QA COMPLETE');
-          JS
+        env:
+          QST_SMOKE_ROOT: https://qst-living-knowledge-v1.stepinsaudia.workers.dev
+        run: node scripts/canonical-release-smoke.mjs
       - name: Automatic Worker rollback if live QA fails after deployment
         if: ${{ failure() && steps.release.outcome == 'success' }}
         run: |
