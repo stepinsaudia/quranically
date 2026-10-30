@@ -650,9 +650,10 @@ export default {
       }
       if(path==='/sitemap.xml')return await sitemapResponse(env,url);
       if(path==='/tibb'||path==='/tibb/'||path==='/tibb.html'){
-        const entry=(url.searchParams.get('entry')||'').trim();
-        const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
-        return Response.redirect(new URL(target,url.origin),302);
+        // Real dedicated Prophetic Medicine experience. Its cards and detail
+        // views are rendered from the same D1/API source records as Admin.
+        // Do not silently redirect the discipline to generic encyclopedia.
+        return env.ASSETS.fetch(new Request(new URL('/tibb.html'+url.search,url.origin),request));
       }
       if(path==='/encyclopedia'||path==='/encyclopedia/')return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
       if(path.startsWith('/encyclopedia/')){
