@@ -66,6 +66,39 @@ jobs:
             if(!check||Number(check.articles)<17||Number(check.tibb)<8||Number(check.citations)<15||Number(check.critical_answers)!==2||Number(check.new_dossiers)!==15){console.error("Missing published knowledge records or 15 verified source dossiers; deploy refused without modifying D1.");process.exit(1);}
             console.log("Verified existing D1 contains published articles, Prophetic Medicine, citations, and both tested real-world answers.");
           '
+      - name: Backup original D1 and install ONLY additive private research schema if absent
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          # Never modify any other schema or content. A populated research table
+          # is verified by the next gate; it is never overwritten.
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const sql=fs.readFileSync('migrations/0019_research_topics.sql','utf8');
+          const inserts=(sql.match(/^INSERT OR IGNORE INTO research_topics\(/gm)||[]).length;
+          const statements=sql.split(';').map(x=>x.trim()).filter(Boolean)
+            .map(x=>x.replace(/^(?:--[^\n]*\n\s*)+/g,'').trim()).filter(Boolean);
+          if(inserts!==60 || statements.some(x=>!/^(?:CREATE TABLE IF NOT EXISTS research_topics\b|CREATE (?:UNIQUE )?INDEX IF NOT EXISTS idx_research_topics_\w+\b|INSERT OR IGNORE INTO research_topics\b)/i.test(x))) {
+            throw Error('Research migration changed from approved additive-only 60-record schema; deployment refused');
+          }
+          console.log('Only the approved private research queue migration is eligible for import');
+          JS
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT name FROM sqlite_master WHERE type='table' AND name='research_topics';" > /tmp/quranically-schema-check.json
+          if node --input-type=module -e 'import fs from "node:fs";const a=JSON.parse(fs.readFileSync("/tmp/quranically-schema-check.json","utf8"));process.exit(a?.[0]?.results?.some(x=>x.name==="research_topics")?0:1)'; then
+            echo 'Research queue already exists; no database migration attempted.'
+          else
+            umask 077
+            npx wrangler d1 export qst-knowledge-v1-db --remote --output=/tmp/quranically-private-pre-release.sql >/dev/null
+            test -s /tmp/quranically-private-pre-release.sql || { echo 'Pre-migration database backup failed'; exit 1; }
+            echo 'Private existing-D1 backup captured in ephemeral runner; not committed or uploaded.'
+            npx wrangler d1 execute qst-knowledge-v1-db --remote --file=migrations/0019_research_topics.sql --yes
+          fi
+          # Both newly inserted and pre-existing research queue must have exactly
+          # the required seed IDs; additional editorial rows are allowed.
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM research_topics WHERE id LIKE 'research-%';" > /tmp/quranically-research-count.json
+          node --input-type=module -e 'import fs from "node:fs";const a=JSON.parse(fs.readFileSync("/tmp/quranically-research-count.json","utf8"));const n=a?.[0]?.results?.[0]?.n;if(Number(n)<60)throw Error("Research schema incomplete: "+n); console.log("Verified private research records:",n)'
       - name: Require research-topic Admin schema before publishing new code
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -98,6 +131,9 @@ jobs:
               console.log("PASS",route,r.status);
             }
           '
+      - name: Remove temporary release backup from runner
+        if: always()
+        run: rm -f /tmp/quranically-private-pre-release.sql /tmp/quranically-schema-check.json /tmp/quranically-research-count.json /tmp/quranically-research-ready.json /tmp/qst-release-readonly.json
       - name: Record release for review
         run: |
           echo '### Quranically — existing Worker release' >> "$GITHUB_STEP_SUMMARY"
