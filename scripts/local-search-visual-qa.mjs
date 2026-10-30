@@ -31,6 +31,11 @@ try {
    const sections=await page.locator('#inlineAnswer .qa-part').count();
    if(sections<3)throw Error(query+': only '+sections+' substantial answer sections');
    if(await page.locator('#federatedResults:visible').count())throw Error('Duplicate source panel when complete answer exists');
+   if(slug==='clothing'){
+    await page.locator('#inlineAnswer .qst-publisher-hadith').first().waitFor({timeout:20000});
+    if(!await page.locator('#inlineAnswer .qst-publisher-hadith a[href^="https://hadeethenc.com/"]').first().isVisible())throw Error('Publisher full Hadith and original proof missing');
+    if(!await page.locator('#inlineAnswer .qst-publisher-hadith blockquote').first().isVisible())throw Error('Hadith must render full in the answer');
+   }
    await page.screenshot({path:'artifacts/quranically-'+slug+'-'+viewport.name+'.png',fullPage:true});
   }
   await page.locator('#query').fill('Where can I find Ayat al Kursi?');
