@@ -606,11 +606,24 @@ test('newly indexed knowledge answers cover all five disciplines with independen
 
 test('public home and discipline pages receive Admin-managed SEO in the server HTML',async()=>{
  const env=fixture();
- env.ASSETS.fetch=async()=>new Response('<!doctype html><html><head><title>Static fallback</title><meta name="description" content="Placeholder"></head><body><!--QST_CANONICAL_HEADER--><main>Reference content</main><!--QST_CANONICAL_FOOTER--></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ // Use the actual canonical homepage structure: mock-only fragments cannot satisfy
+ // first-paint SSR and would hide a regression in the real hero/search/cards.
+ const realHome=fs.readFileSync(path.join(root,'public','index.html'),'utf8')
+   .replace(/<title>[^<]*<\/title>/,'<title>Static fallback</title>')
+   .replace(/<meta name="description" content="[^"]*">/,'<meta name="description" content="Placeholder">');
+ env.ASSETS.fetch=async()=>new Response(realHome,{status:200,headers:{'content-type':'text/html'}});
  const home=await (await get(env,'/')).text();
  assert(home.includes('<title>Quranically — The Islamic Reference Encyclopedia</title>'));
  assert(home.includes('property="og:title"'));
  assert(home.includes('rel="canonical"'));
+ assert.equal((home.match(/<header class="qst-shell-header"/g)||[]).length,1);
+ assert.equal((home.match(/<footer class="qst-shell-footer"/g)||[]).length,1);
+ assert.equal((home.match(/class="qst-home-discipline"/g)||[]).length,5);
+ assert(home.includes('class="qst-managed-hero-image"'));
+ assert(home.includes('class="search-strip"'));
+ assert(home.indexOf('class="search-strip"')<home.indexOf('class="qst-home-card-grid'));
+ assert(!home.includes('<!--QST_CANONICAL_HEADER-->'));
+
  const tibb=await (await get(env,'/encyclopedia?domain=prophetic_medicine')).text();
  assert(tibb.includes('<title>Prophetic Medicine | Quranically</title>'));
  assert(tibb.includes('?domain=prophetic_medicine'));
