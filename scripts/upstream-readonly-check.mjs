@@ -26,4 +26,8 @@ const q=await probe('https://api.alquran.cloud/v1/ayah/2:255/editions/quran-uthm
 assert.equal(q.code,200);
 assert(Array.isArray(q.data)&&q.data.length===2);
 assert(q.data.every(x=>Number(x.surah?.number)===2&&Number(x.numberInSurah)===255));
+const biomedical=await probe('https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=Nigella%20sativa&format=json&pageSize=2&resultType=lite');
+assert(Array.isArray(biomedical?.resultList?.result),'Europe PMC publication bibliography schema invalid');
+if(!biomedical.resultList.result.length)throw Error('Europe PMC returned no bibliographic records for Nigella sativa');
+console.log('BIOMEDICAL PROVIDER PASS: Europe PMC returned',biomedical.resultList.result.length,'published metadata records; no abstracts imported.');
 console.log('PROVIDER PASS: HadeethEnc category',category.id,'hadith',first.id,'matched',live.results.length,'; Qur’an 2:255 Arabic + English aligned.');
