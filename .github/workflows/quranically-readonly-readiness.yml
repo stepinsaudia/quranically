@@ -1,3 +1,4 @@
+# Observe the second canonical-smoke release attempt; this workflow never writes to production.
 name: Quranically — Read-only Production Readiness
 on:
   pull_request:
