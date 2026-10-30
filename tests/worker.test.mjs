@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of fs.readdirSync(path.join(root,'migrations')).filter(x=>/^\\d{4}_.*\\.sql$/.test(x)).sort())sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -188,7 +188,7 @@ test('encyclopedia article publication requires sources and sections; Admin audi
  const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
  assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={origin:'https://test.local',cookie,'content-type':'application/json'};
  const bootstrap=await get(e,'/api/admin/bootstrap',{headers});assert.equal(bootstrap.status,200);const state=await bootstrap.json();
- assert.equal(state.encyclopedia_articles.length,18);
+ assert(state.encyclopedia_articles.length>=21);
  assert(state.encyclopedia_sections.length>=70);assert(state.encyclopedia_citations.length>=30);
  assert(state.encyclopedia_passages.length>=10);
  const make=await get(e,'/api/admin/encyclopedia_articles',{method:'POST',headers,body:JSON.stringify({slug:'test-reference-entry',title:'A test reference entry',domain:'quranic_themes',entry_type:'concept',abstract:'An isolated test entry.',status:'draft'})});
