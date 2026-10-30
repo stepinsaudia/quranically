@@ -568,3 +568,21 @@ test('five sourced Quranic and Sunnah dossiers answer without fabricated tafsir 
   assert((await unified.json()).contextual_answers.some(a=>a.slug===slug),q);
  }
 });
+
+test('Ayat al-Kursi 2:255 includes full reference, contextual sections and authenticated hadith pointers',async()=>{
+ const env=fixture(),q='Where is Ayat al Kursi?';
+ const r=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'quranic_themes'}));
+ assert.equal(r.status,200);
+ const body=await r.json();
+ assert.equal(body.outcome,'full_article_answer');
+ assert.equal(body.answer.slug,'ayat-al-kursi-guide');
+ assert(body.answer.sections.length>=4);
+ assert(body.answer.citations.some(x=>x.citation_ref==='2:255'));
+ assert(body.answer.citations.some(x=>x.citation_ref==='810'));
+ assert(body.answer.citations.some(x=>x.citation_ref==='5010'));
+ assert.equal(body.answer.review_status,'editorial_draft');
+ const u=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'quranic_themes'}));
+ const answer=await u.json();
+ assert(answer.contextual_answers.some(x=>x.slug==='ayat-al-kursi-guide'));
+ assert(answer.evidence.quran.some(v=>v.reference==='2:255'));
+});
