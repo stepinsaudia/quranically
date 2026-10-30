@@ -15,6 +15,16 @@ export const normalizeSubject=value=>String(value||'').toLowerCase().replace(/[\
 export function subjectTokens(value){
  return [...new Set(normalizeSubject(value).split(' ').filter(x=>x.length>2&&!ignored.has(x)).map(x=>canonical.get(x)||x))];
 }
+// Token-aware matching prevents false matches such as "men" inside "treatment"
+// and "fast" inside "breakfast"; direct field scans must never use substring
+// scoring to decide whether a religious or medical subject is relevant.
+export function matchedSubjects(query,body){
+ const wanted=subjectTokens(query),available=new Set(subjectTokens(body));
+ return wanted.filter(t=>available.has(t));
+}
+export function subjectOverlap(query,body){
+ return matchedSubjects(query,body).length;
+}
 function phrases(article){return [article.title,...String(article.alternate_names||'').split(',')].map(normalizeSubject).filter(Boolean);}
 export function scoreArticle(query,article){
  const nq=normalizeSubject(query),qt=subjectTokens(query);
