@@ -42,3 +42,26 @@ jobs:
           JS
       - name: Read-only public Worker status
         run: node scripts/live-smoke.mjs
+      - name: Observe full Quranically frontend rollout without modifying anything
+        run: |
+          node --input-type=module <<'JS'
+          const root='https://qst-living-knowledge-v1.stepinsaudia.workers.dev';
+          let last='unknown';
+          for(let i=1;i<=10;i++){
+            try{
+              const [v,a]=await Promise.all([
+                fetch(root+'/api/quran/search?q=patience&limit=12',{signal:AbortSignal.timeout(18000)}),
+                fetch(root+'/api/encyclopedia/answer?domain=seerah&q=What%20happened%20at%20the%20Battle%20of%20Badr%3F',{signal:AbortSignal.timeout(18000)})
+              ]);
+              if(!v.ok||!a.ok)throw Error('HTTP '+v.status+', '+a.status);
+              const [verses,article]=await Promise.all([v.json(),a.json()]);
+              if(verses.source_corpus?.verses!==6236||verses.results?.length!==12||article.answer?.slug!=='battle-of-badr-sourced-account')
+                throw Error('Live Worker still serves old or incomplete source engine.');
+              console.log('LIVE EXISTING WORKER VERIFIED: Quran 6236-verse search and sourced Badr article are operational.');
+              process.exit(0);
+            }catch(e){last=String(e.message||e);console.log('Live verification attempt '+i+'/10:',last);}
+            await new Promise(resolve=>setTimeout(resolve,12000));
+          }
+          throw Error('Live source engine did not pass independent read-only verification: '+last);
+          JS
+
