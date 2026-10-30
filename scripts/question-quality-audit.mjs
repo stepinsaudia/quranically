@@ -7,12 +7,12 @@ const base=process.env.QST_AUDIT_URL||'http://127.0.0.1:8799';
 const questions=[
  {domain:'quranic_themes',q:'Where is Ayat al Kursi?',expect:'exact_verse'},
  {domain:'quranic_themes',q:'Show Quran 1:100',expect:'invalid_reference'},
- {domain:'quranic_themes',q:'What does Quran say about patience?',expect:'quran'},
- {domain:'quranic_themes',q:'Does Quran discuss riba?',expect:'quran'},
- {domain:'quranic_themes',q:'Where is Maryam mentioned?',expect:'quran'},
- {domain:'sunnah',q:'What hadith discuss honesty?'},
+ {domain:'quranic_themes',q:'What does Quran say about patience?',expect:'quran',require_article:true},
+ {domain:'quranic_themes',q:'Does Quran discuss riba?',expect:'quran',require_article:true},
+ {domain:'quranic_themes',q:'Where is Maryam mentioned?',expect:'quran',require_article:true},
+ {domain:'sunnah',q:'What hadith discuss honesty?',expect:'known_article'},
  {domain:'sunnah',q:'What did the Prophet teach about kindness?'},
- {domain:'sunnah',q:'What is Sunnah about backbiting?'},
+ {domain:'sunnah',q:'What is Sunnah about backbiting?',expect:'known_article'},
  {domain:'sunnah',q:'How should Muslim men dress?',expect:'known_article'},
  {domain:'seerah',q:'How did men dress in the Seerah?',expect:'known_article'},
  {domain:'seerah',q:'What happened during the Hijrah?',expect:'known_article'},
@@ -49,7 +49,7 @@ async function inspect(item){
   for(const h of hadith)assert(typeof h.source_url==='string'&&h.source_url.startsWith('https://'),'unattributed hadith result');
   assert(Array.isArray(intro.sections)&&Array.isArray(intro.citations),'missing structured answer');
   assert(intro.type==='insufficient_evidence'||intro.source_items_count>0,'invented evidence summary');
-  if(item.expect==='known_article')assert(reviewed.length>0,'published editorial answer missing');
+  if(item.expect==='known_article'||item.require_article)assert(reviewed.length>0,'published editorial answer missing');
   if(item.expect==='invalid_reference')assert(data.quran_lookup?.status==='invalid_reference','nonexistent verse was accepted');
   if(item.expect==='quran')assert(verses.length>0,'full translation index did not retrieve passages');
   if(item.expect==='exact_verse')assert(verses.some(v=>v.reference==='2:255'),'named verse not found');
