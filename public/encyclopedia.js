@@ -106,6 +106,14 @@ const experienceSearchForm=$('encyclopediaSearch');
 function renderDisciplineExperience(domain){
  const root=$('disciplineExperience'),d=disciplineExperience[domain];
  document.documentElement.dataset.qstDiscipline=d?domain:'';
+ const active={
+  quranic_themes:'/study.html',sunnah:'/encyclopedia?domain=sunnah',seerah:'/encyclopedia?domain=seerah',
+  prophetic_medicine:'/tibb',living_guidance:'/guidance'
+ }[domain]||'/encyclopedia';
+ document.querySelectorAll('.qst-links a').forEach(a=>{
+  if(a.getAttribute('href')===active)a.setAttribute('aria-current','page');
+  else a.removeAttribute('aria-current');
+ });
  if(!d){
    root.hidden=true;root.innerHTML='';
    const hints=originalSearchHost?.querySelector('.qst-search-hints');
