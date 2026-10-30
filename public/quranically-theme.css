@@ -296,3 +296,79 @@ header.qst-shell-header .qst-shell-nav a.qst-active,header.qst-shell-header .qst
 
 .source-shelf-arabic{font:400 clamp(20px,2.25vw,27px)/2.15 Amiri,serif!important;text-align:right;direction:rtl;white-space:pre-wrap;overflow-wrap:anywhere;background:#fbf7ed;border:1px solid #eee3d1;border-radius:8px;padding:14px 17px;color:#2c2924!important}
 .source-shelf-detail .source-shelf-matn{white-space:pre-wrap;overflow-wrap:anywhere}
+
+
+/* Canonical geometry and viewport contract — all five public journeys.
+   One centered content axis; admin edits text/images but never card markup. */
+:root{--qst-gutter:clamp(15px,3.2vw,46px);--qst-container:1320px}
+html,body{max-width:100%;overflow-x:clip}
+body:has(.qst-shell-header) .shell{
+ width:min(var(--qst-container),calc(100% - 2 * var(--qst-gutter)));margin-inline:auto;
+}
+.qst-shell-inner,.qst-footer-inner,.qst-footer-bottom{
+ width:min(var(--qst-container),calc(100% - 2 * var(--qst-gutter)));
+ max-width:none;margin-inline:auto;padding-inline:0;
+}
+.qst-shell-inner{min-height:70px}
+.qst-shell-brand{min-width:0}
+.qst-shell-nav{flex-wrap:nowrap;gap:clamp(7px,1.1vw,19px)}
+.qst-shell-nav a{font-size:clamp(10px,.78vw,12px)}
+.qst-shell-nav a:focus-visible,.qst-home-discipline:focus-visible{outline:3px solid #f5a52e;outline-offset:3px}
+#indexView .index-intro{
+ margin-top:18px;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);
+ min-height:0;overflow:hidden;align-items:stretch;
+}
+#indexView .index-intro .intro-copy{min-width:0;padding:clamp(25px,3vw,42px)}
+#indexView .index-intro .intro-copy h1{
+ font-size:clamp(33px,3.4vw,53px)!important;line-height:1.1;letter-spacing:-.045em;
+ margin:12px 0 18px;
+}
+#indexView .index-intro .intro-manuscript{
+ min-width:0;position:relative;overflow:hidden;min-height:275px;
+}
+#indexView .index-intro .intro-manuscript .qst-managed-hero-image{
+ position:absolute;inset:0;display:block;width:100%;height:100%;
+ max-height:none;min-height:0;object-fit:cover;
+}
+#indexView .index-intro>.search-strip{grid-column:1/-1;width:100%;margin:0}
+#indexView .index-intro .search-frame{width:100%;max-width:none;min-height:86px}
+#indexView .index-intro .search-frame form{min-width:0}
+#indexView .index-intro .search-frame input{min-width:0}
+#indexView .qst-home-card-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin-block:16px 22px}
+#indexView .qst-home-discipline{min-width:0}
+#indexView .qst-card-copy{min-height:112px}
+#indexView .qst-card-copy p{
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+body:has(.qst-home-card-grid) .breadcrumbs{display:none}
+body:has(.qst-home-card-grid) .reference-work{padding-top:19px}
+.reference-work>.results,.article-shell>.article-body{min-width:0}
+.article-shell,.reference-work{max-width:100%}
+.qst-shell-footer{margin-top:clamp(25px,4vw,56px)}
+@media(max-width:1080px){
+ .qst-shell-nav{flex-wrap:wrap}
+ #indexView .qst-home-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:820px){
+ #indexView .index-intro{grid-template-columns:1fr}
+ #indexView .index-intro .intro-manuscript{min-height:180px;height:180px!important}
+ #indexView .index-intro .search-strip{grid-column:1}
+ .qst-shell-inner{min-height:65px}
+}
+@media(max-width:600px){
+ #indexView .index-intro .intro-copy{padding:25px 20px}
+ #indexView .index-intro .intro-copy h1{font-size:clamp(29px,8vw,40px)!important}
+ #indexView .index-intro .intro-manuscript{height:165px!important;min-height:165px!important}
+ #indexView .qst-home-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #indexView .qst-card-media{aspect-ratio:1.55/1}
+ #indexView .qst-card-copy{min-height:118px}
+ .qst-shell-nav a{font-size:12px}
+ .qst-shell-footer{margin-top:28px}
+}
+@media(max-width:340px){
+ #indexView .qst-home-card-grid{grid-template-columns:1fr}
+ #indexView .index-intro .search-frame form button{padding-inline:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .qst-home-discipline,.qst-home-discipline img{transition:none!important}
+}
