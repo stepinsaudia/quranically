@@ -3,6 +3,8 @@ import {searchQuran} from './quran-search.mjs';
 import {bestArticle,scoreArticle,subjectTokens,normalizeSubject} from './article-match.mjs';
 import {searchHadeethEnc,hadeethCatalogInfo} from './hadeethenc-discovery.mjs';
 import {searchBiomedicalEvidence} from './biomedical-search.mjs';
+import {composeSourceAnswer} from './answer-compose.mjs';
+import {quranCorpusInfo,searchTranslationCorpus} from './quran-corpus-search.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -340,7 +342,7 @@ async function publicApi(request,env,url){
   if(pathname==='/api/source-connectors'){
     const states=(await env.DB.prepare('SELECT source_id,last_checked_at,last_state FROM source_connector_checks').all()).results;
     const byId=new Map(states.map(x=>[x.source_id,x]));
-    return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked',...(c.id==='hadeethenc'?{source_catalog:hadeethCatalogInfo()}:{} )})),notice:'Publisher-indexed reference titles are discoverable, not Quranically-reviewed Hadith text. Provider availability and scholarly validation are distinct.'});
+    return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked',...(c.id==='hadeethenc'?{source_catalog:hadeethCatalogInfo()}:{}),...(c.id==='alquran_cloud'?{source_catalog:quranCorpusInfo()}:{} )})),notice:'Publisher-indexed reference titles are discoverable, not Quranically-reviewed Hadith text. Provider availability and scholarly validation are distinct.'});
   }
   if(pathname==='/api/source-discovery'){
     const q=(url.searchParams.get('q')||'').trim();
@@ -415,7 +417,8 @@ async function publicApi(request,env,url){
       if(item.kind==='quran')uniqueVerses.add(item.reference);
     }
     buckets.quran=buckets.quran.slice(0,12);
-    return json({query:q,editorial,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    const answerBrief=composeSourceAnswer(q,{contextual_answers:contextualAnswers.filter(Boolean),guidance,evidence:buckets,tibb,biomedical_evidence:biomedical.results||[]});
+    return json({query:q,editorial,answer_brief:answerBrief,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
