@@ -491,7 +491,11 @@ async function publicApi(request,env,url){
     const letter=(url.searchParams.get('letter')||'').trim().toUpperCase();
     if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid encyclopedia subject');
     if(letter&&!/^[A-Z]$/.test(letter))return invalid('Invalid alphabetical index');
-    let query="SELECT id,slug,title,arabic_title,subtitle,domain,entry_type,abstract,alternate_names,review_status,updated_at FROM encyclopedia_articles WHERE status='published'";
+    let query="SELECT id,slug,title,arabic_title,subtitle,domain,entry_type,abstract,alternate_names,review_status,updated_at,"+
+      " (SELECT COUNT(*) FROM encyclopedia_citations c WHERE c.article_id=encyclopedia_articles.id) AS citation_count,"+
+      " (SELECT c.citation_ref FROM encyclopedia_citations c WHERE c.article_id=encyclopedia_articles.id ORDER BY c.sort_order,c.id LIMIT 1) AS primary_reference,"+
+      " (SELECT c.source_title FROM encyclopedia_citations c WHERE c.article_id=encyclopedia_articles.id ORDER BY c.sort_order,c.id LIMIT 1) AS primary_source_title"+
+      " FROM encyclopedia_articles WHERE status='published'";
     const params=[];
     if(domain){query+=' AND domain=?';params.push(domain);}
     if(letter){query+=' AND UPPER(SUBSTR(title,1,1))=?';params.push(letter);}
