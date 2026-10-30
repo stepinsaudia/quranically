@@ -68,8 +68,9 @@ async function refresh(){try{const d=await api('/api/admin/bootstrap');state=d;c
   const awaitingTibb=(d.tibb_entries||[]).filter(x=>x.status==='published'&&x.review_stage==='pending').length;
   const awaitingArticles=(d.encyclopedia_articles||[]).filter(x=>x.status==='published'&&x.review_status==='editorial_draft').length;
   const pendingPassages=(d.encyclopedia_passages||[]).filter(x=>x.status==='published'&&x.review_status==='pending').length;
-  $('editorialNotice').textContent=awaitingEvidence||awaitingSources||awaitingTibb||awaitingArticles||pendingPassages
-    ?awaitingEvidence+' published evidence record(s) await qualified review; '+awaitingSources+' source record(s) need editorial review; '+awaitingTibb+' medicine entry/entries and '+awaitingArticles+' encyclopedia article(s), and '+pendingPassages+' original Arabic excerpts await independent review. Published does not mean independently verified.'
+  const pendingResearch=(d.research_topics||[]).filter(x=>x.research_stage!=='closed').length;
+  $('editorialNotice').textContent=awaitingEvidence||awaitingSources||awaitingTibb||awaitingArticles||pendingPassages||pendingResearch
+    ?awaitingEvidence+' published evidence record(s) await qualified review; '+awaitingSources+' source record(s) need editorial review; '+awaitingTibb+' medicine entry/entries and '+awaitingArticles+' encyclopedia article(s), and '+pendingPassages+' original Arabic excerpts await independent review. '+pendingResearch+' specialist research topics remain private and unverified. Published does not mean independently verified.'
     :'No pending review statuses found. Verify supporting documentation before presenting content as approved.';
   show();msg('');}catch(e){msg('Could not load protected records: '+e.message);}}
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){tab=b.dataset.tab;$('filter').value='';closeEdit();show();}});
