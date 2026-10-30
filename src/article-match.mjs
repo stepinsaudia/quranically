@@ -39,11 +39,15 @@ export function scoreArticle(query,article){
   const at=subjectTokens(alias);if(!at.length)continue;
   const hits=qt.filter(t=>at.includes(t));
   let n=0;
+  // A single shared word must never make a multi-subject question appear to
+  // have a complete editorial answer. For example, "honey cures cancer"
+  // must not inherit an article that merely discusses honey for a cough.
+  const coverage=hits.length/qt.length;
   if(nq===alias)n=150;
-  else if(alias.length>=7&&(nq.startsWith(alias+' ')||nq.endsWith(' '+alias)||nq.includes(' '+alias+' ')))n=105;
-  else if(hits.length===qt.length&&hits.length>=2)n=88;
-  else if(qt.length===1&&hits.length===1)n=70;
-  else if(hits.length>=2&&hits.length/qt.length>=0.6)n=68;
+  else if(hits.length===qt.length&&hits.length>=2)n=100;
+  else if(qt.length===1&&hits.length===1)n=86;
+  else if(hits.length>=2&&coverage>=0.75&&at.length>=2)n=80;
+  else if(hits.length>=2&&coverage>=0.6&&at.length>=2)n=68;
   if(n>best){best=n;method=n>=105?'direct_subject':n>=88?'phrase_match':'subject_match';}
  }
  // Descriptive abstracts help rank among already plausible alias matches;
