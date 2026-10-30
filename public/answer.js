@@ -5,6 +5,19 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const href=v=>{try{const u=new URL(String(v||''));return u.protocol==='https:'?u.href:'';}catch{return '';}};
 const section=s=>'<section class="qa-part"><h4>'+esc(s.heading)+'</h4>'+String(s.body||'').split(/\n\n+/).filter(Boolean).map(x=>'<p>'+esc(x)+'</p>').join('')+'</section>';
 const citation=(x,i)=>'<li><span>['+(i+1)+']</span><div><strong>'+esc(x.source_title)+'</strong><small>'+esc(x.citation_ref)+' · Verification: '+esc(x.verification_status||'pending')+'</small>'+(x.source_note?'<p>'+esc(x.source_note)+'</p>':'')+'</div>'+(href(x.source_url)?'<a href="'+esc(href(x.source_url))+'" target="_blank" rel="noopener noreferrer">Inspect source</a>':'')+'</li>';
+const publisherHadith=x=>{
+ const source=href(x.source_url);
+ const benefits=Array.isArray(x.publisher_benefits)?x.publisher_benefits.filter(Boolean):[];
+ return '<article class="qst-publisher-hadith"><div class="qa-kicker">SUNNAH / PUBLISHER-EXPLAINED HADITH</div><h5>'+esc(x.title)+'</h5>'
+  +'<blockquote>'+esc(x.original_hadith)+'</blockquote>'
+  +(x.reported_grade?'<p class="qst-source-grade"><b>Publisher grade:</b> '+esc(x.reported_grade)+' · Not independently regraded by Quranically</p>':'')
+  +(x.publisher_attribution?'<p class="qst-source-grade"><b>Attribution:</b> '+esc(x.publisher_attribution)+'</p>':'')
+  +(x.publisher_explanation?'<h6>Explanation provided by HadeethEnc</h6><p>'+esc(x.publisher_explanation)+'</p>':'')
+  +(benefits.length?'<h6>Benefits identified by the publisher</h6><ol>'+benefits.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol>':'')
+  +'<small>Unmodified publisher content · '+esc(x.translation_edition||'Live English edition; version not supplied')+' · Publisher: HadeethEnc.com</small>'
+  +(source?'<a href="'+esc(source)+'" target="_blank" rel="noopener noreferrer">Review original HadeethEnc record</a>':'')
+  +'</article>';
+};
 const passage=x=>'<div class="qa-passage"><div lang="ar" dir="rtl">'+esc(x.arabic_excerpt)+'</div><p>'+esc(x.editorial_meaning)+'</p><small>Text verification: '+esc(x.review_status||'pending')+'</small></div>';
 async function show(q,domain){
  const root=document.getElementById('inlineAnswer'),content=document.getElementById('inlineAnswerBody');
@@ -33,6 +46,7 @@ async function show(q,domain){
         const items=found.evidence?.[key]||[];
         if(!items.length)return '';
         return '<section class="qa-part"><h4>'+esc(name)+'</h4>'+items.map(x=>{
+          if(x.provider==='HadeethEnc.com'&&x.original_hadith)return publisherHadith(x);
           const ref=String(x.reference||'');
           const verse=key==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(ref);
           const jump=verse?'<a href="/study.html?surah='+Number(verse[1])+'&ayah='+Number(verse[2])+'">Read in Qur’an Reader</a>':'';
@@ -92,7 +106,8 @@ async function show(q,domain){
       const complementaryGuidance=(found.guidance||[]).map(j=>'<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(j.evidence||[]).map(e=>'<p>'+esc(e.meaning)+' <small>'+esc(e.reference)+' · '+esc(e.review_status||'pending')+'</small></p>').join('')+'</div>').join('');
       const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
       const medicines=matches.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · '+esc(x.review_stage)+'</small></article>').join('');
-      const leads=[...(found.evidence?.quran||[]),...(found.evidence?.hadith||[])].slice(0,6).map(x=>{
+      const leads=[...(found.evidence?.quran||[]).slice(0,4),...(found.evidence?.hadith||[]).slice(0,4)].map(x=>{
+        if(x.provider==='HadeethEnc.com'&&x.original_hadith)return publisherHadith(x);
         const match=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
         const reader=match?'<a href="/study.html?surah='+Number(match[1])+'&ayah='+Number(match[2])+'">Read in Qur’an Reader</a>':'';
         const arabic=x.arabic?'<p lang="ar" dir="rtl" class="qst-arabic-verse">'+esc(x.arabic)+'</p>':'';
