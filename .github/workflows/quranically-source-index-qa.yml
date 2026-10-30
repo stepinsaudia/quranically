@@ -10,7 +10,7 @@ on:
       - '.github/workflows/quranically-source-index-qa.yml'
       - 'scripts/build-hadeethenc-title-snapshot.mjs'
 permissions:
-  contents: read
+  contents: write
 jobs:
   publisher-index:
     runs-on: ubuntu-latest
@@ -21,10 +21,20 @@ jobs:
         with:
           node-version: '22'
       - name: Harvest original English Hadith reference titles with source IDs (read-only)
+        env:
+          QST_SNAPSHOT_DIR: src/data
         run: node scripts/build-hadeethenc-title-snapshot.mjs
+      - name: Commit original publisher metadata to the canonical development branch only
+        if: ${{ github.event_name == 'push' && github.ref_name == 'fix/relevant-source-search-20261029' }}
+        run: |
+          git config user.name "quranically-source-index-bot"
+          git config user.email "quranically-source-index-bot@users.noreply.github.com"
+          git add src/data/hadeethenc-title-index.json
+          git commit -m "Refresh HadeethEnc source title reference catalog (2,328 official IDs expected)"
+          git push origin "HEAD:fix/relevant-source-search-20261029"
       - name: Preserve publisher reference metadata snapshot (no Worker or D1 changes)
         uses: actions/upload-artifact@v4
         with:
           name: quranically-hadeethenc-title-index
-          path: artifacts/hadeethenc-title-index.json
+          path: src/data/hadeethenc-title-index.json
           retention-days: 30
