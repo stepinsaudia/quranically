@@ -271,3 +271,35 @@ body[data-qst-page=guidance] .qst-collection-cta button span{
  background:#35202e;color:#fff;border-radius:50%;font-size:10px;
 }
 body[data-qst-page=guidance] .qst-collection-cta button:hover{background:#fff}
+
+/* Visual audit fixes: colored legacy band and dark-on-dark headings were
+   inherited, not part of the unified identity. */
+body[data-qst-page=guidance] > .top-rule{display:none!important}
+body[data-qst-page=encyclopedia] .reference-rail .focus-card h3,
+body[data-qst-page=encyclopedia] .reference-rail .focus-card b{
+ color:#fff3dc!important;
+}
+body[data-qst-page=encyclopedia] .reference-rail .focus-card p,
+body[data-qst-page=encyclopedia] .reference-rail .focus-card .side-label{
+ color:#ddbfaa!important;
+}
+body[data-qst-page=encyclopedia] .reference-rail .focus-card a{color:#efc68e!important}
+body[data-qst-page=encyclopedia] .methodology-section h2,
+body[data-qst-page=encyclopedia] .methodology-section h3{color:var(--qst-black)!important}
+/* Let the verse itself, not 400px of playback chrome, reach the Reader's
+   initial viewport. Keep all native recitation and word-study controls. */
+body[data-qst-page=reader] .qrHeroActions{margin-top:13px!important}
+body[data-qst-page=reader] .qrReaderHead{margin-bottom:16px!important}
+body[data-qst-page=reader] .qrControlPanel{
+ padding:15px 18px!important;margin-bottom:23px!important;
+}
+body[data-qst-page=reader] .qrControlTop{gap:12px!important}
+body[data-qst-page=reader] .qrInputGroup{gap:4px!important}
+body[data-qst-page=reader] .qrControlBottom{
+ margin-top:10px!important;gap:10px!important;
+}
+body[data-qst-page=reader] .qrAudioBar{
+ margin-top:11px!important;padding:8px 11px!important;
+}
+body[data-qst-page=reader] .qrMicro{margin-top:6px!important}
+body[data-qst-page=reader] .qrAyah{padding:19px 14px 22px!important}
