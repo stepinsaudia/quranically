@@ -659,7 +659,22 @@ export default {
         // Do not silently redirect the discipline to generic encyclopedia.
         return env.ASSETS.fetch(new Request(new URL('/tibb.html'+url.search,url.origin),request));
       }
-      if(path==='/encyclopedia'||path==='/encyclopedia/')return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+      if(path==='/encyclopedia'||path==='/encyclopedia/'){
+        const response=await env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
+        const selected={
+          quranic_themes:'/study.html',sunnah:'/encyclopedia?domain=sunnah',
+          seerah:'/encyclopedia?domain=seerah',prophetic_medicine:'/tibb',living_guidance:'/guidance'
+        }[url.searchParams.get('domain')||''];
+        if(!selected||!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
+        // Keep the single canonical header and mark the correct subject BEFORE
+        // paint. No client-side header replacement and no duplicate masthead.
+        let markup=await response.text();
+        markup=markup.replace('<a href="/encyclopedia" aria-current="page">','<a href="/encyclopedia">')
+          .replace('<a href="'+selected+'">','<a href="'+selected+'" aria-current="page">');
+        const headers=new Headers(response.headers);
+        headers.delete('content-length');headers.delete('etag');headers.set('cache-control','no-store');
+        return new Response(markup,{status:response.status,headers});
+      }
       if(path.startsWith('/encyclopedia/')){
         const slug=path.slice('/encyclopedia/'.length).replace(/\/$/,'');
         if(!validId(slug))return new Response('Reference article not found',{status:404});
