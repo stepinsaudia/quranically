@@ -518,3 +518,29 @@ test('three canonical Living Guidance dossiers return substantial sections and s
   assert((await u.json()).contextual_answers.some(x=>x.slug===slug),q);
  }
 });
+
+test('three medically bounded Tibb dossiers answer without unverified cure claims',async()=>{
+ const env=fixture();
+ for(const [query,slug,sourceRef] of [
+   ['What about honey for a cough?','honey-for-cough-evidence','5684'],
+   ['What is hijama and is it safe?','hijama-cupping-safety','5681'],
+   ['Does Prophetic Medicine cure asthma?','asthma-prophetic-medicine-boundaries','26:80']
+ ]){
+  const route='/api/encyclopedia/answer?'+new URLSearchParams({q:query,domain:'prophetic_medicine'});
+  const response=await get(env,route);
+  assert.equal(response.status,200,query);
+  const data=await response.json();
+  assert.equal(data.outcome,'full_article_answer',query);
+  assert.equal(data.answer.slug,slug,query);
+  assert(data.answer.sections.length>=4,query);
+  assert(data.answer.citations.some(x=>x.citation_ref.includes(sourceRef)),query);
+  assert(data.answer.citations.some(x=>x.citation_type==='clinical'),query);
+  assert(data.answer.citations.every(x=>x.source_url?.startsWith('https://')&&x.verification_status==='pending'),query);
+  assert.equal(data.answer.review_status,'editorial_draft');
+  const unified=await get(env,'/api/unified-search?'+new URLSearchParams({q:query,domain:'prophetic_medicine'}));
+  assert.equal(unified.status,200,query);
+  const result=await unified.json();
+  assert(result.contextual_answers.some(x=>x.slug===slug),query);
+  assert(result.answer_quality.flags.includes('no_individualized_medical_claim'),query);
+ }
+});
