@@ -10,7 +10,7 @@ const browser=await chromium.launch({headless:true});
 const sourceCatalog=await (await fetch(base+'/api/encyclopedia')).json();
 if(!Array.isArray(sourceCatalog.entries)||sourceCatalog.entries.length<10)
  throw Error('Local canonical D1 reference catalogue unavailable for populated Admin QA');
-const qaBootstrap={encyclopedia_articles:sourceCatalog.entries,encyclopedia_sections:[],
+const qaBootstrap={encyclopedia_articles:sourceCatalog.entries.map(entry=>({...entry,status:'published'})),encyclopedia_sections:[],
  encyclopedia_citations:[],encyclopedia_passages:[],encyclopedia_links:[],
  journeys:[],evidence:[],sources:[],steps:[],tibb_entries:[],tibb_offers:[],research_topics:[]};
 const sizes=[{width:1440,height:900},{width:1024,height:768},{width:390,height:844},{width:360,height:800}];
