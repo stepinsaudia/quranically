@@ -22,3 +22,10 @@ test('direct subject match outranks broad overlap and scores remain deterministi
  assert(scoreArticle('honey',records[2]).score>scoreArticle('honey',records[1]).score);
  assert.deepEqual(subjectTokens('How should Muslim men dress?'),['men','clothing']);
 });
+
+test('common Islamic transliterations share one explainable search vocabulary',()=>{
+ assert.deepEqual(subjectTokens('What is the Sunnah about nikah and mahr?'),['marriage','dowry']);
+ assert.deepEqual(subjectTokens('How is wudu done before salah?'),['ablution','prayer']);
+ assert.deepEqual(subjectTokens('What is tawbah for ghibah?'),['repentance','backbiting']);
+ assert.deepEqual(subjectTokens('Is riba forbidden?'),['usury','forbidden']);
+});
