@@ -104,3 +104,10 @@ body.qst-has-query #indexView .breadcrumbs{padding-block:9px}
 .qst-more-quran-button:focus-visible{outline:3px solid #9d875e;outline-offset:3px}
 .qst-more-quran-button:disabled{cursor:wait;opacity:.65}
 .qst-more-quran .qst-evidence{margin:0}
+
+/* Distinguish source leads from complete reviewed answers without a modal or
+   alarm-coloured UI. */
+.qst-quality-status{padding:13px 17px;margin:8px 0 14px;border:1px solid #e4d9cb;
+  border-left:3px solid #9b8266;background:#fcfaf5;border-radius:5px}
+.qst-quality-status strong{display:block;font:750 12px/1.45 Manrope,sans-serif;color:#463040}
+.qst-quality-status p{margin:5px 0 0;font-size:12px;line-height:1.7;color:#675b59}
