@@ -12,7 +12,8 @@ async function json(route,validate){
  if(!validate(d))throw Error(route+' returned incomplete source-backed data: '+JSON.stringify(d).slice(0,500));
  console.log('PASS',route);
 }
-for(const route of ['/','/study.html','/admin']){
+const adminRoute=/\.workers\.dev$/.test(new URL(base).hostname)?'/admin':'/admin-login.html';
+for(const route of ['/','/study.html',adminRoute]){
  const r=await get(route);
  if(r.status!==200)throw Error(route+' did not serve a page (HTTP '+r.status+')');
  const body=await r.text();
