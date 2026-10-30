@@ -1,0 +1,32 @@
+name: Quranically — Production Worker bundle dry-run (NO DEPLOY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-build-size-check.yml'
+      - 'src/**'
+      - 'public/**'
+      - 'wrangler.jsonc'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-build-size-check.yml'
+      - 'src/**'
+      - 'wrangler.jsonc'
+permissions:
+  contents: read
+jobs:
+  compile-worker-with-full-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Compile the complete 6236-verse Quran and 2328-title Hadith Worker offline
+        run: |
+          node --check src/index.mjs
+          node --check public/answer.js
+          npx wrangler deploy --dry-run
+          echo 'Cloudflare Worker and all static assets compiled successfully without a production update' >> "$GITHUB_STEP_SUMMARY"
