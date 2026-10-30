@@ -343,6 +343,10 @@ test('Scheduled source checks use metadata only and do not store religious text 
   assert(data.connectors.some(x=>x.id==='sunnah_com'&&x.mode==='access_required'));
   assert(data.connectors.some(x=>x.id==='ummah_hadith'&&x.last_state==='healthy'));
   assert(data.connectors.some(x=>x.id==='hadeethenc'&&x.last_state==='healthy'));
+  const official=data.connectors.find(x=>x.id==='hadeethenc');
+  assert.equal(official.source_catalog.title_count,2328);
+  assert.equal(official.source_catalog.root_subjects,7);
+  assert.equal(official.source_catalog.original_titles_only,true);
   assert(data.connectors.some(x=>x.id==='alquran_cloud'&&x.last_state==='healthy'));
  }finally{globalThis.fetch=old;}
 });
