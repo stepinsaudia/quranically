@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const files=['index.html','encyclopedia.html','guidance.html','study.html'];
+const files=['index.html','encyclopedia.html','guidance.html','study.html','tibb.html'];
 const read=f=>fs.readFileSync('public/'+f,'utf8');
 const extract=(s,start,end)=>{const i=s.indexOf(start),j=s.indexOf(end,i);assert(i>=0&&j>i,'Missing canonical region '+start);return s.slice(i,j+end.length);};
 test('all public page families share precisely one canonical header and navigation DOM',()=>{
