@@ -571,7 +571,8 @@ export default {
       ['ummah_quran','https://ummahapi.com/api/quran/surahs'],
       ['ummah_hadith','https://ummahapi.com/api/hadith/collections'],
       ['ummah_dua','https://ummahapi.com/api/duas/categories'],
-      ['hadeethenc','https://hadeethenc.com/api/v1/languages']
+      ['hadeethenc','https://hadeethenc.com/api/v1/categories/list/?language=en'],
+      ['alquran_cloud','https://api.alquran.cloud/v1/edition/language/en']
     ];
     for(const [id,endpoint] of checks){
       let state='unavailable',http=null;
