@@ -445,3 +445,31 @@ test('unified questions return actual on-page answer sections and original citat
    assert(answer.citations.every(x=>x.citation_ref&&x.source_url&&x.verification_status));
  }
 });
+
+test('full Quran verse index supports real paginated results without source API calls',async()=>{
+ const env=fixture();
+ const first=await get(env,'/api/quran/search?q=patience&offset=0&limit=4');
+ assert.equal(first.status,200);
+ const data=await first.json();
+ assert.equal(data.source_corpus.verses,6236);
+ assert.equal(data.source_corpus.surahs,114);
+ assert.equal(data.results.length,4);
+ assert.equal(data.next_offset,4);
+ assert(data.total>=8);
+ const second=await get(env,'/api/quran/search?q=patience&offset=4&limit=4');
+ const next=await second.json();
+ assert.equal(next.results.length,4);
+ assert.notEqual(data.results[0].reference,next.results[0].reference);
+ assert(data.results.every(x=>x.reader_url.startsWith('/study.html?')));
+ assert(data.results.every(x=>x.review_status==='publisher_translation_not_tafsir'));
+});
+test('unified search gives transparent source corpus coverage and grounded answer plan',async()=>{
+ const env=fixture();
+ const res=await get(env,'/api/unified-search?q=patience');
+ assert.equal(res.status,200);
+ const body=await res.json();
+ assert.equal(body.quran_lookup.source_corpus.verses,6236);
+ assert(body.answer_brief.type==='source_first_evidence_brief'||body.answer_brief.type==='editorial_with_primary_sources');
+ assert(body.answer_brief.sources_count>=1);
+ assert(body.answer_brief.sections.some(x=>x.heading==='Relevant Qur’anic passages'));
+});
