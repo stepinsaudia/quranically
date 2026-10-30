@@ -26,9 +26,9 @@ const questions=[
  {domain:'prophetic_medicine',q:'Does Prophetic Medicine cure asthma?'},
  {domain:'living_guidance',q:'What Islamic guidance exists for anxiety?'},
  {domain:'living_guidance',q:'What should I do during hardship?'},
- {domain:'living_guidance',q:'How should I manage anger?'},
- {domain:'living_guidance',q:'What is repentance in Islam?'},
- {domain:'living_guidance',q:'What does Islam teach about family relationships?'}
+ {domain:'living_guidance',q:'How should I manage anger?',expect:'known_article'},
+ {domain:'living_guidance',q:'What is repentance in Islam?',expect:'known_article'},
+ {domain:'living_guidance',q:'What does Islam teach about family relationships?',expect:'known_article'}
 ];
 function assert(c,m){if(!c)throw Error(m);}
 async function inspect(item){
