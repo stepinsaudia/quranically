@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'No Cloudflare token is connected in GitHub Actions'; exit 1; }
-          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE status='published') AS articles, (SELECT COUNT(*) FROM tibb_entries WHERE status='published') AS tibb, (SELECT COUNT(*) FROM encyclopedia_citations) AS citations, (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('diabetes-and-prophetic-medicine','mens-clothing-prophetic-era') AND status='published') AS critical_answers;" > /tmp/qst-audit.json
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE status='published') AS articles, (SELECT COUNT(*) FROM tibb_entries WHERE status='published') AS tibb, (SELECT COUNT(*) FROM encyclopedia_citations) AS citations, (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('diabetes-and-prophetic-medicine','mens-clothing-prophetic-era') AND status='published') AS critical_answers, (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('hijrah-to-madinah','battle-of-badr-sourced-account','prophetic-guidance-neighbours','anger-and-self-restraint','repentance-tawbah-in-islam','family-relationships-kindness','honey-for-cough-evidence','hijama-cupping-safety','asthma-prophetic-medicine-boundaries','patience-quranic-theme','riba-in-quranic-text','maryam-in-quran','truthfulness-in-sunnah','backbiting-ghibah-sunnah','ayat-al-kursi-guide') AND status='published') AS new_dossiers;" > /tmp/qst-audit.json
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           const results=JSON.parse(fs.readFileSync('/tmp/qst-audit.json','utf8'));
@@ -35,7 +35,9 @@ jobs:
           if(!x)throw Error('Remote D1 did not return expected read-only record counts');
           for(const [key,val] of Object.entries(x))console.log(key+': '+val);
           const good=Number(x.articles)>=17&&Number(x.tibb)>=8&&Number(x.citations)>=15&&Number(x.critical_answers)===2;
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Quranically existing D1 read-only audit\n\n'+Object.entries(x).map(([k,v])=>'- '+k+': '+v).join('\n')+'\n\nStatus: '+(good?'READY':'NEEDS EDITORIAL DATA MIGRATION')+'\n');
+          const contentReady=Number(x.new_dossiers)===15;
+          console.log('Release content status:',contentReady?'MIGRATED':'PENDING ('+x.new_dossiers+'/15 dossiers)');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Quranically existing D1 read-only audit\n\n'+Object.entries(x).map(([k,v])=>'- '+k+': '+v).join('\n')+'\n\nStatus: '+(good?(contentReady?'INFRASTRUCTURE AND NEW DOSSIERS READY':'INFRASTRUCTURE READY; NEW DOSSIER DATA MIGRATION PENDING'):'BASELINE DATABASE NOT READY')+'\n');
           if(!good)throw Error('Existing production content is not ready; deploy blocked and no data changed.');
           JS
       - name: Read-only public Worker status
