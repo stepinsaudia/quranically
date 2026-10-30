@@ -677,3 +677,23 @@ test('dedicated Prophetic Medicine route serves the real D1-backed Tibb experien
  const entries=(await catalogue.json()).entries;
  assert(entries.length>=8);
 });
+
+test('discipline index cards expose real D1 references without inventing grading',async()=>{
+ const env=fixture();
+ for(const domain of ['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']){
+  const response=await get(env,'/api/encyclopedia?domain='+domain);
+  assert.equal(response.status,200,domain);
+  const data=await response.json();
+  assert(data.entries.length>0,domain+' has no published articles');
+  for(const entry of data.entries){
+   const db=env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_citations WHERE article_id=?').bind(entry.id).first();
+   assert.equal(Number(entry.citation_count),Number(db.n),entry.slug+' citation count');
+   if(db.n){
+    const first=env.DB.prepare('SELECT citation_ref,source_title FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id LIMIT 1').bind(entry.id).first();
+    assert.equal(entry.primary_reference,first.citation_ref);
+    assert.equal(entry.primary_source_title,first.source_title);
+   }
+   assert(entry.review_status,'Review state must be visible');
+  }
+ }
+});
