@@ -33,7 +33,8 @@ try{
   if(row.errors.length)issues.push(type+' '+size.width+' JS errors '+row.errors.join(';'));
   if(row.doc>row.vw+1)issues.push(type+' '+size.width+' document overflows '+(row.doc-row.vw)+'px');
   if(type==='admin'){
-   const desired=Math.max(16,Math.round((size.width-Math.min(1280,size.width-32))/2));
+   const gutter=Math.max(32,Math.min(size.width*.065,104));
+   const desired=Math.round((size.width-Math.min(1280,size.width-gutter))/2);
    if(Math.abs(row.top.x-desired)>4||Math.abs(row.main.x-row.top.x)>2)issues.push('Admin geometry axis mismatch at '+size.width+'px');
    if(row.navLinks<12)issues.push('Admin canonical navigation lost collections');
    if(row.action.y>size.height*0.75)issues.push('Admin New Record action below first viewport');
