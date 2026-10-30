@@ -9,7 +9,9 @@ const browser=await chromium.launch({headless:true});
 const routes=[
  {name:'encyclopedia',path:'/',main:'form#encyclopediaSearch',axis:'.shell'},
  {name:'guidance',path:'/guidance.html',main:'.hero',axis:'.shell'},
- {name:'reader',path:'/study.html',main:'.qrHero, .hero',axis:'.container'}
+ {name:'reader',path:'/study.html',main:'.qrHero, .hero',axis:'.container'},
+ {name:'tibb',path:'/tibb.html',main:'.hero',axis:'.shell'},
+ {name:'article',path:'/encyclopedia/hijrah-to-madinah',main:'#articleView:not([hidden]) .article-shell',axis:'.shell'}
 ];
 const widths=[{w:1440,h:900},{w:1024,h:768},{w:390,h:844},{w:360,h:800}];
 const records=[];
@@ -62,6 +64,8 @@ for(const item of records){
   faults.push(item.page+' '+item.width+': search is below first viewport decision area');
  if(item.page==='guidance'&&item.firstAction?.height>(item.width<=390?505:460))
   faults.push(item.page+' '+item.width+': decorative hero too tall');
+ if(item.page==='tibb'&&item.firstAction?.height>(item.width<=390?505:470))
+  faults.push(item.page+' '+item.width+': medical library hero too tall');
  if(item.page==='reader'&&item.firstAction?.height>(item.width<=390?330:350))
   faults.push(item.page+' '+item.width+': Reader hero hides reading experience');
 }
@@ -73,5 +77,5 @@ for(const size of widths){
   faults.push('Footer height mismatch at '+size.w);
 }
 if(faults.length){console.error('CANONICAL GEOMETRY FAIL',faults.join(' | '));process.exitCode=1;}
-else console.log('CANONICAL GEOMETRY PASS: 3 page families × 4 retina viewports; single header/footer, axes, above-fold actions, zero overflow.');
+else console.log('CANONICAL GEOMETRY PASS: 5 page families × 4 retina viewports; single header/footer, axes, above-fold actions, zero overflow.');
 
