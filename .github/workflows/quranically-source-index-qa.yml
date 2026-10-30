@@ -1,9 +1,5 @@
 name: Quranically — Full HadeethEnc reference index QA (no deployment)
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/quranically-source-index-qa.yml'
-      - 'scripts/build-hadeethenc-title-snapshot.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
