@@ -24,7 +24,7 @@ test('all public pages lock viewport scale and page identity with no deployment-
  for(const f of files){
   const s=read(f);
   assert.match(s,/<meta name="viewport" content="width=device-width,\s*initial-scale=1(?:\.0)?"/i,f);
-  assert.match(s,/<body data-qst-page="(?:encyclopedia|guidance|reader)">/,f);
+  assert.match(s,/<body data-qst-page="(?:encyclopedia|guidance|reader|tibb)">/,f);
   assert(!s.includes('<script src="/canonical-header.js"'),'Header must be static and never replace itself on paint');
  }
 });
