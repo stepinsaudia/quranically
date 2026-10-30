@@ -2,11 +2,11 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const pages=['index.html','encyclopedia.html','guidance.html','study.html'];
+const pages=['index.html','encyclopedia.html','guidance.html','study.html','tibb.html'];
 const canonicalLinks=[
 '/encyclopedia','/study.html','/encyclopedia?domain=quranic_themes',
 '/encyclopedia?domain=sunnah','/encyclopedia?domain=seerah',
-'/encyclopedia?domain=prophetic_medicine','/guidance'
+'/tibb','/guidance'
 ];
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 test('every public page has one first-paint canonical masthead and stylesheet',()=>{
