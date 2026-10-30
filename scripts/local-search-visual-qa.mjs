@@ -61,5 +61,38 @@ try {
   await page.close();
   console.log('PASS '+viewport.name+': one search, canonical header, two sourced answers, Reader link, no overflow');
  }
+
+ // DISCIPLINE JOURNEY CHECKS: actual interactive subject views, not just API endpoints.
+ for(const viewport of [{name:'desktop',width:1440,height:900},{name:'mobile',width:390,height:844}]){
+  const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:2});
+  page.on('pageerror',error=>failures.push(viewport.name+' discipline '+error.message));
+  for(const [domain,heading,layout,action] of [
+   ['quranic_themes','Follow a theme through the Qur’an.','.qst-learning-grid','/study.html'],
+   ['sunnah','Read the report. Examine its source.','.qst-learning-grid','/encyclopedia?domain=sunnah&q=truthfulness'],
+   ['seerah','Explore a life, not a list.','.qst-seerah-journey','/encyclopedia/hijrah-to-madinah'],
+   ['prophetic_medicine','Tradition, context and clinical evidence.','.qst-learning-grid','/tibb'],
+   ['living_guidance','Real questions. Sourced perspectives.','.qst-learning-grid','/guidance']
+  ]){
+   await page.goto(base+'/encyclopedia?domain='+domain,{waitUntil:'domcontentloaded',timeout:25000});
+   await page.locator('#disciplineExperience:not([hidden]) h2').waitFor({timeout:10000});
+   if((await page.locator('#disciplineExperience h2').innerText())!==heading)throw Error('Wrong subject hero '+domain);
+   if((await page.locator('#disciplineExperience .qst-discipline-cta').getAttribute('href'))!==action)throw Error('Wrong contextual next action '+domain);
+   if(await page.locator('#encyclopediaSearch:visible').count()!==1)throw Error('Subject search missing or duplicated '+domain);
+   if(await page.locator('.qst-search-home:visible').count())throw Error('Generic repeated homepage hero leaked into '+domain);
+   await page.locator('#results '+layout).waitFor({timeout:15000});
+   if(await page.locator('#results .qst-learning-card').count()<1)throw Error('No real D1 article cards in '+domain);
+   if(await page.locator('.reference-rail:visible').count())throw Error('Generic medical sidebar duplicated on '+domain);
+   const widths=await page.evaluate(()=>({page:document.documentElement.scrollWidth,viewport:innerWidth}));
+   if(widths.page>widths.viewport+3)throw Error('Subject horizontal overflow '+domain+' '+JSON.stringify(widths));
+   await page.screenshot({path:'artifacts/quranically-'+domain+'-'+viewport.name+'.png',fullPage:true});
+   console.log('PASS',viewport.name,domain,'distinct source-backed module');
+  }
+  // The new contextual prompts submit through the SAME canonical answer engine.
+  await page.goto(base+'/encyclopedia?domain=sunnah',{waitUntil:'domcontentloaded',timeout:25000});
+  await page.locator('[data-subject-prompt="truthfulness"]').click();
+  await page.locator('body.qst-has-query').waitFor({timeout:10000});
+  if(!page.url().includes('q=truthfulness'))throw Error('Discipline question did not navigate into canonical source search');
+  await page.close();
+ }
 }finally{await browser.close();}
 if(failures.length)throw Error('Browser script errors: '+failures.join(' | '));
