@@ -18,6 +18,10 @@ const publisherHadith=x=>{
   +(source?'<a href="'+esc(source)+'" target="_blank" rel="noopener noreferrer">Review original HadeethEnc record</a>':'')
   +'</article>';
 };
+const biomedicalCards=items=>!Array.isArray(items)||!items.length?'':'<section class="qa-part"><h4>Modern biomedical literature — research references</h4><p>These publication records offer research context. Their inclusion does not establish efficacy, a Prophetic prescription, clinical approval or suitability for an individual.</p>'+items.map(x=>{
+ const link=href(x.source_url);
+ return '<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc([x.authors,x.journal,x.publication_year].filter(Boolean).join(' · '))+'</p><small>'+esc(x.reference)+' · Bibliographic source: Europe PMC · Not independently clinically appraised</small>'+(link?'<a target="_blank" rel="noopener noreferrer" href="'+esc(link)+'">Read publication record</a>':'')+'</article>';
+}).join('')+'</section>';
 const passage=x=>'<div class="qa-passage"><div lang="ar" dir="rtl">'+esc(x.arabic_excerpt)+'</div><p>'+esc(x.editorial_meaning)+'</p><small>Text verification: '+esc(x.review_status||'pending')+'</small></div>';
 async function show(q,domain){
  const root=document.getElementById('inlineAnswer'),content=document.getElementById('inlineAnswerBody');
@@ -35,7 +39,7 @@ async function show(q,domain){
   if(data.outcome!=='full_article_answer'||!data.answer){
     content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE</div><h3>Searching the Qur’an, Sunnah and available reference material…</h3>';
     try{
-      const url='/api/unified-search?'+new URLSearchParams({q});
+      const url='/api/unified-search?'+params;
       const result=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(19000)});
       if(!result.ok)throw Error('Search temporarily unavailable');
       const found=await result.json();if(id!==sequence)return null;
@@ -62,6 +66,7 @@ async function show(q,domain){
         const steps=(j.steps||[]).map(x=>'<li>'+esc(x.instruction)+'</li>').join('');
         return '<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(refs?'<h6>Referenced teachings</h6><ul>'+refs+'</ul>':'')+(steps?'<h6>Everyday application</h6><ol>'+steps+'</ol>':'')+(j.clinical_note?'<p class="qa-foot">'+esc(j.clinical_note)+'</p>':'')+'</div>';
       }).join('')+'</section>':'';
+      const biomedical=biomedicalCards(found.biomedical_evidence||[]);
       const tibb=(found.tibb||[]).length?'<section class="qa-part"><h4>Prophetic Medicine — tradition, context and safety</h4>'+found.tibb.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Health context:</b> '+esc(x.health_context)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · Review: '+esc(x.review_stage)+'</small>'+(href(x.reference_url)?'<a target="_blank" rel="noopener noreferrer" href="'+esc(href(x.reference_url))+'">Inspect original reference</a>':'')+'</article>').join('')+'</section>':'';
       const contextual=(found.contextual_answers||[]).map((a,i)=>{
         const articleUrl='/encyclopedia/'+encodeURIComponent(a.slug);
@@ -77,8 +82,8 @@ async function show(q,domain){
       }).join('');
       const hadithAvailability=found.hadeethenc_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The official HadeethEnc topic source is temporarily unavailable. Other results remain accessible; this is not evidence that the subject is absent from Sunnah.</p>':'';
       const referenceNotice=found.quran_lookup?.status==='invalid_reference'?'<section class="qa-part"><h4>Qur’an reference not found</h4><p>The chapter and verse numbers do not identify a valid Qur’anic verse. Check the reference before following a link.</p></section>':found.quran_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The connected Qur’an text search could not respond right now; the local evidence records may still be available.</p>':'';
-      const hasAny=Boolean(contextual||referenceGroups||tibb||guidance||evidence);
-      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceNotice+contextual+referenceGroups+guidance+tibb+evidence+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      const hasAny=Boolean(contextual||referenceGroups||tibb||biomedical||guidance||evidence);
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+referenceNotice+contextual+referenceGroups+guidance+tibb+biomedical+evidence+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
       if(!hasAny&&found.quran_lookup?.status!=='invalid_reference')content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
       return true; // The one answer panel owns empty states too; never open a duplicate source index.
     }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
@@ -99,13 +104,14 @@ async function show(q,domain){
   // A matching editorial article must not suppress other disciplines:
   // load complementary evidence without presenting provider snippets as validated answers.
   try{
-    const response=await fetch('/api/unified-search?'+new URLSearchParams({q}),{headers:{accept:'application/json'},signal:AbortSignal.timeout(14000)});
+    const response=await fetch('/api/unified-search?'+params,{headers:{accept:'application/json'},signal:AbortSignal.timeout(14000)});
     if(response.ok){
       const found=await response.json();if(id!==sequence)return null;
       const other=(found.editorial||[]).filter(x=>x.slug!==a.slug);
       const blocks=other.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>'+esc(x.review_status||'review pending')+'</small></p>').join('');
       const complementaryGuidance=(found.guidance||[]).map(j=>'<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(j.evidence||[]).map(e=>'<p>'+esc(e.meaning)+' <small>'+esc(e.reference)+' · '+esc(e.review_status||'pending')+'</small></p>').join('')+'</div>').join('');
       const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
+      const biomedical=biomedicalCards(found.biomedical_evidence||[]);
       const medicines=matches.map(x=>'<article class="qst-evidence"><strong>'+esc(x.title)+'</strong><p>'+esc(x.tradition_summary)+'</p><p><b>Safety:</b> '+esc(x.safety_note)+'</p><small>'+esc(x.reference_label)+' · '+esc(x.review_stage)+'</small></article>').join('');
       const leads=[...(found.evidence?.quran||[]).slice(0,4),...(found.evidence?.hadith||[]).slice(0,4)].map(x=>{
         if(x.provider==='HadeethEnc.com'&&x.original_hadith)return publisherHadith(x);
@@ -116,7 +122,7 @@ async function show(q,domain){
         const inspect=href(x.source_url)?'<a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a>':'';
         return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+grade+' · verification pending</small>'+reader+inspect+'</article>';
       }).join('');
-      if(blocks||complementaryGuidance||medicines||leads)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+complementaryGuidance+medicines+leads+'</section>');
+      if(blocks||complementaryGuidance||medicines||leads||biomedical)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+complementaryGuidance+medicines+leads+biomedical+'</section>');
     }
   }catch{/* Preserve the complete, canonical article if secondary providers fail. */}
   return true;
