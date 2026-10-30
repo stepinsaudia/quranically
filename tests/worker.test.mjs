@@ -658,3 +658,22 @@ test('the 60-topic research queue is private, source-review staged and editable 
  assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE research_stage='source_check'").first().n,1);
  assert(e.DB.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE table_name='research_topics'").first().n>=2);
 });
+
+test('dedicated Prophetic Medicine route serves the real D1-backed Tibb experience, not an encyclopedia redirect',async()=>{
+ const e=fixture();const paths=[];
+ e.ASSETS.fetch=async request=>{
+  paths.push(new URL(request.url).pathname);
+  return new Response('<!doctype html><html><body data-qst-page="tibb"><main>Prophetic Medicine</main></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ };
+ for(const pathname of ['/tibb','/tibb/','/tibb.html','/tibb?entry=black-seed']){
+  const res=await get(e,pathname);
+  assert.equal(res.status,200,'route '+pathname);
+  assert.equal(res.headers.get('location'),null,'should never redirect '+pathname);
+  assert.match(await res.text(),/data-qst-page="tibb"/);
+ }
+ assert.deepEqual(paths,['/tibb.html','/tibb.html','/tibb.html','/tibb.html']);
+ const catalogue=await get(e,'/api/tibb');
+ assert.equal(catalogue.status,200,'D1-backed Prophetic Medicine catalogue must still work');
+ const entries=(await catalogue.json()).entries;
+ assert(entries.length>=8);
+});
