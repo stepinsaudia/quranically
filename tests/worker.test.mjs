@@ -615,3 +615,46 @@ test('a specific medical or fiqh question cannot become a complete answer throug
   assert.notEqual(x.answer_quality.status,'published_reference_available',q);
  }
 });
+
+test('the 60-topic research queue is private, source-review staged and editable only through canonical authenticated Admin',async()=>{
+ const e=fixture();
+ const current=e.DB.prepare('SELECT COUNT(*) AS n FROM research_topics').first();
+ assert.equal(current.n,60);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE research_stage='queued'").first().n,60);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE linked_article_id IS NOT NULL").first().n,0);
+ const visitor=await get(e,'/api/admin/research_topics');
+ assert.equal(visitor.status,503);
+ const publicLeak=await get(e,'/api/research_topics');
+ assert.notEqual(publicLeak.status,200,'Private editorial research cannot be published as user-facing content');
+ const password='Private-editorial-research-test-password-2026';
+ const salt=new Uint8Array(16).fill(0x65);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=u=>Array.from(u,x=>x.toString(16).padStart(2,'0')).join('');
+ e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(derived);
+ const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const boot=await get(e,'/api/admin/bootstrap',{headers:{cookie}});
+ assert.equal(boot.status,200);
+ const loaded=await boot.json();
+ assert.equal(loaded.research_topics.length,60);
+ assert(loaded.research_topics.every(x=>x.research_stage==='queued'&&x.linked_article_id===null));
+ const create=await get(e,'/api/admin/research_topics',{method:'POST',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},
+  body:JSON.stringify({question:'How are astronomic observations authenticated?',domain:'quranic_themes',research_stage:'queued',
+    risk_class:'interpretation',source_notes:'Research only: evidence not yet verified',linked_article_id:'',sort_order:5})});
+ assert.equal(create.status,200);
+ const added=await create.json();
+ assert(added.id);
+ const saved=e.DB.prepare('SELECT * FROM research_topics WHERE id=?').bind(added.id).first();
+ assert.equal(saved.linked_article_id,null);
+ assert.equal(saved.research_stage,'queued');
+ const edit=await get(e,'/api/admin/research_topics/'+added.id,{method:'PUT',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},
+ body:JSON.stringify({research_stage:'source_check',assigned_reviewer:'Editorial Desk'})});
+ assert.equal(edit.status,200);
+ assert.equal(e.DB.prepare('SELECT research_stage FROM research_topics WHERE id=?').bind(added.id).first().research_stage,'source_check');
+ const invalid=await get(e,'/api/admin/research_topics/'+added.id,{method:'PUT',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},body:JSON.stringify({research_stage:'expert_approved_without_sources'})});
+ assert.equal(invalid.status,400);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE research_stage='source_check'").first().n,1);
+ assert(e.DB.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE table_name='research_topics'").first().n>=2);
+});
