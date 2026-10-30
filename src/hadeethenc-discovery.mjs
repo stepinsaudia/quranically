@@ -8,7 +8,7 @@ const API='https://hadeethenc.com/api/v1';
 const MAX_SIZE=800000;
 const validId=v=>/^\d{1,8}$/.test(String(v||''));
 const relevantTokens=value=>subjectTokens(value).filter(t=>t.length>=4);
-const catalogInfo=()=>({
+export const hadeethCatalogInfo=()=>({
  publisher:'HadeethEnc.com',
  title_count:titleCatalog.records.length,
  root_subjects:titleCatalog.coverage.length,
@@ -81,7 +81,7 @@ async function categoryFallback(terms,fetcher){
    categories:categories.map(x=>({id:x.id,title:x.title,source_url:'https://hadeethenc.com/en/browse/category/'+x.id}))};
 }
 export async function searchHadeethEnc(query,fetcher=fetch,options={}){
- const terms=relevantTokens(query).slice(0,5), catalog=catalogInfo();
+ const terms=relevantTokens(query).slice(0,5), catalog=hadeethCatalogInfo();
  if(!terms.length)return {status:'no_search_term',results:[],matched_categories:[],publisher:'HadeethEnc.com',catalog};
  const records=Array.isArray(options.titleIndex)?options.titleIndex:titleCatalog.records;
  const indexed=records.filter(x=>validId(x.id)&&typeof x.title==='string')
