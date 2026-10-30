@@ -1,0 +1,46 @@
+name: Quranically — Real question source quality gate (NO DEPLOY)
+on:
+  pull_request:
+    paths:
+      - 'scripts/question-quality-audit.mjs'
+      - '.github/workflows/quranically-question-quality.yml'
+      - 'src/**'
+      - 'public/answer.js'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - 'scripts/question-quality-audit.mjs'
+      - '.github/workflows/quranically-question-quality.yml'
+permissions:
+  contents: read
+jobs:
+  question-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run isolated local Worker backed by canonical seeded D1
+        run: |
+          node scripts/local-preview.mjs > /tmp/qst-question-quality-server.log 2>&1 &
+          for n in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:8799/api/health >/dev/null && break
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8799/api/health
+      - name: Run real-question multi-discipline evidence, attribution, and source quality audit
+        run: node scripts/question-quality-audit.mjs
+      - name: Preserve diagnostic gaps and detailed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-real-question-quality-audit
+          path: |
+            artifacts/quranically-question-quality.json
+            artifacts/quranically-question-quality.md
+          if-no-files-found: warn
+      - name: Explain local-preview failures
+        if: failure()
+        run: tail -100 /tmp/qst-question-quality-server.log
