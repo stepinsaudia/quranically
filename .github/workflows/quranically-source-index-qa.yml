@@ -1,0 +1,30 @@
+name: Quranically — Full HadeethEnc reference index QA (no deployment)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-source-index-qa.yml'
+      - 'scripts/build-hadeethenc-title-snapshot.mjs'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-source-index-qa.yml'
+      - 'scripts/build-hadeethenc-title-snapshot.mjs'
+permissions:
+  contents: read
+jobs:
+  publisher-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Harvest original English Hadith reference titles with source IDs (read-only)
+        run: node scripts/build-hadeethenc-title-snapshot.mjs
+      - name: Preserve publisher reference metadata snapshot (no Worker or D1 changes)
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-hadeethenc-title-index
+          path: artifacts/hadeethenc-title-index.json
+          retention-days: 30
