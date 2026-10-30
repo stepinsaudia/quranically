@@ -473,3 +473,27 @@ test('unified search gives transparent source corpus coverage and grounded answe
  assert(body.answer_brief.sources_count>=1);
  assert(body.answer_brief.sections.some(x=>x.heading==='Relevant Qur’anic passages'));
 });
+
+test('three source-linked Seerah dossiers render comprehensive canonical answers',async()=>{
+ const env=fixture();
+ for(const [q,slug,primary] of [
+  ['What happened during the Hijrah?','hijrah-to-madinah','9:40'],
+  ['What happened at the Battle of Badr?','battle-of-badr-sourced-account','3:123'],
+  ['How did the Prophet treat his neighbours?','prophetic-guidance-neighbours','6014']
+ ]){
+  const response=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'seerah'}));
+  assert.equal(response.status,200,q);
+  const data=await response.json();
+  assert.equal(data.outcome,'full_article_answer',q);
+  assert.equal(data.answer.slug,slug,q);
+  assert(data.answer.sections.length>=4,q);
+  assert(data.answer.citations.some(c=>c.citation_ref.includes(primary)),q);
+  assert(data.answer.citations.every(c=>c.source_url?.startsWith('https://')&&c.verification_status==='pending'),q);
+  assert.equal(data.answer.review_status,'editorial_draft',q);
+  const all=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'seerah'}));
+  assert.equal(all.status,200,q);
+  const related=await all.json();
+  assert(related.contextual_answers.some(x=>x.slug===slug),q);
+  assert.equal(related.answer_quality?.status,'published_reference_available',q);
+ }
+});
