@@ -333,9 +333,9 @@ test('Scheduled source checks use metadata only and do not store religious text 
   globalThis.fetch=async url=>{called.push(String(url));return new Response('{}',{status:200});};
   await worker.scheduled({},env);
   const records=(await env.DB.prepare('SELECT * FROM source_connector_checks').all()).results;
-  assert.equal(records.length,5);
+  assert.equal(records.length,6);
   assert(records.every(x=>x.last_state==='healthy'));
-  assert.equal(called.length,5);
+  assert.equal(called.length,6);
   assert(called.every(x=>!x.includes('search?q=')));
   const list=await get(env,'/api/source-connectors');
   assert.equal(list.status,200);
@@ -348,6 +348,8 @@ test('Scheduled source checks use metadata only and do not store religious text 
   assert.equal(official.source_catalog.root_subjects,7);
   assert.equal(official.source_catalog.original_titles_only,true);
   assert(data.connectors.some(x=>x.id==='alquran_cloud'&&x.last_state==='healthy'));
+  assert(data.connectors.some(x=>x.id==='europe_pmc'&&x.last_state==='healthy'));
+  assert(data.connectors.find(x=>x.id==='europe_pmc').verification==='independent_medical_review_required');
  }finally{globalThis.fetch=old;}
 });
 
