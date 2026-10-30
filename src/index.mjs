@@ -1,6 +1,7 @@
 import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
 import {searchQuran} from './quran-search.mjs';
 import {bestArticle,scoreArticle,subjectTokens,normalizeSubject} from './article-match.mjs';
+import {searchHadeethEnc} from './hadeethenc-discovery.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -386,9 +387,10 @@ async function publicApi(request,env,url){
     }));
     const ingredients=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).then(x=>x.results).catch(()=>[]);
     const tibb=ingredients.map(x=>{const hay=normalize([x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '));return {...x,_score:terms.filter(t=>hay.includes(t)).length};}).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
-    const [remote,quranFullText]=await Promise.all([
+    const [remote,quranFullText,hadeethEnc]=await Promise.all([
       liveSourceSearch(q,'').catch(()=>({results:[],providers:[],review_notice:'External indexes unavailable'})),
-      searchQuran(q).catch(()=>({status:'temporarily_unavailable',mode:'translation_keyword',searched:'',results:[]}))
+      searchQuran(q).catch(()=>({status:'temporarily_unavailable',mode:'translation_keyword',searched:'',results:[]})),
+      searchHadeethEnc(q).catch(()=>({status:'temporarily_unavailable',results:[],publisher:'HadeethEnc.com'}))
     ]);
     const ranked=(remote.results||[]).map(x=>{
       const body=normalize([x.title,x.excerpt,x.reference].join(' '));
@@ -396,6 +398,7 @@ async function publicApi(request,env,url){
       return {...x,_score:score};
     }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,12).map(({_score,...rest})=>rest);
     const buckets={quran:[],hadith:[],dua:[]};
+    for(const item of hadeethEnc.results||[])buckets.hadith.push(item);
     const uniqueVerses=new Set();
     for(const item of quranFullText.results||[]){
       if(!item.reference||uniqueVerses.has(item.reference))continue;
@@ -408,7 +411,7 @@ async function publicApi(request,env,url){
       if(item.kind==='quran')uniqueVerses.add(item.reference);
     }
     buckets.quran=buckets.quran.slice(0,12);
-    return json({query:q,editorial,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. External Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    return json({query:q,editorial,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',translation_edition:hadeethEnc.translation_edition||null},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
