@@ -1,3 +1,4 @@
+# Second controlled attempt: exact smoke contract verified against local preview.
 name: Quranically — ONE-TIME delegated existing Worker soft release
 on:
   push:
