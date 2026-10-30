@@ -23,9 +23,10 @@ const field={
   encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url','source_note','verification_status','sort_order'],
   encyclopedia_links:['article_id','target_article_id','relation_label','sort_order'],
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
+  research_topics:['question','domain','research_stage','risk_class','source_notes','assigned_reviewer','linked_article_id','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -43,7 +44,7 @@ const needed={journeys:['title','slug'],sources:['title','source_url','source_ty
  encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url'],
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
- tibb_offers:['entry_id','seller_name','product_name','offer_url']};
+ tibb_offers:['entry_id','seller_name','product_name','offer_url'],research_topics:['question','domain','research_stage','risk_class']};
 const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
@@ -59,6 +60,7 @@ function normalize(table,payload,method){
     if(typeof val!=='string'||val.length>(textLimit[k]||1200))throw new Error('Invalid '+k);
     const txt=val.trim();
     const localEnums={
+      research_topics:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],research_stage:['queued','researching','source_check','scholar_review','medical_review','ready_for_article','closed'],risk_class:['general','interpretation','hadith_grade','historical','medical','jurisprudence']},
       encyclopedia_articles:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],entry_type:['ingredient','practice','devotion','concept','historical','guidance'],review_status:['editorial_draft','source_checked','scholar_reviewed','dual_reviewed']},
       encyclopedia_sections:{section_type:['overview','scripture','transmission','historical','interpretation','science','safety','practice','methodology']},
       encyclopedia_citations:{citation_type:['quran','hadith','clinical','reference','classical'],verification_status:['pending','source_checked','expert_checked']},
@@ -69,7 +71,7 @@ function normalize(table,payload,method){
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
     if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
-    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
+    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id','linked_article_id'].includes(k)&&txt&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
   if(method==='POST'&&needed[table].some(k=>!output[k]))throw new Error('Missing required field');
