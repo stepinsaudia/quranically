@@ -62,7 +62,7 @@ check(login.status===200,'Verified private native Admin login');
 const cookie=(login.headers.get('set-cookie')||'').split(';')[0];check(cookie.startsWith('__Host-qst_admin='),'Secure session cookie');
 try{
  const boot=await read('/api/admin/bootstrap',cookie);
- check(boot.res.status===200&&boot.data?.encyclopedia_articles?.length>=21&&boot.data?.encyclopedia_sections?.length>=70,'Canonical Admin owns same article corpus and ordered sections');
+ check(boot.res.status===200&&boot.data?.encyclopedia_articles?.length>=33&&boot.data?.encyclopedia_sections?.length>=70,'Canonical Admin owns same article corpus and ordered sections');
  check(boot.data?.encyclopedia_citations?.length>=30&&boot.data?.encyclopedia_links?.length>=15,'Admin bibliographies and cross-references connected');
 check(boot.data?.encyclopedia_passages?.length>=12,'Admin maintains transmitted Arabic separately from editorial explanations');
  const audit=await read('/api/admin/audit',cookie);
