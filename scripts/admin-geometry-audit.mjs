@@ -11,7 +11,13 @@ try{
  for(const size of sizes)for(const type of ['admin','login']){
   const page=await browser.newPage({viewport:size,deviceScaleFactor:2,hasTouch:size.width<600});
   // In read-only render QA the private Admin JS must not request auth state.
-  if(type==='admin')await page.route('**/admin.js',route=>route.fulfill({status:200,body:'/* static Admin render inspection: deliberately no login or D1 writes */',contentType:'application/javascript'}));
+  if(type==='admin'){
+    // Worker correctly refuses unauthenticated /admin.html in the local preview.
+    // Serve the source HTML solely inside this browser's in-memory QA intercept.
+    // This DOES NOT change routes, access controls, credentials or production.
+    await page.route('**/admin.html',route=>route.fulfill({status:200,contentType:'text/html',body:fs.readFileSync('public/admin.html','utf8')}));
+    await page.route('**/admin.js',route=>route.fulfill({status:200,body:'/* read-only static editor geometry inspection */',contentType:'application/javascript'}));
+  }
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url=type==='admin'?'/admin.html':'/admin-login.html';
   const response=await page.goto(base+url,{waitUntil:'load',timeout:30000});
