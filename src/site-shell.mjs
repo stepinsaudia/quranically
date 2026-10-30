@@ -11,6 +11,46 @@ const renderLink=(link,cls='')=>{
  return url?'<a href="'+escapeHtml(url)+'"'+(cls?' class="'+cls+'"':'')+'>'+escapeHtml(link.label)+'</a>':'';
 };
 const groups=[['footer_explore','Explore'],['footer_resources','Resources'],['footer_about','About'],['footer_legal','Legal']];
+
+const canonicalDisciplines=new Set(['quranic_themes','sunnah','seerah','prophetic_medicine','living_guidance']);
+const safeImage=value=>{
+ try{const parsed=new URL(String(value||''));return parsed.protocol==='https:'?parsed.href:''}catch{return ''}
+};
+// The homepage is assembled with D1 content on the Worker BEFORE first paint.
+// No asynchronous client insertion, no old-to-new layout blink.
+function renderCanonicalHomepage(html,homepage,rows){
+ if(!html.includes('id="indexView"'))throw new Error('Canonical homepage container is missing');
+ const marker='<section class="index-intro shell">';
+ const first=html.indexOf(marker);
+ const end=html.indexOf('</section>',first);
+ if(first<0||end<0)throw new Error('Canonical homepage hero is missing');
+ let hero=html.slice(first,end+'</section>'.length);
+ hero=hero.replace(/(<p class="overline">)[\\s\\S]*?(<\\/p>)/,'$1'+escapeHtml(homepage.kicker||'QURANICALLY / REFERENCE DESK')+'$2');
+ hero=hero.replace(/(<h1>)[\\s\\S]*?(<\\/h1>)/,'$1'+escapeHtml(homepage.heading)+'$2');
+ hero=hero.replace(/(<div class="intro-copy">[\\s\\S]*?<\\/h1>\\s*<p>)[\\s\\S]*?(<\\/p>)/,'$1'+escapeHtml(homepage.subtitle||homepage.body)+'$2');
+ const photo=safeImage(homepage.image_url);
+ if(photo){
+  hero=hero.replace('<div class="intro-manuscript" aria-hidden="true">',
+    '<div class="intro-manuscript" aria-hidden="true"><img class="qst-managed-hero-image" src="'+escapeHtml(photo)+'" alt="'+escapeHtml(homepage.image_alt||'')+'" loading="eager" fetchpriority="high">');
+ }
+ let trailing=html.slice(end+'</section>'.length);
+ const search=trailing.match(/^\\s*(<section class="search-strip">[\\s\\S]*?<\\/section>)/);
+ if(!search)throw new Error('Canonical search form is missing from homepage');
+ trailing=trailing.slice(search[0].length);
+ hero=hero.slice(0,-'</section>'.length)+search[1]+'</section>';
+ const cards=rows.filter(row=>canonicalDisciplines.has(row.id));
+ const grid='<section class="qst-home-card-grid shell" aria-label="Explore the five knowledge disciplines">'+
+ cards.map(card=>{
+  const image=safeImage(card.image_url);
+  const media=image?'<img src="'+escapeHtml(image)+'" alt="'+escapeHtml(card.image_alt||'')+'" loading="lazy">':
+   '<div class="qst-card-placeholder"><span>'+escapeHtml(card.title)+'</span></div>';
+  return '<a class="qst-home-discipline" href="/encyclopedia?domain='+encodeURIComponent(card.id)+'">'+
+   '<div class="qst-card-media">'+media+'</div><div class="qst-card-copy"><strong>'+escapeHtml(card.title)+
+   '</strong><p>'+escapeHtml(card.description)+'</p><span class="qst-card-arrow" aria-hidden="true">↗</span></div></a>';
+ }).join('')+'</section>';
+ return html.slice(0,first)+hero+grid+trailing;
+}
+
 export async function renderCanonicalShell(env,url,response){
  if(!response.ok||!(response.headers.get('content-type')||'').includes('text/html'))return response;
  let html=await response.text();
@@ -43,6 +83,16 @@ export async function renderCanonicalShell(env,url,response){
  '<div class="qst-foot-intro"><a class="qst-foot-brand" href="/"><img src="/favicon.svg" alt="" width="33" height="33"><span>'+
  escapeHtml(footer.heading||'Quranically')+'</span></a><p>'+escapeHtml(footer.body||footer.subtitle)+'</p></div>'+
  columns+'</div><div class="qst-footer-bottom"><span>'+escapeHtml(footer.subtitle)+'</span><span>'+escapeHtml(footer.kicker)+'</span></div></footer>';
+ 
+ if(url.pathname==='/'||url.pathname==='/index.html'){
+  const [homeResult,cardResult]=await Promise.all([
+   env.DB.prepare("SELECT kicker,heading,subtitle,body,image_url,image_alt FROM site_panels WHERE id='homepage' AND status='published'").first(),
+   env.DB.prepare("SELECT id,title,description,image_url,image_alt FROM homepage_disciplines WHERE status='published' ORDER BY sort_order,id").all()
+  ]);
+  if(!homeResult)throw new Error('Published canonical homepage panel is required');
+  html=renderCanonicalHomepage(html,homeResult,cardResult.results||[]);
+ }
+
  html=html.replace('<!--QST_CANONICAL_HEADER-->',shellHeader).replace('<!--QST_CANONICAL_FOOTER-->',shellFooter);
  const headers=new Headers(response.headers);
  headers.set('content-type','text/html; charset=utf-8');
