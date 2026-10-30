@@ -1,5 +1,9 @@
 name: Quranically — verify full 6236-verse source index (no deployment)
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-quran-verse-index.yml'
+      - 'scripts/build-quran-verse-index.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
@@ -24,6 +28,7 @@ jobs:
       - name: Validate all 114 Surahs, 6,236 source verses and Pickthall provenance
         run: node scripts/build-quran-verse-index.mjs
       - name: Commit only complete and verified source data on the development branch
+        if: ${{ github.event_name == 'push' }}
         run: |
           git config user.name 'quranically-source-index-bot'
           git config user.email 'quranically-source-index-bot@users.noreply.github.com'
