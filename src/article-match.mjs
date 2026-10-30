@@ -1,6 +1,6 @@
 // Canonical, explainable subject matcher. Never fabricates an answer from a weak hit.
 // Reused by the full article-answer endpoint and unified evidence discovery.
-const ignored=new Set(['the','and','for','from','with','what','where','which','when','why','how','does','do','did','can','could','would','should','please','tell','show','find','give','about','have','has','had','was','were','are','you','your','me','my','our','they','their','this','that','there','is','in','on','to','of','before','after','during','happened','happens','happening','done','doing','a','an','i','it','all','some','really','according','explain','meaning','teach','taught','prophetic','medicine','seerah','biography','sunnah','hadith','quran','qur','islam','islamic','muslim','rasulullah','prophet','muhammad','pbuh','peace','upon','him']);
+const ignored=new Set(['the','and','for','from','with','what','where','which','when','why','how','does','do','did','can','could','would','should','please','tell','show','find','give','about','have','has','had','was','were','are','you','your','me','my','our','they','their','this','that','there','is','in','on','to','of','before','after','during','happened','happens','happening','exists','exist','done','doing','a','an','i','it','all','some','really','according','explain','meaning','teach','taught','prophetic','medicine','seerah','biography','sunnah','hadith','quran','qur','islam','islamic','muslim','rasulullah','prophet','muhammad','pbuh','peace','upon','him']);
 const canonical=new Map([
  ['clothes','clothing'],['cloth','clothing'],['dress','clothing'],['dressing','clothing'],['garment','clothing'],['garments','clothing'],['wear','clothing'],['worn','clothing'],['outfit','clothing'],['outfits','clothing'],
  ['salah','prayer'],['salat','prayer'],['salaah','prayer'],['namaz','prayer'],
@@ -9,6 +9,7 @@ const canonical=new Map([
  ['nikah','marriage'],['nikkah','marriage'],['mahr','dowry'],
  ['riba','usury'],['ghibah','backbiting'],['tawbah','repentance'],['tauba','repentance'],['istighfar','forgiveness'],
  ['dua','supplication'],['duaa','supplication'],['jannah','paradise'],['qiyamah','resurrection'],
+ ['managing','manage'],['management','manage'],['controlling','control'],
  ['neighbour','neighbor'],['neighbours','neighbor'],['neighbors','neighbor'],['neighborly','neighbor'],
  ['hijra','hijrah'],['hijrat','hijrah'],['migration','hijrah'],['emigration','hijrah'],
  ['mens','men'],['man','men'],['male','men'],['males','men'],['diabetic','diabetes'],['glucose','diabetes'],['glycemic','diabetes'],['eyes','eyesight'],['vision','eyesight'],['blurry','eyesight'],['blurred','eyesight'],['kalonji','blackseed'],['nigella','blackseed'],['cumin','blackseed'],['sabr','patience'],['worry','anxiety'],['worries','anxiety']
