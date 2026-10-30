@@ -16,7 +16,8 @@ function linkFor(slug){return '/encyclopedia/'+encodeURIComponent(slug);}
 function showIndex(){selectedEntry=null;$('articleView').hidden=true;$('indexView').hidden=false;$('articleCrumbArrow').hidden=true;$('crumbSubject').textContent='Reference index';document.title='Quranically | The Islamic Reference Encyclopedia';$('query').value=filters.q;window.scrollTo({top:0,behavior:'instant'});refresh().then(()=>{if(filters.q&&!selectedEntry)document.getElementById('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});});}
 function renderSubjects(counts){
  const map=new Map(counts.map(x=>[x.domain,Number(x.entries)]));const total=counts.reduce((n,x)=>n+Number(x.entries),0);
- $('subjects').innerHTML=domains.map(([key,name])=>'<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'">'+esc(name)+'<b>'+ (key?(map.get(key)||0):total)+'</b></button>').join('');
+ const icons={prophetic_medicine:'leaf',quranic_themes:'quran',sunnah:'hadith',seerah:'compass',living_guidance:'path'};
+ $('subjects').innerHTML=domains.map(([key,name])=>'<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'"><span class="qst-subject-name"><svg class="qst-subject-icon" aria-hidden="true"><use href="#e-'+(icons[key]||'spark')+'"></use></svg>'+esc(name)+'</span><b>'+ (key?(map.get(key)||0):total)+'</b></button>').join('');
 }
 async function loadSubjects(){try{const data=await api('/api/encyclopedia/subjects');renderSubjects(data.subjects);}catch(e){$('subjects').textContent='Subject index unavailable';}}
 const alphabet=['ALL',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
