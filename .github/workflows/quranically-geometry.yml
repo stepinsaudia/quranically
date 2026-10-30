@@ -16,7 +16,12 @@ on:
     paths:
       - '.github/workflows/quranically-geometry.yml'
       - 'scripts/canonical-geometry-audit.mjs'
+      - 'scripts/admin-geometry-audit.mjs'
+      - 'scripts/sync-qst-shell.mjs'
+      - 'src/qst-public-shell.mjs'
       - 'public/qst-visual-system.css'
+      - 'public/admin-canonical.css'
+      - 'public/admin-login-canonical.css'
 permissions:
   contents: read
 jobs:
