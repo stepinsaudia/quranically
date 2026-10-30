@@ -38,6 +38,18 @@ try {
    }
    await page.screenshot({path:'artifacts/quranically-'+slug+'-'+viewport.name+'.png',fullPage:true});
   }
+  const firstPage=await page.evaluate(async()=>await (await fetch('/api/quran/search?q=patience&limit=12')).json());
+  if(firstPage.source_corpus.verses!==6236||firstPage.results.length!==12||firstPage.next_offset!==12)throw Error('Full Quran index or pagination missing');
+  const secondPage=await page.evaluate(async()=>await (await fetch('/api/quran/search?q=patience&offset=12&limit=12')).json());
+  if(secondPage.results.length!==12||secondPage.results[0].reference===firstPage.results[0].reference)throw Error('Second Quran result page invalid');
+  await page.locator('#query').fill('Where does the Quran mention patience?');
+  await page.locator('#encyclopediaSearch button[type="submit"]').click();
+  const more=page.locator('#inlineAnswer .qst-more-quran-button');
+  if(await more.count()){
+   await more.click();
+   await page.locator('#inlineAnswer .qst-more-quran-list .qst-evidence').first().waitFor({timeout:12000});
+   console.log('PASS '+viewport.name+' in-page Quran pagination renders verified additional source verses');
+  }
   await page.locator('#query').fill('Where can I find Ayat al Kursi?');
   await page.locator('#encyclopediaSearch button[type="submit"]').click();
   await page.locator('#quranJump:not([hidden]) .qst-verse-link').waitFor({timeout:10000});
