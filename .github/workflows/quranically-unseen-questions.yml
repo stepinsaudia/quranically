@@ -1,0 +1,50 @@
+name: Quranically — 60 unfamiliar question answer-integrity gate (NO DEPLOY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-unseen-questions.yml'
+      - 'scripts/unseen-question-audit.mjs'
+      - 'src/article-match.mjs'
+      - 'src/index.mjs'
+      - 'src/answer-quality.mjs'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-unseen-questions.yml'
+      - 'scripts/unseen-question-audit.mjs'
+permissions:
+  contents: read
+jobs:
+  broad-answer-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify audit syntax and sample DB
+        run: |
+          node --check scripts/unseen-question-audit.mjs
+          npm test
+      - name: Start independent local Worker and canonical SQL source dossiers
+        run: |
+          node scripts/local-preview.mjs >/tmp/qst-unseen-audit-server.log 2>&1 &
+          for n in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8799/api/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8799/api/health
+      - name: Stress test 60 unfamiliar Islamic questions without changing live site
+        run: node scripts/unseen-question-audit.mjs
+      - name: Preserve coverage report and explicit unanswered question categories
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-60-unseen-question-integrity-report
+          path: artifacts/quranically-unseen-question-audit.*
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Show preview errors only if audit fails
+        if: failure()
+        run: tail -80 /tmp/qst-unseen-audit-server.log || true
