@@ -1,5 +1,6 @@
 // Quranically first-party Quran verse lookup, delegated to the Al Quran Cloud source.
 // Translation matches do not constitute tafsir, fatwa, or independent scholarly review.
+import {searchTranslationCorpus,quranCorpusInfo} from './quran-corpus-search.mjs';
 export const AYAH_COUNTS=Object.freeze([7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6]);
 export function validVerse(c,v){return Number.isInteger(c)&&c>=1&&c<=114&&Number.isInteger(v)&&v>=1&&v<=AYAH_COUNTS[c-1];}
 const named=[
@@ -31,7 +32,7 @@ async function boundedJson(url,fetcher){
  const text=await r.text();if(text.length>1300000)throw Error('quran_response_too_large');
  const data=JSON.parse(text);if(data.code!==200||!data.data)throw Error('quran_provider_schema');return data.data;
 }
-export async function searchQuran(query,fetcher=fetch){
+export async function searchQuran(query,fetcher=fetch,options={}){
  const direct=parseVerseReference(query);
  if(!direct && /\b\d{1,3}\s*[:/]\s*\d{1,3}\b/.test(String(query)))return {status:'invalid_reference',mode:'exact_verse',searched:String(query).slice(0,60),results:[]};
  if(direct){
@@ -51,6 +52,22 @@ export async function searchQuran(query,fetcher=fetch){
  }
  const terms=quranSearchTerms(query);
  if(!terms.length)return {status:'no_search_term',searched:'',mode:'translation_keyword',results:[]};
+ // Search the validated entire 6236-verse source first. Supplying a mock
+ // fetcher keeps existing provider contract tests independent of this index.
+ if(fetcher===globalThis.fetch||Array.isArray(options.records)){
+  const indexed=searchTranslationCorpus(terms,{records:options.records,limit:12});
+  if(indexed.results.length){
+   const results=indexed.results.map(v=>{
+    const reference=v.chapter+':'+v.verse;
+    return {provider:'Al Quran Cloud',kind:'quran',reference,title:'Qur’an '+reference,
+      excerpt:v.text,source_url:'https://quran.com/'+v.chapter+'/'+v.verse,
+      translation:'Marmaduke Pickthall (en.pickthall)',review_status:'publisher_translation_not_tafsir'};
+   });
+   return {status:'available',searched:terms.join(', '),mode:'full_translation_index',
+     total:indexed.total,coverage:quranCorpusInfo(),results};
+  }
+ }
+
  const looked=await Promise.all(terms.map(async term=>{
   try{
    const data=await boundedJson('https://api.alquran.cloud/v1/search/'+encodeURIComponent(term)+'/all/en.pickthall',fetcher);
