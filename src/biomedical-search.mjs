@@ -4,7 +4,7 @@
 import {subjectTokens} from './article-match.mjs';
 const ORIGIN='https://www.ebi.ac.uk/europepmc/webservices/rest/search';
 const clinicalWords=/\b(medicine|medical|health|illness|disease|symptom|symptoms|treatment|remedy|remedies|cure|heal|healing|diabet\w*|asthma|infection|blood pressure|vision|eyesight|cancer|surgery|therapy|supplement\w*)\b/i;
-const ignore=new Set(['medical','medicine','health','disease','illness','symptom','symptoms','treatment','remedy','remedies','cure','healing','heal','tradition','traditional','study','studies','paper','papers','research','science','scientific','evidence','modern','clinical','professional','doctor','patient','please','find','show','using','used','about']);
+const ignore=new Set(['medical','medicine','health','disease','illness','symptom','symptoms','treatment','remedy','remedies','cure','healing','heal','tradition','traditional','study','studies','paper','papers','research','science','scientific','evidence','modern','clinical','professional','doctor','patient','please','find','show','using','used','about','wonder','wondering','want','need']);
 const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
 export function biomedicalKeywords(query,ingredients=[]){
  const subjects=subjectTokens(query).filter(x=>/^[a-z]{4,30}$/.test(x)&&!ignore.has(x));
