@@ -1,0 +1,41 @@
+name: Quranically — LIVE existing Worker browser and answer verification (read only)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/quranically-live-browser-qa.yml
+      - scripts/local-search-visual-qa.mjs
+      - scripts/canonical-release-smoke.mjs
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - .github/workflows/quranically-live-browser-qa.yml
+permissions:
+  contents: read
+jobs:
+  independent-production-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      QST_SMOKE_ROOT: https://qst-living-knowledge-v1.stepinsaudia.workers.dev
+      QST_VISUAL_BASE: https://qst-living-knowledge-v1.stepinsaudia.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only public API, Admin protection and full source-backed answer smoke checks
+        run: node scripts/canonical-release-smoke.mjs
+      - name: Install headless browser for actual live desktop and mobile verification
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Verify real public screenshots, sources, links and responsive answers on existing Worker
+        run: node scripts/local-search-visual-qa.mjs
+      - name: Preserve genuine LIVE site screenshots as review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-live-browser-verified-screenshots
+          path: artifacts/*.png
+          retention-days: 14
+          if-no-files-found: warn
