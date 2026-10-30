@@ -1,7 +1,7 @@
 // Branch-only browser QA. Runs against localhost, never production.
 import {chromium} from 'playwright';
 import {mkdirSync} from 'node:fs';
-const base='http://127.0.0.1:8799';
+const base=(process.env.QST_VISUAL_BASE||'http://127.0.0.1:8799').replace(/\/$/,'');
 mkdirSync('artifacts',{recursive:true});
 const browser=await chromium.launch({headless:true});
 const failures=[];
