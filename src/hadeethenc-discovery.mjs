@@ -57,7 +57,7 @@ export async function searchHadeethEnc(query,fetcher=fetch){
    if(originalText.length>11000||explanation.length>18000)return null;
    return {provider:'HadeethEnc.com',kind:'hadith',reference:'HadeethEnc '+item.id,
     title:d.title||item.title,original_hadith:originalText,publisher_explanation:explanation,
-    publisher_benefits:Array.isArray(d.hints)?d.hints.filter(x=>typeof x==='string'&&x.length<=1500).slice(0,8):[],
+    publisher_benefits:Array.isArray(d.hints)&&d.hints.length<=30&&d.hints.every(x=>typeof x==='string'&&x.length<=3000)?d.hints:[],
     reported_grade:typeof d.grade==='string'?d.grade:'',
     publisher_attribution:typeof d.attribution==='string'?d.attribution:'',
     source_url:'https://hadeethenc.com/en/browse/hadith/'+item.id,
