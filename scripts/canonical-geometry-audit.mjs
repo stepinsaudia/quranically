@@ -1,4 +1,4 @@
-// Real rendered geometry audit, NOT route-only QA.
+// Real rendered geometry audit, NOT route-only QA. Five public page families, four viewport sizes.
 // Applies one physical shared top axis, viewport action visibility and readable
 // balanced cards across every public page and the editor sign-in surface.
 import {chromium} from 'playwright';
