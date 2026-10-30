@@ -1,0 +1,54 @@
+name: Quranically — Canonical visual geometry audit (NO DEPLOY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-geometry.yml'
+      - 'scripts/canonical-geometry-audit.mjs'
+      - 'public/canonical-header.css'
+      - 'public/qst-visual-system.css'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-geometry.yml'
+      - 'scripts/canonical-geometry-audit.mjs'
+      - 'public/qst-visual-system.css'
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Start isolated canonical local Worker
+        run: |
+          node scripts/local-preview.mjs > /tmp/qst-geometry.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl --silent --fail http://127.0.0.1:8799/api/health >/dev/null && break
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8799/api/health
+      - name: Measure three page families across four real retina viewports
+        run: node scripts/canonical-geometry-audit.mjs
+      - name: Preserve full geometry JSON and actual retina screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-canonical-geometry-retina
+          path: artifacts/geometry-*.png
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Preserve numeric measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-canonical-geometry-metrics
+          path: artifacts/canonical-geometry-before.json
+          retention-days: 14
+          if-no-files-found: warn
