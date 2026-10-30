@@ -370,3 +370,34 @@ body[data-qst-page=tibb] .detail-panel{max-width:min(100%,900px)}
  body[data-qst-page=tibb] .entry-grid{grid-template-columns:minmax(0,1fr)!important}
  body[data-qst-page=tibb] .entry{min-height:0!important}
 }
+
+/* Footer geometry lock: older Reader/Guidance styles used generic
+   `footer span`, `footer a` and `footer p` selectors. Eliminate inherited
+   cross-page variations at tablet widths without hiding or truncating text. */
+body[data-qst-page] .qst-site-footer .qst-footer-identity>span{
+ display:block!important;font:800 15px/1.32 Manrope,sans-serif!important;
+ letter-spacing:.08em!important;color:#fff!important;margin:0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-identity small{
+ display:block!important;font:700 8px/1.5 Manrope,sans-serif!important;
+ letter-spacing:.11em!important;color:#baaeb0!important;margin:0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-intro>p{
+ font:400 12px/1.75 Manrope,sans-serif!important;
+ color:#bdb8b2!important;margin:15px 0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-integrity{
+ font:800 9px/1.6 Manrope,sans-serif!important;
+ letter-spacing:.09em!important;color:#d0ab75!important;margin:0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-group>a{
+ display:block!important;font:500 12px/1.55 Manrope,sans-serif!important;
+ color:#dbd7d1!important;margin:0!important;padding:0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-group>p{
+ font:400 11px/1.7 Manrope,sans-serif!important;color:#b5aea8!important;margin:4px 0!important;
+}
+body[data-qst-page] .qst-site-footer .qst-footer-bottom>span{
+ font:500 10px/1.5 Manrope,sans-serif!important;color:#aea9a7!important;
+ letter-spacing:0!important;margin:0!important;
+}
