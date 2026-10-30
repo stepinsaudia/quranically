@@ -546,3 +546,16 @@ html[data-qst-discipline=living_guidance] .qst-learning-card{border-top:3px soli
  .qst-seerah-stage:before{left:-21px}
 }
 @media(prefers-reduced-motion:reduce){.qst-discipline-cta{transition:none}}
+
+/* Native specialist categories remain visually coherent with sidebar controls. */
+body[data-qst-page=encyclopedia] .subject-controls .qst-subject-native{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ text-decoration:none;color:#5b5550;font:700 11px/1.45 Manrope,sans-serif;
+ padding:10px;border-left:3px solid transparent;
+}
+body[data-qst-page=encyclopedia] .subject-controls .qst-subject-native:hover{
+ background:#f5efe6;color:#35202e;border-left-color:#a88050;
+}
+body[data-qst-page=encyclopedia] .subject-controls .qst-subject-native b{
+ font-size:10px;color:#a18473;font-weight:700;
+}
