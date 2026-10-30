@@ -45,7 +45,7 @@ const needed={journeys:['title','slug'],sources:['title','source_url','source_ty
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url'],research_topics:['question','domain','research_stage','risk_class']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -53,6 +53,7 @@ function normalize(table,payload,method){
   const output={};
   for(const k of keys){
     const val=payload[k];
+    if(k==='linked_article_id'&&val===''){output[k]=null;continue;}
     if(k==='sort_order'){
       if(!Number.isSafeInteger(Number(val))||Math.abs(Number(val))>100000)throw new Error('Invalid sort order');
       output[k]=Number(val);continue;
