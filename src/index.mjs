@@ -4,6 +4,7 @@ import {bestArticle,scoreArticle,subjectTokens,normalizeSubject,subjectOverlap} 
 import {searchHadeethEnc,hadeethCatalogInfo} from './hadeethenc-discovery.mjs';
 import {searchBiomedicalEvidence} from './biomedical-search.mjs';
 import {composeSourceAnswer} from './answer-compose.mjs';
+import {assessAnswerQuality} from './answer-quality.mjs';
 import {quranCorpusInfo,searchTranslationCorpus} from './quran-corpus-search.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -439,7 +440,8 @@ async function publicApi(request,env,url){
     }
     buckets.quran=buckets.quran.slice(0,12);
     const answerBrief=composeSourceAnswer(q,{contextual_answers:contextualAnswers.filter(Boolean),guidance,evidence:buckets,tibb,biomedical_evidence:biomedical.results||[]});
-    return json({query:q,editorial,answer_brief:answerBrief,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    const answerQuality=assessAnswerQuality(q,domain,answerBrief);
+    return json({query:q,editorial,answer_brief:answerBrief,answer_quality:answerQuality,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
