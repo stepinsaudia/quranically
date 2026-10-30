@@ -1,5 +1,7 @@
 name: Quranically — Read-only Production Readiness
 on:
+  pull_request:
+    paths: [.github/workflows/quranically-readonly-readiness.yml]
   push:
     branches: [fix/relevant-source-search-20261029]
     paths: [.github/workflows/quranically-readonly-readiness.yml]
