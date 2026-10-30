@@ -333,15 +333,17 @@ test('Scheduled source checks use metadata only and do not store religious text 
   globalThis.fetch=async url=>{called.push(String(url));return new Response('{}',{status:200});};
   await worker.scheduled({},env);
   const records=(await env.DB.prepare('SELECT * FROM source_connector_checks').all()).results;
-  assert.equal(records.length,4);
+  assert.equal(records.length,5);
   assert(records.every(x=>x.last_state==='healthy'));
-  assert.equal(called.length,4);
+  assert.equal(called.length,5);
   assert(called.every(x=>!x.includes('search?q=')));
   const list=await get(env,'/api/source-connectors');
   assert.equal(list.status,200);
   const data=await list.json();
   assert(data.connectors.some(x=>x.id==='sunnah_com'&&x.mode==='access_required'));
   assert(data.connectors.some(x=>x.id==='ummah_hadith'&&x.last_state==='healthy'));
+  assert(data.connectors.some(x=>x.id==='hadeethenc'&&x.last_state==='healthy'));
+  assert(data.connectors.some(x=>x.id==='alquran_cloud'&&x.last_state==='healthy'));
  }finally{globalThis.fetch=old;}
 });
 
