@@ -3,11 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const pages=['index.html','encyclopedia.html','guidance.html','study.html','tibb.html'];
-const canonicalLinks=[
-'/encyclopedia','/study.html','/encyclopedia?domain=quranic_themes',
-'/encyclopedia?domain=sunnah','/encyclopedia?domain=seerah',
-'/tibb','/guidance'
-];
+const canonicalLinks=['/encyclopedia','/study.html','/encyclopedia?domain=sunnah','/encyclopedia?domain=seerah','/tibb','/guidance'];
 const read=name=>readFileSync(new URL('../public/'+name,import.meta.url),'utf8');
 test('every public page has one first-paint canonical masthead and stylesheet',()=>{
   for(const name of pages){
@@ -18,6 +14,9 @@ test('every public page has one first-paint canonical masthead and stylesheet',(
     assert.equal((html.match(/<nav class="qst-nav" aria-label="Primary">/g)||[]).length,1,name);
     assert.doesNotMatch(html,/<header class="(?:header|site-header)">|<header><div class="container head">/,name);
     for(const href of canonicalLinks) assert.ok(html.includes('href="'+href+'"'),name+' missing '+href);
+    const nav=html.match(/<nav class="qst-nav" aria-label="Primary">[\s\S]*?<\/nav>/)?.[0]||'';
+    assert.equal((nav.match(/<a href=/g)||[]).length,6,name+' navigation must have six clear destinations');
+    assert(!nav.includes('href="/encyclopedia?domain=quranic_themes"'),name+' theme study lives within Qur’an division');
   }
 });
 test('canonical public header maintains matching structural markup',()=>{
