@@ -497,3 +497,24 @@ test('three source-linked Seerah dossiers render comprehensive canonical answers
   assert.equal(related.answer_quality?.status,'published_reference_available',q);
  }
 });
+
+test('three canonical Living Guidance dossiers return substantial sections and source links',async()=>{
+ const env=fixture();
+ for(const [q,slug,ref] of [
+  ['How should I manage anger?','anger-and-self-restraint','6116'],
+  ['What is repentance in Islam?','repentance-tawbah-in-islam','39:53'],
+  ['What does Islam teach about family relationships?','family-relationships-kindness','17:23']
+ ]){
+  const r=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'living_guidance'}));
+  assert.equal(r.status,200,q);
+  const answer=(await r.json()).answer;
+  assert(answer&&answer.slug===slug,'Wrong Living Guidance topic: '+q);
+  assert(answer.sections.length>=4,q);
+  assert(answer.citations.some(x=>x.citation_ref.includes(ref)),q);
+  assert(answer.citations.every(x=>x.source_url.startsWith('https://')&&x.verification_status==='pending'),q);
+  assert.equal(answer.review_status,'editorial_draft',q);
+  const u=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'living_guidance'}));
+  assert.equal(u.status,200,q);
+  assert((await u.json()).contextual_answers.some(x=>x.slug===slug),q);
+ }
+});
