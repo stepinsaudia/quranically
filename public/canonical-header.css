@@ -82,3 +82,16 @@ body.qst-has-query #indexView .breadcrumbs{padding-block:9px}
  body.qst-has-query #indexView .reference-work{padding-top:8px}
  body.qst-has-query #indexView .inline-answer{margin-bottom:20px}
 }
+
+/* Original, source-attributed Hadith record. Treat publisher prose as distinct
+   from Quranically interpretation and do not collapse/abridge it in the UI. */
+.qst-publisher-hadith{background:#fffdf9;border:1px solid #e6dbca;border-left:4px solid #866c4f;border-radius:8px;padding:clamp(16px,2.5vw,26px);margin:16px 0;overflow-wrap:anywhere}
+.qst-publisher-hadith h5{font:600 clamp(19px,2vw,24px)/1.4 'Playfair Display',Georgia,serif;color:#312632;margin:6px 0 15px}
+.qst-publisher-hadith h6{font-size:13px;color:#312632;margin:16px 0 8px}
+.qst-publisher-hadith blockquote{border-left:2px solid #c6ae83;padding:12px 16px;margin:8px 0;background:#f9f3e8;font-size:15px;line-height:1.85;color:#382f34;white-space:pre-wrap}
+.qst-publisher-hadith p,.qst-publisher-hadith li{font-size:13px;line-height:1.8;color:#50464b;white-space:pre-wrap}
+.qst-publisher-hadith ol{padding-left:22px}
+.qst-publisher-hadith small{display:block;font-size:10px;color:#7f736f;margin:12px 0;line-height:1.7}
+.qst-publisher-hadith a{font-size:12px;color:#613a4c;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.qst-publisher-hadith .qst-source-grade{font-size:11px;color:#6c5f61}
+@media(max-width:520px){.qst-publisher-hadith{padding:15px}.qst-publisher-hadith blockquote{font-size:14px}}
