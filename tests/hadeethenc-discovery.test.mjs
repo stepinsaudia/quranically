@@ -25,7 +25,7 @@ test('official HadeethEnc topic search returns exact publisher content, grade, s
  assert.equal(result.results[0].original_hadith,'Exact publisher translation without edits.');
  assert.equal(result.results[0].publisher_explanation,'Publisher explanation, provided without abridgement.');
  assert.equal(result.results[0].reported_grade,'Authentic');
- assert.match(result.results[0].translation_edition,/v1\.25\.0/);
+ assert.match(result.results[0].translation_edition,/version not provided/);
  assert.equal(result.results[0].source_url,'https://hadeethenc.com/en/browse/hadith/1234');
  assert.equal(urls.length,3);
 });
