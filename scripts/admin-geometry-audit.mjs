@@ -21,13 +21,13 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url=type==='admin'?'/admin.html':'/admin-login.html';
   const response=await page.goto(base+url,{waitUntil:'load',timeout:30000});
-  const selectors=type==='admin'?{header:'.admin-top',top:'.admin-top-inner',footer:'.admin-footer',main:'.admin-layout',action:'#newRecord'}:
-    {header:'.admin-login-header',top:'.admin-login-header-inner',footer:'.admin-login-footer',main:'main.card',action:'#submit'};
+  const selectors=type==='admin'?{header:'.admin-top',top:'.admin-top-inner',footer:'.admin-footer',main:'.admin-layout',action:'#newRecord',brand:'.admin-brand strong'}:
+    {header:'.admin-login-header',top:'.admin-login-header-inner',footer:'.admin-login-footer',main:'main.card',action:'#submit',brand:'.admin-login-brand strong'};
   for(const key of ['header','top','footer','main','action'])await page.locator(selectors[key]).first().waitFor({timeout:6000});
   const data=await page.evaluate(sel=>{
    const rect=k=>{const e=document.querySelector(sel[k]),r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}};
    const main=rect('main'),action=rect('action');
-   return {vw:innerWidth,doc:document.documentElement.scrollWidth,header:rect('header'),top:rect('top'),footer:rect('footer'),main,action,bodyColor:getComputedStyle(document.body).backgroundColor,
+   return {vw:innerWidth,doc:document.documentElement.scrollWidth,header:rect('header'),top:rect('top'),footer:rect('footer'),main,action,brand:rect('brand'),bodyColor:getComputedStyle(document.body).backgroundColor,
     h1:getComputedStyle(document.querySelector('main h1')||document.querySelector('main h2')).fontSize,
     navLinks:document.querySelectorAll('#tabs button').length,
     footerVisible:document.querySelector(sel.footer)!=null};
@@ -38,6 +38,7 @@ try{
   if(row.http!==200)issues.push(type+' '+size.width+' returned '+row.http);
   if(row.errors.length)issues.push(type+' '+size.width+' JS errors '+row.errors.join(';'));
   if(row.doc>row.vw+1)issues.push(type+' '+size.width+' document overflows '+(row.doc-row.vw)+'px');
+  if(row.brand.width<80||row.brand.x<0||row.brand.right>size.width)issues.push(type+' '+size.width+' QURANICALLY wordmark hidden or clipped');
   if(type==='admin'){
    const gutter=Math.max(32,Math.min(size.width*.065,104));
    const desired=Math.round((size.width-Math.min(1280,size.width-gutter))/2);
