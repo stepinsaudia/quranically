@@ -6,6 +6,9 @@ on:
       - 'scripts/canonical-geometry-audit.mjs'
       - 'public/canonical-header.css'
       - 'public/qst-visual-system.css'
+      - 'public/admin-canonical.css'
+      - 'public/admin-login-canonical.css'
+      - 'scripts/admin-geometry-audit.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
@@ -34,14 +37,26 @@ jobs:
             sleep 1
           done
           curl --fail http://127.0.0.1:8799/api/health
-      - name: Measure three page families across four real retina viewports
+      - name: Measure five public page families across four real retina viewports
         run: node scripts/canonical-geometry-audit.mjs
+      - name: Measure protected Admin workbench and login without authorizing data access
+        run: node scripts/admin-geometry-audit.mjs
       - name: Preserve full geometry JSON and actual retina screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: quranically-canonical-geometry-retina
           path: artifacts/geometry-*.png
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Preserve editorial Admin retina screenshots and geometry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-admin-canonical-geometry
+          path: |
+            artifacts/qst-admin-*.png
+            artifacts/qst-admin-geometry.json
           retention-days: 14
           if-no-files-found: warn
       - name: Preserve numeric measurements
