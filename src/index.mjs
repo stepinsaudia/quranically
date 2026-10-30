@@ -576,7 +576,8 @@ export default {
       ['ummah_hadith','https://ummahapi.com/api/hadith/collections'],
       ['ummah_dua','https://ummahapi.com/api/duas/categories'],
       ['hadeethenc','https://hadeethenc.com/api/v1/categories/list/?language=en'],
-      ['alquran_cloud','https://api.alquran.cloud/v1/edition/language/en']
+      ['alquran_cloud','https://api.alquran.cloud/v1/edition/language/en'],
+      ['europe_pmc','https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=asthma&format=json&pageSize=1']
     ];
     for(const [id,endpoint] of checks){
       let state='unavailable',http=null;
