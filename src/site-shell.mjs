@@ -25,16 +25,16 @@ function renderCanonicalHomepage(html,homepage,rows){
  const end=html.indexOf('</section>',first);
  if(first<0||end<0)throw new Error('Canonical homepage hero is missing');
  let hero=html.slice(first,end+'</section>'.length);
- hero=hero.replace(/(<p class="overline">)[\\s\\S]*?(<\\/p>)/,'$1'+escapeHtml(homepage.kicker||'QURANICALLY / REFERENCE DESK')+'$2');
- hero=hero.replace(/(<h1>)[\\s\\S]*?(<\\/h1>)/,'$1'+escapeHtml(homepage.heading)+'$2');
- hero=hero.replace(/(<div class="intro-copy">[\\s\\S]*?<\\/h1>\\s*<p>)[\\s\\S]*?(<\\/p>)/,'$1'+escapeHtml(homepage.subtitle||homepage.body)+'$2');
+ hero=hero.replace(/(<p class="overline">)[\s\S]*?(<\/p>)/,'$1'+escapeHtml(homepage.kicker||'QURANICALLY / REFERENCE DESK')+'$2');
+ hero=hero.replace(/(<h1>)[\s\S]*?(<\/h1>)/,'$1'+escapeHtml(homepage.heading)+'$2');
+ hero=hero.replace(/(<div class="intro-copy">[\s\S]*?<\/h1>\s*<p>)[\s\S]*?(<\/p>)/,'$1'+escapeHtml(homepage.subtitle||homepage.body)+'$2');
  const photo=safeImage(homepage.image_url);
  if(photo){
   hero=hero.replace('<div class="intro-manuscript" aria-hidden="true">',
     '<div class="intro-manuscript" aria-hidden="true"><img class="qst-managed-hero-image" src="'+escapeHtml(photo)+'" alt="'+escapeHtml(homepage.image_alt||'')+'" loading="eager" fetchpriority="high">');
  }
  let trailing=html.slice(end+'</section>'.length);
- const search=trailing.match(/^\\s*(<section class="search-strip">[\\s\\S]*?<\\/section>)/);
+ const search=trailing.match(/^\s*(<section class="search-strip">[\s\S]*?<\/section>)/);
  if(!search)throw new Error('Canonical search form is missing from homepage');
  trailing=trailing.slice(search[0].length);
  hero=hero.slice(0,-'</section>'.length)+search[1]+'</section>';
