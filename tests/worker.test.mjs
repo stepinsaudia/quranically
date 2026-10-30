@@ -586,3 +586,32 @@ test('Ayat al-Kursi 2:255 includes full reference, contextual sections and authe
  assert(answer.contextual_answers.some(x=>x.slug==='ayat-al-kursi-guide'));
  assert(answer.evidence.quran.some(v=>v.reference==='2:255'));
 });
+
+test('Sunnah question finds the Seerah clothing article as a labelled cross-discipline link only',async()=>{
+ const env=fixture(),q='How should Muslim men dress?';
+ const r=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'sunnah'}));
+ assert.equal(r.status,200);
+ const body=await r.json();
+ assert.equal(body.contextual_answers.length,0,'Do not claim Seerah as a Sunnah editorial answer');
+ assert(body.related_articles.some(x=>x.slug==='mens-clothing-prophetic-era'&&x.domain==='seerah'));
+ assert.notEqual(body.answer_quality.status,'published_reference_available');
+ const historical=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'seerah'}));
+ const answer=await historical.json();
+ assert(answer.contextual_answers.some(x=>x.slug==='mens-clothing-prophetic-era'));
+ assert.equal(answer.answer_quality.status,'published_reference_available');
+});
+test('a specific medical or fiqh question cannot become a complete answer through one shared noun',async()=>{
+ const env=fixture();
+ for(const [q,domain] of [
+  ['Can I replace insulin with black seed during Ramadan?','prophetic_medicine'],
+  ['Does honey cure cancer without chemotherapy?','prophetic_medicine'],
+  ['Does the Quran define zakat on cryptocurrency?','quranic_themes'],
+  ['Can hijama replace medical care for asthma?','prophetic_medicine']
+ ]){
+  const r=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain}));
+  assert.equal(r.status,200,q);
+  const x=await r.json();
+  assert.equal(x.contextual_answers.length,0,'False complete answer for '+q);
+  assert.notEqual(x.answer_quality.status,'published_reference_available',q);
+ }
+});
