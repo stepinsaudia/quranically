@@ -1,0 +1,82 @@
+name: Quranically — Verified content promotion to EXISTING D1 ONLY
+on:
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - .github/workflows/quranically-promote-dossiers.yml
+permissions:
+  contents: read
+concurrency:
+  group: quranically-existing-d1-content-promotion
+  cancel-in-progress: false
+jobs:
+  promote-canonical-source-dossiers:
+    if: ${{ github.event_name == 'push' && github.ref_name == 'fix/relevant-source-search-20261029' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/relevant-source-search-20261029
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fail closed unless existing account, Worker and D1 UUID match approved identity
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing Cloudflare token. No changes made.'; exit 1; }
+          node scripts/native-admin-preflight.mjs
+      - name: Validate new content and all existing regression tests locally
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          npm test
+          node scripts/prepare-canonical-dossier-batch.mjs
+      - name: Check remote D1 source counts before any write (read only)
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE status='published') AS articles,(SELECT COUNT(*) FROM encyclopedia_citations) AS citations,(SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('hijrah-to-madinah','battle-of-badr-sourced-account','prophetic-guidance-neighbours','anger-and-self-restraint','repentance-tawbah-in-islam','family-relationships-kindness','honey-for-cough-evidence','hijama-cupping-safety','asthma-prophetic-medicine-boundaries','patience-quranic-theme','riba-in-quranic-text','maryam-in-quran','truthfulness-in-sunnah','backbiting-ghibah-sunnah','ayat-al-kursi-guide') AND status='published') AS dossiers;" > /tmp/quranically-before.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const x=JSON.parse(fs.readFileSync('/tmp/quranically-before.json','utf8'))?.[0]?.results?.[0];
+          if(!x||Number(x.articles)<27||Number(x.citations)<63)throw Error('Live D1 baseline is unrecognizable. No changes made.');
+          if(Number(x.dossiers)!==0&&Number(x.dossiers)!==15)throw Error('Partial dossier promotion requires manual reconciliation. No changes made.');
+          if(Number(x.dossiers)===0)fs.writeFileSync('/tmp/quranically-apply-needed','yes');
+          console.log('Existing Quranically D1 verified. Published articles='+x.articles+', sourced citations='+x.citations+', new dossiers='+x.dossiers);
+          JS
+      - name: Export and checksum complete existing D1 backup before changes
+        if: success()
+        run: |
+          set -euo pipefail
+          if test ! -e /tmp/quranically-apply-needed; then echo 'All 15 dossiers already exist; no write required.'; exit 0; fi
+          npx wrangler d1 export qst-knowledge-v1-db --remote --skip-confirmation --output /tmp/quranically-pre-dossier-backup.sql
+          test -s /tmp/quranically-pre-dossier-backup.sql
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const file='/tmp/quranically-pre-dossier-backup.sql',data=fs.readFileSync(file);
+          if(data.length<10000)throw Error('Backup is too small, refusing production changes.');
+          console.log('PRIVATE BACKUP VALIDATED. bytes='+data.length+' sha256='+createHash('sha256').update(data).digest('hex'));
+          console.log('Database export remains temporary on this GitHub runner; no export artifact or data contents will be published.');
+          JS
+      - name: Insert all source dossiers as one bounded additive batch into existing D1
+        run: |
+          set -euo pipefail
+          if test ! -e /tmp/quranically-apply-needed; then echo 'Idempotent promotion: no write needed.'; exit 0; fi
+          test -s /tmp/quranically-pre-dossier-backup.sql
+          test -s /tmp/quranically-approved-dossier-batch.sql
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --yes --file=/tmp/quranically-approved-dossier-batch.sql
+      - name: Verify production D1 content and pending review statuses (read only)
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT (SELECT COUNT(*) FROM encyclopedia_articles WHERE slug IN ('hijrah-to-madinah','battle-of-badr-sourced-account','prophetic-guidance-neighbours','anger-and-self-restraint','repentance-tawbah-in-islam','family-relationships-kindness','honey-for-cough-evidence','hijama-cupping-safety','asthma-prophetic-medicine-boundaries','patience-quranic-theme','riba-in-quranic-text','maryam-in-quran','truthfulness-in-sunnah','backbiting-ghibah-sunnah','ayat-al-kursi-guide') AND status='published' AND review_status='editorial_draft') AS dossiers,(SELECT COUNT(*) FROM encyclopedia_sections WHERE article_id IN ('hijrah-to-madinah','battle-of-badr-sourced-account','prophetic-guidance-neighbours','anger-and-self-restraint','repentance-tawbah-in-islam','family-relationships-kindness','honey-for-cough-evidence','hijama-cupping-safety','asthma-prophetic-medicine-boundaries','patience-quranic-theme','riba-in-quranic-text','maryam-in-quran','truthfulness-in-sunnah','backbiting-ghibah-sunnah','ayat-al-kursi-guide')) AS sections,(SELECT COUNT(*) FROM encyclopedia_citations WHERE article_id IN ('hijrah-to-madinah','battle-of-badr-sourced-account','prophetic-guidance-neighbours','anger-and-self-restraint','repentance-tawbah-in-islam','family-relationships-kindness','honey-for-cough-evidence','hijama-cupping-safety','asthma-prophetic-medicine-boundaries','patience-quranic-theme','riba-in-quranic-text','maryam-in-quran','truthfulness-in-sunnah','backbiting-ghibah-sunnah','ayat-al-kursi-guide') AND verification_status='pending') AS pending_citations;" > /tmp/quranically-after.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const x=JSON.parse(fs.readFileSync('/tmp/quranically-after.json','utf8'))?.[0]?.results?.[0];
+          if(!x||Number(x.dossiers)!==15||Number(x.sections)<60||Number(x.pending_citations)<30)throw Error('Post-migration check FAILED. Halt release. Inspect production data before retrying.');
+          console.log('CONTENT PROMOTION PASS: dossiers='+x.dossiers+', sourced sections='+x.sections+', pending-review citations='+x.pending_citations);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Existing Quranically D1 source dossier promotion\n\n- 15 published editorial-draft dossiers verified\n- '+x.sections+' actual answer sections\n- '+x.pending_citations+' citations marked pending review\n- Exact existing Worker and DB only; no Worker deployment\n- Backup was created and checked privately before the write\n');
+          JS
