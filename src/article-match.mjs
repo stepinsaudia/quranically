@@ -3,6 +3,12 @@
 const ignored=new Set(['the','and','for','from','with','what','where','which','when','why','how','does','do','did','can','could','would','should','please','tell','show','find','give','about','have','has','had','was','were','are','you','your','me','my','our','they','their','this','that','there','is','in','on','to','of','a','an','i','it','all','some','really','according','explain','meaning','teach','taught','prophetic','medicine','seerah','biography','sunnah','hadith','quran','qur','islam','islamic','muslim','rasulullah','prophet','muhammad','pbuh','peace','upon','him']);
 const canonical=new Map([
  ['clothes','clothing'],['cloth','clothing'],['dress','clothing'],['dressing','clothing'],['garment','clothing'],['garments','clothing'],['wear','clothing'],['worn','clothing'],['outfit','clothing'],['outfits','clothing'],
+ ['salah','prayer'],['salat','prayer'],['salaah','prayer'],['namaz','prayer'],
+ ['sawm','fasting'],['roza','fasting'],['ramadhan','ramadan'],
+ ['wudu','ablution'],['wudhu','ablution'],['wuzu','ablution'],
+ ['nikah','marriage'],['nikkah','marriage'],['mahr','dowry'],
+ ['riba','usury'],['ghibah','backbiting'],['tawbah','repentance'],['tauba','repentance'],['istighfar','forgiveness'],
+ ['dua','supplication'],['duaa','supplication'],['jannah','paradise'],['qiyamah','resurrection'],
  ['mens','men'],['man','men'],['male','men'],['males','men'],['diabetic','diabetes'],['glucose','diabetes'],['glycemic','diabetes'],['eyes','eyesight'],['vision','eyesight'],['blurry','eyesight'],['blurred','eyesight'],['kalonji','blackseed'],['nigella','blackseed'],['cumin','blackseed'],['sabr','patience'],['worry','anxiety'],['worries','anxiety']
 ]);
 export const normalizeSubject=value=>String(value||'').toLowerCase().replace(/[\u2018\u2019']/g,'').replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').replace(/\s+/g,' ').trim();
