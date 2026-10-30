@@ -87,8 +87,86 @@ async function liveSources(q,domain){
     (total===0?' · Search again with one clear subject word.':'');
  }catch(e){if(mySeq===sourceSequence)$('sourceResultState').textContent='Connected search unavailable: '+e.message;}
 }
+
+// Distinct D1-driven subject experiences; no duplicate articles or source records.
+const disciplineExperience={
+ quranic_themes:['QUR’AN / THEMATIC UNDERSTANDING','Follow a theme through the Qur’an.','Explore subjects through sourced articles, then read the original verses in the dedicated Qur’an Reader. A verse-search result is not an attributed Tafsir.','اقْرَأْ بِاسْمِ رَبِّكَ','QUR’AN 96:1','/study.html','Open the Qur’an Reader',['patience','Maryam','riba']],
+ sunnah:['SUNNAH / HADITH EVIDENCE','Read the report. Examine its source.','Find narrations, inspect their original reference and distinguish the publisher’s grading from editorial interpretation.','المصدر · الرواية · السياق','SOURCE · REPORT · CONTEXT','/encyclopedia?domain=sunnah&q=truthfulness','Study truthfulness',['truthfulness','supplication','backbiting']],
+ seerah:['SEERAH / THE PROPHET’S LIFE','Explore a life, not a list.','Move through documented episodes, the Hijrah, Madinan events and character. This editorial reading path is not an independently established historical chronology.','مكة ← الهجرة ← المدينة','MAKKAH · HIJRAH · MADINAH','/encyclopedia/hijrah-to-madinah','Read the Hijrah account',['Hijrah','Badr','neighbours']],
+ prophetic_medicine:['TIBB / EVIDENCE & SAFETY','Tradition, context and clinical evidence.','Examine what was narrated and what modern medicine has or has not established. This is not a treatment or prescription service.','الغذاء · العناية · السلامة','FOOD · CARE · SAFETY','/tibb','Open the Tibb ingredient library',['honey','black seed','diabetes']],
+ living_guidance:['LIVING ISLAM / APPLIED KNOWLEDGE','Real questions. Sourced perspectives.','Explore worship, conduct, family and work. Scholarly differences and circumstances must never be collapsed into an unqualified personal ruling.','العبادة · الأسرة · الأخلاق','WORSHIP · FAMILY · ETHICS','/guidance','Open guided learning',['family','patience','business ethics']]
+};
+const originalSearchHost=document.querySelector('.qst-search-home');
+const experienceSearchForm=$('encyclopediaSearch');
+function renderDisciplineExperience(domain){
+ const root=$('disciplineExperience'),d=disciplineExperience[domain];
+ document.documentElement.dataset.qstDiscipline=d?domain:'';
+ if(!d){
+   root.hidden=true;root.innerHTML='';
+   const hints=originalSearchHost?.querySelector('.qst-search-hints');
+   if(hints&&experienceSearchForm.parentElement!==originalSearchHost)originalSearchHost.insertBefore(experienceSearchForm,hints);
+   $('query').placeholder='Ask anything about Islam, the Qur’an, or Prophetic living…';
+   return;
+ }
+ root.hidden=false;root.dataset.discipline=domain;
+ root.innerHTML='<div class="qst-discipline-hero"><div class="qst-discipline-copy"><p class="qst-discipline-kicker">'+esc(d[0])+'</p>'+
+   '<h2>'+esc(d[1])+'</h2><p>'+esc(d[2])+'</p><a class="qst-discipline-cta" href="'+esc(d[5])+'">'+esc(d[6])+' '+ic('arrow')+'</a></div>'+
+   '<div class="qst-discipline-art"><span lang="ar" dir="rtl">'+esc(d[3])+'</span><small>'+esc(d[4])+'</small></div>'+
+   '<div class="qst-discipline-form"><label for="query">Explore this discipline</label><div class="qst-discipline-search-slot"></div>'+
+   '<div class="qst-discipline-prompts">'+d[7].map(q=>'<button type="button" data-subject-prompt="'+esc(q)+'">'+esc(q)+'</button>').join('')+'</div></div></div>';
+ root.querySelector('.qst-discipline-search-slot').appendChild(experienceSearchForm);
+ $('query').placeholder=domain==='sunnah'?'Search a narration, source or question…':domain==='seerah'?'Search an event, place or person…':
+  domain==='prophetic_medicine'?'Search an ingredient, practice or condition…':'Ask a question or search this subject…';
+ root.querySelectorAll('[data-subject-prompt]').forEach(b=>b.addEventListener('click',()=>{
+   $('query').value=b.dataset.subjectPrompt;experienceSearchForm.requestSubmit();
+ }));
+}
+function evidenceText(x){
+ const ref=String(x.primary_reference||''),source=String(x.primary_source_title||'');
+ return ref?esc(source?source+' · '+ref:ref):'Bibliography inside the article';
+}
+function learningCard(x,i,domain){
+ const status=String(x.review_status||'editorial_pending').replaceAll('_',' ');
+ const type={quranic_themes:'THEMATIC STUDY',sunnah:'HADITH STUDY',seerah:'SEERAH ACCOUNT',prophetic_medicine:'TIBB DOSSIER',living_guidance:'LIVING QUESTION'}[domain];
+ return '<article class="qst-learning-card"><div class="qst-learning-head"><span>'+type+'</span><small>'+String(i+1).padStart(2,'0')+'</small></div>'+
+  '<h3><a href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">'+esc(x.title)+'</a></h3>'+
+  (x.arabic_title?'<div class="qst-learning-arabic" lang="ar" dir="rtl">'+esc(x.arabic_title)+'</div>':'')+
+  '<p class="qst-learning-summary">'+esc(x.abstract||x.subtitle||'')+'</p>'+
+  '<div class="qst-learning-foot"><span>'+ic('book')+' '+evidenceText(x)+'</span>'+
+  '<small>Review: '+esc(status)+'</small><a href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">Examine sources '+ic('arrow')+'</a></div></article>';
+}
+function seerahStage(x){
+ const text=(String(x.slug)+' '+String(x.title)).toLowerCase();
+ if(/early|birth|makkah|mecca|revelation|childhood/.test(text))return 0;
+ if(/hijrah|hijra|migration/.test(text))return 1;
+ if(/madinah|medina|badr|uhud|battle|treaty/.test(text))return 2;
+ return 3;
+}
+function disciplineCards(rows){
+ const domain=filters.domain;
+ if(!disciplineExperience[domain]||filters.q||filters.letter)return null;
+ if(!rows.length)return '<p class="qst-learning-empty">No published articles in this section. Search the source index above for additional attributed references.</p>';
+ if(domain==='seerah'){
+  const stages=['Early life & Makkah','The Hijrah','The Madinan years','Character & daily life'];
+  const groups=stages.map(()=>[]);rows.forEach(x=>groups[seerahStage(x)].push(x));
+  return '<div class="qst-seerah-journey">'+stages.map((title,i)=>groups[i].length?
+   '<section class="qst-seerah-stage"><header><b>'+String(i+1).padStart(2,'0')+'</b><h3>'+title+'</h3></header><div class="qst-seerah-studies">'+
+   groups[i].map((x,n)=>learningCard(x,n,domain)).join('')+'</div></section>':'').join('')+
+   '<p class="qst-seerah-caveat">Editorial subject sequence, not an independently verified event chronology.</p></div>';
+ }
+ const intro={
+  quranic_themes:'Read the theme here, then open its verse references in the Qur’an Reader.',
+  sunnah:'These are source-linked studies; search above to discover further publisher-indexed narrations.',
+  prophetic_medicine:'Explore evidence dossiers here. The full ingredient and safety directory is in Prophetic Medicine.',
+  living_guidance:'Open a sourced study, or use the dedicated Living Guidance journey.'
+ }[domain];
+ return '<p class="qst-learning-intro">'+esc(intro)+'</p><div class="qst-learning-grid">'+
+  rows.map((x,i)=>learningCard(x,i,domain)).join('')+'</div>';
+}
+
 let refreshSequence=0;
 async function refresh(){
+ renderDisciplineExperience(filters.domain);
  document.body.classList.toggle('qst-has-query',filters.q.trim().length>=2);
  const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
@@ -103,7 +181,7 @@ async function refresh(){
   const data=await api('/api/encyclopedia'+(params.size?'?'+params:''));
   if(seq!==refreshSequence)return;
   $('resultCount').textContent=data.entries.length+' ARTICLE'+(data.entries.length===1?'':'S');
-  $('results').innerHTML=data.entries.map(entryCard).join('')||'<div class="loading">No matching indexed articles. The answer search above is checked separately.</div>';
+  $('results').innerHTML=disciplineCards(data.entries)??(data.entries.map(entryCard).join('')||'<div class="loading">No matching indexed articles. The answer search above is checked separately.</div>');
   $('loading').textContent='';
  }catch(e){if(seq===refreshSequence)$('loading').textContent=e.message;}
  const matched=await answerTask;
