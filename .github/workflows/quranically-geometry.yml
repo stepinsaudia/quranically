@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/quranically-geometry.yml'
       - 'scripts/canonical-geometry-audit.mjs'
+      - 'src/qst-public-shell.mjs'
+      - 'scripts/sync-qst-shell.mjs'
       - 'public/canonical-header.css'
       - 'public/qst-visual-system.css'
       - 'public/admin-canonical.css'
@@ -29,6 +31,8 @@ jobs:
       - run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund playwright
           npx playwright install --with-deps chromium
+      - name: Refuse duplicate or drifted headers/footers across all five public pages
+        run: node scripts/sync-qst-shell.mjs --check
       - name: Start isolated canonical local Worker
         run: |
           node scripts/local-preview.mjs > /tmp/qst-geometry.log 2>&1 &
