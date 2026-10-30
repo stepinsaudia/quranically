@@ -544,3 +544,27 @@ test('three medically bounded Tibb dossiers answer without unverified cure claim
   assert(result.answer_quality.flags.includes('no_individualized_medical_claim'),query);
  }
 });
+
+test('five sourced Quranic and Sunnah dossiers answer without fabricated tafsir or fatwa',async()=>{
+ const env=fixture();
+ for(const [q,domain,slug,ref] of [
+  ['What does Quran say about patience?','quranic_themes','patience-quranic-theme','2:153'],
+  ['Does Quran discuss riba?','quranic_themes','riba-in-quranic-text','2:275'],
+  ['Where is Maryam mentioned?','quranic_themes','maryam-in-quran','19:16'],
+  ['What hadith discuss honesty?','sunnah','truthfulness-in-sunnah','6094'],
+  ['What is Sunnah about backbiting?','sunnah','backbiting-ghibah-sunnah','2589']
+ ]){
+  const res=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain}));
+  assert.equal(res.status,200,q);
+  const body=await res.json();
+  assert.equal(body.outcome,'full_article_answer',q);
+  assert.equal(body.answer.slug,slug,q);
+  assert(body.answer.sections.length>=4,q);
+  assert(body.answer.citations.some(c=>c.citation_ref.includes(ref)),q);
+  assert(body.answer.citations.every(c=>c.source_url?.startsWith('https://')&&c.verification_status==='pending'),q);
+  assert.equal(body.answer.review_status,'editorial_draft',q);
+  const unified=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain}));
+  assert.equal(unified.status,200,q);
+  assert((await unified.json()).contextual_answers.some(a=>a.slug===slug),q);
+ }
+});
