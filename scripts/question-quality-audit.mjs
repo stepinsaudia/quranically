@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import {validVerse} from '../src/quran-search.mjs';
 const base=process.env.QST_AUDIT_URL||'http://127.0.0.1:8799';
 const questions=[
- {domain:'quranic_themes',q:'Where is Ayat al Kursi?',expect:'exact_verse'},
+ {domain:'quranic_themes',q:'Where is Ayat al Kursi?',expect:'exact_verse',require_article:true},
  {domain:'quranic_themes',q:'Show Quran 1:100',expect:'invalid_reference'},
  {domain:'quranic_themes',q:'What does Quran say about patience?',expect:'quran',require_article:true},
  {domain:'quranic_themes',q:'Does Quran discuss riba?',expect:'quran',require_article:true},
