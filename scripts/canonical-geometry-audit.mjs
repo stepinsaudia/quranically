@@ -28,8 +28,9 @@ try{
    const axis=rect(selector);
    const links=[...document.querySelectorAll('.qst-links a')];
    const visibleLinks=links.filter(e=>e.getBoundingClientRect().width>0).length;
+   const activeLinks=links.filter(e=>e.getAttribute('aria-current')==='page').length;
    return {documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,viewportHeight:innerHeight,
-    headerCount:headers.length,footerCount:footers.length,
+    headerCount:headers.length,footerCount:footers.length,activeLinks,
     header:rect('header.qst-header'),top:rect('.qst-top'),nav:rect('.qst-links'),
     firstAction:rect(main),axis, footer:rect('body > footer'),visibleLinks,
     fonts:{body:getComputedStyle(document.body).fontFamily,title:getComputedStyle(document.querySelector('main h1')||document.body).fontSize},
@@ -46,3 +47,31 @@ try{
 fs.writeFileSync('artifacts/canonical-geometry-before.json',JSON.stringify(records,null,2));
 for(const row of records)console.log('GEOMETRY',JSON.stringify(row));
 console.log('CANONICAL GEOMETRY BASELINE RECORDED',records.length,'viewport-page pairs');
+const faults=[];
+for(const item of records){
+ if(item.http!==200)faults.push(item.page+' '+item.width+': HTTP '+item.http);
+ if(item.errors.length)faults.push(item.page+' '+item.width+': browser errors '+item.errors.join(', '));
+ if(item.documentWidth>item.width+1)faults.push(item.page+' '+item.width+': horizontal overflow '+(item.documentWidth-item.width)+'px');
+ if(item.headerCount!==1||item.footerCount!==1)faults.push(item.page+' '+item.width+': expected one physical site header and footer');
+ if(item.activeLinks!==1)faults.push(item.page+' '+item.width+': expected exactly one active navigation link, got '+item.activeLinks);
+ if(!item.axis||!item.top||!item.nav)faults.push(item.page+' '+item.width+': missing aligned content axis');
+ else if(Math.abs(item.axis.x-item.top.x)>1||Math.abs(item.nav.x-item.top.x)>1)
+  faults.push(item.page+' '+item.width+': geometry axes differ');
+ if(item.header?.top!==0)faults.push(item.page+' '+item.width+': header displaced '+item.header?.top+'px by legacy chrome');
+ if(item.page==='encyclopedia'&&item.firstAction?.top>(item.width<=390?405:405))
+  faults.push(item.page+' '+item.width+': search is below first viewport decision area');
+ if(item.page==='guidance'&&item.firstAction?.height>(item.width<=390?505:460))
+  faults.push(item.page+' '+item.width+': decorative hero too tall');
+ if(item.page==='reader'&&item.firstAction?.height>(item.width<=390?330:350))
+  faults.push(item.page+' '+item.width+': Reader hero hides reading experience');
+}
+for(const size of widths){
+ const same=records.filter(x=>x.width===size.w);
+ if(Math.max(...same.map(x=>x.header?.height||0))-Math.min(...same.map(x=>x.header?.height||0))>1)
+  faults.push('Header height mismatch at '+size.w);
+ if(Math.max(...same.map(x=>x.footer?.height||0))-Math.min(...same.map(x=>x.footer?.height||0))>12)
+  faults.push('Footer height mismatch at '+size.w);
+}
+if(faults.length){console.error('CANONICAL GEOMETRY FAIL',faults.join(' | '));process.exitCode=1;}
+else console.log('CANONICAL GEOMETRY PASS: 3 page families × 4 retina viewports; single header/footer, axes, above-fold actions, zero overflow.');
+
