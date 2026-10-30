@@ -30,6 +30,6 @@ test('all public pages lock viewport scale and page identity with no deployment-
 });
 test('Quran Reader does not point readers back into the legacy hidden guide layout',()=>{
  const s=read('study.html');
- assert(s.includes('Explore Living Guidance</a>'));
+ assert(s.includes('Explore Qur’anic Themes</a>'));
  assert(!s.includes('Return to guided study</a>'));
 });
