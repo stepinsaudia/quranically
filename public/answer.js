@@ -83,9 +83,32 @@ async function show(q,domain){
       }).join('');
       const hadithAvailability=found.hadeethenc_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The official HadeethEnc topic source is temporarily unavailable. Other results remain accessible; this is not evidence that the subject is absent from Sunnah.</p>':'';
       const referenceNotice=found.quran_lookup?.status==='invalid_reference'?'<section class="qa-part"><h4>Qur’an reference not found</h4><p>The chapter and verse numbers do not identify a valid Qur’anic verse. Check the reference before following a link.</p></section>':found.quran_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The connected Qur’an text search could not respond right now; the local evidence records may still be available.</p>':'';
+      const moreQuran=found.quran_lookup?.mode==='full_translation_index'&&Number(found.quran_lookup.total)>12
+        ?'<section class="qa-part qst-more-quran"><h4>More Qur’anic passages</h4><p>Showing the strongest 12 of '+Number(found.quran_lookup.total)+' translation keyword matches across the complete 6,236-verse index. Results are translations, not Tafsir.</p><div class="qst-more-quran-list"></div><button type="button" class="qst-more-quran-button">Show 12 more verses</button></section>':'';
       const hasAny=Boolean(contextual||referenceGroups||tibb||biomedical||guidance||evidence);
-      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+overview+referenceNotice+contextual+referenceGroups+guidance+tibb+biomedical+evidence+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+overview+referenceNotice+contextual+referenceGroups+guidance+tibb+biomedical+evidence+moreQuran+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
       if(!hasAny&&found.quran_lookup?.status!=='invalid_reference')content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
+      const moreButton=content.querySelector('.qst-more-quran-button');
+      if(moreButton){
+        let offset=12,loading=false;
+        moreButton.addEventListener('click',async()=>{
+          if(loading||id!==sequence)return;
+          loading=true;moreButton.disabled=true;moreButton.textContent='Retrieving indexed verses…';
+          try{
+            const qs=new URLSearchParams({q,offset:String(offset),limit:'12'});
+            const r=await fetch('/api/quran/search?'+qs,{headers:{accept:'application/json'},signal:AbortSignal.timeout(9000)});
+            if(!r.ok)throw Error('Indexed verse search unavailable');
+            const response=await r.json();
+            if(id!==sequence)return;
+            const markup=(response.results||[]).map(v=>'<article class="qst-evidence"><strong>'+esc(v.title)+'</strong><p>'+esc(v.excerpt)+'</p><small>'+esc(v.reference)+' · '+esc(v.translation)+' · Translation match, not Tafsir</small><a href="'+esc(v.reader_url)+'">Read in Qur’an Reader</a></article>').join('');
+            content.querySelector('.qst-more-quran-list').insertAdjacentHTML('beforeend',markup);
+            offset=response.next_offset??offset;
+            if(response.next_offset===null||!(response.results||[]).length)moreButton.remove();
+            else moreButton.textContent='Show 12 more verses';
+          }catch{moreButton.textContent='Retry loading verses';}
+          finally{loading=false;moreButton.disabled=false;}
+        });
+      }
       return true; // The one answer panel owns empty states too; never open a duplicate source index.
     }catch(e){if(id!==sequence)return null;content.innerHTML='<h3>Connected search unavailable</h3><p>'+esc(e.message)+'</p>';}
 
