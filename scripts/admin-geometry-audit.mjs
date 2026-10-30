@@ -33,6 +33,7 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url=type==='admin'?'/admin.html':'/admin-login.html';
   const response=await page.goto(base+url,{waitUntil:'load',timeout:30000});
+  await page.evaluate(()=>document.fonts.ready);
   const selectors=type==='admin'?{header:'.admin-top',top:'.admin-top-inner',footer:'.admin-footer',main:'.admin-layout',action:'#newRecord',brand:'.admin-brand strong'}:
     {header:'.admin-login-header',top:'.admin-login-header-inner',footer:'.admin-login-footer',main:'main.card',action:'#submit',brand:'.admin-login-brand strong'};
   for(const key of ['header','top','footer','main','action'])await page.locator(selectors[key]).first().waitFor({timeout:6000});
