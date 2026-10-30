@@ -13,7 +13,7 @@ function wordMatch(word,wanted){
  if(word===wanted)return 1;
  return word.length>=5&&wanted.length>=5&&stem(word)===stem(wanted)?0.6:0;
 }
-export function searchTranslationCorpus(terms,{records=corpus.records,limit=12}={}){
+export function searchTranslationCorpus(terms,{records=corpus.records,limit=12,offset=0}={}){
  const words=[...new Set((terms||[]).map(normalize).filter(t=>t.length>=3))].slice(0,5);
  if(!words.length)return {total:0,results:[]};
  const matched=[];
@@ -37,5 +37,7 @@ export function searchTranslationCorpus(terms,{records=corpus.records,limit=12}=
   matched.push({chapter,verse,text,score,hit_count:count});
  }
  matched.sort((a,b)=>b.score-a.score||b.hit_count-a.hit_count||a.chapter-b.chapter||a.verse-b.verse);
- return {total:matched.length,results:matched.slice(0,Math.max(1,Math.min(30,Number(limit)||12)))};
+ const start=Math.max(0,Math.min(6236,Number(offset)||0));
+ const size=Math.max(1,Math.min(30,Number(limit)||12));
+ return {total:matched.length,offset:start,limit:size,next_offset:start+size<matched.length?start+size:null,results:matched.slice(start,start+size)};
 }
