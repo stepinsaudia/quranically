@@ -51,7 +51,7 @@ test('multi-topic prompts never convert a single matching noun into an editorial
  }
 });
 test('short clear subject prompts still resolve genuine editorial records',()=>{
- assert.equal(bestArticle('How do I learn about diabetes?',records)?.article.id,'diabetes');
+ assert.equal(bestArticle('I have diabetes; what does Islam say?',records)?.article.id,'diabetes');
  assert.equal(bestArticle('Tell me about honey',records)?.article.id,'honey');
  assert.equal(bestArticle('What clothing did men wear?',records)?.article.id,'clothing');
 });
