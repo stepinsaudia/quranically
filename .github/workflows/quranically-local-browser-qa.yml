@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'scripts/canonical-release-smoke.mjs'
       - 'public/canonical-header.css'
       - 'public/encyclopedia.js'
       - 'public/answer.js'
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'scripts/canonical-release-smoke.mjs'
       - 'public/canonical-header.css'
       - 'public/encyclopedia.js'
       - 'public/answer.js'
@@ -40,6 +42,8 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:8799/api/health
+      - name: Verify canonical production release smoke against isolated local preview
+        run: node scripts/canonical-release-smoke.mjs
       - name: Browser QA of direct answer, Quran reference, header and mobile overflow
         run: node scripts/local-search-visual-qa.mjs
       - name: Preserve screenshot evidence
