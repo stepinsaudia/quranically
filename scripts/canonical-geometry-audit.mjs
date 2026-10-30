@@ -20,6 +20,7 @@ try{
   const page=await browser.newPage({viewport:{width:size.w,height:size.h},deviceScaleFactor:2,hasTouch:size.w<600});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const response=await page.goto(base+r.path,{waitUntil:'domcontentloaded',timeout:30000});
+  await page.evaluate(()=>document.fonts.ready);
   await page.locator('header.qst-header').first().waitFor({timeout:8000});
   await page.locator(r.main).first().waitFor({timeout:8000});
   const data=await page.evaluate(({selector,main})=>{
