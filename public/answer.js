@@ -82,12 +82,16 @@ async function show(q,domain){
         const records=(found.editorial||[]).filter(x=>x.domain===key&&!expandedSlugs.has(x.slug));
         return records.length?'<section class="qa-part"><h4>'+esc(label)+'</h4>'+records.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>Editorial status: '+esc(x.review_status||'pending')+'</small></p>').join('')+'</section>':'';
       }).join('');
+      const crossDiscipline=(found.related_articles||[]).length
+        ?'<section class="qa-part"><h4>Relevant reference in another discipline</h4><p>The following is a related topic, not a complete answer under the discipline you selected.</p>'
+          +found.related_articles.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> <small>· '+esc(String(x.domain||'').replaceAll('_',' '))+' · Editorial status: '+esc(x.review_status||'pending')+'</small></p>').join('')
+          +'</section>':'';
       const hadithAvailability=found.hadeethenc_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The official HadeethEnc topic source is temporarily unavailable. Other results remain accessible; this is not evidence that the subject is absent from Sunnah.</p>':'';
       const referenceNotice=found.quran_lookup?.status==='invalid_reference'?'<section class="qa-part"><h4>Qur’an reference not found</h4><p>The chapter and verse numbers do not identify a valid Qur’anic verse. Check the reference before following a link.</p></section>':found.quran_lookup?.status==='temporarily_unavailable'?'<p class="qa-foot">The connected Qur’an text search could not respond right now; the local evidence records may still be available.</p>':'';
       const moreQuran=found.quran_lookup?.mode==='full_translation_index'&&Number(found.quran_lookup.total)>12
         ?'<section class="qa-part qst-more-quran"><h4>More Qur’anic passages</h4><p>Showing the strongest 12 of '+Number(found.quran_lookup.total)+' translation keyword matches across the complete 6,236-verse index. Results are translations, not Tafsir.</p><div class="qst-more-quran-list"></div><button type="button" class="qst-more-quran-button">Show 12 more verses</button></section>':'';
-      const hasAny=Boolean(contextual||referenceGroups||tibb||biomedical||guidance||evidence);
-      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+sourceQuality+overview+referenceNotice+contextual+referenceGroups+guidance+tibb+biomedical+evidence+moreQuran+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
+      const hasAny=Boolean(contextual||referenceGroups||crossDiscipline||tibb||biomedical||guidance||evidence);
+      content.innerHTML='<div class="qa-kicker">QURANICALLY / CONNECTED KNOWLEDGE SEARCH</div><h3>'+esc(q)+'</h3><p class="qa-summary">Relevant source material is organised below. These are research references, not an automatically verified religious ruling or a medical recommendation.</p>'+sourceQuality+overview+referenceNotice+contextual+referenceGroups+crossDiscipline+guidance+tibb+biomedical+evidence+moreQuran+hadithAvailability+'<p class="qa-foot">For religious rulings and treatment decisions, consult a qualified scholar or health professional as appropriate. Where source evidence is incomplete, Quranically does not invent an answer.</p>';
       if(!hasAny&&found.quran_lookup?.status!=='invalid_reference')content.innerHTML='<h3>No sufficiently relevant source found</h3><p>We have not verified an answer to '+esc(q)+'. Try a more specific term or a Qur’anic reference. This does not mean the subject is absent from Islam.</p>';
       const moreButton=content.querySelector('.qst-more-quran-button');
       if(moreButton){
@@ -133,6 +137,7 @@ async function show(q,domain){
     if(response.ok){
       const found=await response.json();if(id!==sequence)return null;
       const other=(found.editorial||[]).filter(x=>x.slug!==a.slug);
+      const crossLinks=(found.related_articles||[]).map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> <small>· Another discipline: '+esc(String(x.domain||'').replaceAll('_',' '))+' · '+esc(x.review_status||'pending')+'</small></p>').join('');
       const blocks=other.map(x=>'<p><a href="/encyclopedia/'+encodeURIComponent(x.slug)+'">'+esc(x.title)+'</a> — '+esc(x.abstract||'')+' <small>'+esc(x.review_status||'review pending')+'</small></p>').join('');
       const complementaryGuidance=(found.guidance||[]).map(j=>'<div class="qst-guidance-answer"><h5>'+esc(j.title)+'</h5><p>'+esc(j.summary)+'</p>'+(j.evidence||[]).map(e=>'<p>'+esc(e.meaning)+' <small>'+esc(e.reference)+' · '+esc(e.review_status||'pending')+'</small></p>').join('')+'</div>').join('');
       const matches=(found.tibb||[]).filter(x=>a.domain!=='prophetic_medicine'||!String(a.title).toLowerCase().includes(String(x.title).toLowerCase()));
@@ -147,7 +152,7 @@ async function show(q,domain){
         const inspect=href(x.source_url)?'<a href="'+esc(href(x.source_url))+'" rel="noopener noreferrer" target="_blank">Inspect original source</a>':'';
         return '<article class="qst-evidence"><strong>'+esc(x.title||x.reference)+'</strong>'+arabic+'<p>'+esc(x.excerpt||'')+'</p><small>'+esc(x.reference||'')+' · '+esc(x.translation||'Provider index')+grade+' · verification pending</small>'+reader+inspect+'</article>';
       }).join('');
-      if(blocks||complementaryGuidance||medicines||leads||biomedical)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+complementaryGuidance+medicines+leads+biomedical+'</section>');
+      if(blocks||crossLinks||complementaryGuidance||medicines||leads||biomedical)content.insertAdjacentHTML('beforeend','<section class="qa-part"><h4>Other relevant perspectives and source leads</h4>'+blocks+crossLinks+complementaryGuidance+medicines+leads+biomedical+'</section>');
     }
   }catch{/* Preserve the complete, canonical article if secondary providers fail. */}
   return true;
