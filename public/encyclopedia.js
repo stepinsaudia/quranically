@@ -2,6 +2,8 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ic=name=>'<svg aria-hidden="true"><use href="#e-'+name+'"></use></svg>';
+const ayahCounts=[7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6];
+const validVerse=(surah,ayah)=>Number.isInteger(surah)&&surah>=1&&surah<=114&&Number.isInteger(ayah)&&ayah>=1&&ayah<=ayahCounts[surah-1];
 const titles={prophetic_medicine:'Prophetic Medicine',quranic_themes:'Quranic Themes',sunnah:'Sunnah & Hadith',seerah:'Seerah & Biography',living_guidance:'Living Guidance'};
 const domains=[['','All disciplines'],...Object.entries(titles)];
 let filters={domain:new URLSearchParams(location.search).get('domain')||'',q:new URLSearchParams(location.search).get('q')||'',letter:''};
@@ -14,7 +16,8 @@ function linkFor(slug){return '/encyclopedia/'+encodeURIComponent(slug);}
 function showIndex(){selectedEntry=null;$('articleView').hidden=true;$('indexView').hidden=false;$('articleCrumbArrow').hidden=true;$('crumbSubject').textContent='Reference index';document.title='Quranically | The Islamic Reference Encyclopedia';$('query').value=filters.q;window.scrollTo({top:0,behavior:'instant'});refresh().then(()=>{if(filters.q&&!selectedEntry)document.getElementById('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});});}
 function renderSubjects(counts){
  const map=new Map(counts.map(x=>[x.domain,Number(x.entries)]));const total=counts.reduce((n,x)=>n+Number(x.entries),0);
- $('subjects').innerHTML=domains.map(([key,name])=>'<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'">'+esc(name)+'<b>'+ (key?(map.get(key)||0):total)+'</b></button>').join('');
+ const icons={prophetic_medicine:'leaf',quranic_themes:'quran',sunnah:'hadith',seerah:'compass',living_guidance:'path'};
+ $('subjects').innerHTML=domains.map(([key,name])=>'<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'"><span class="qst-subject-name"><svg class="qst-subject-icon" aria-hidden="true"><use href="#e-'+(icons[key]||'spark')+'"></use></svg>'+esc(name)+'</span><b>'+ (key?(map.get(key)||0):total)+'</b></button>').join('');
 }
 async function loadSubjects(){try{const data=await api('/api/encyclopedia/subjects');renderSubjects(data.subjects);}catch(e){$('subjects').textContent='Subject index unavailable';}}
 const alphabet=['ALL',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
@@ -28,12 +31,32 @@ function entryCard(x,i){
   +'<div class="entry-meta">'+ic('book')+'<span>Source-indexed · '+esc(x.review_status.replaceAll('_',' '))+'</span></div></div>'
   +'<div class="entry-side"><div class="entry-arabic" lang="ar" dir="rtl">'+esc(x.arabic_title)+'</div><a class="open-entry" href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">Read article '+ic('arrow')+'</a></div></article>';
 }
+// Explicit Qur'an references resolve locally without an external search or AI guess.
+function quranReference(question){
+ const q=String(question||'').trim();
+ const direct=q.match(/(?:\b(?:surah|surat|sura|chapter|quran|qur'an|verse|ayah|ayat)\s*)?(\d{1,3})\s*[:/]\s*(\d{1,3})\b/i);
+ if(direct){const surah=Number(direct[1]),ayah=Number(direct[2]);if(validVerse(surah,ayah))return {surah,ayah,ref:surah+':'+ayah};}
+ const named=[[/\b(?:ayat(?:ul|[ -]?al)?\s*kursi|ayatul kursi|throne verse)\b/i,2,255],
+ [/\b(?:last two verses of (?:surah )?al[- ]baqarah)\b/i,2,285],
+ [/\b(?:surah )?(?:al[- ]fatihah|fatiha|the opening)\b/i,1,1]];
+ for(const [pattern,surah,ayah] of named)if(pattern.test(q))return {surah,ayah,ref:surah+':'+ayah};
+ return null;
+}
+function renderQuranJump(q){
+ const match=quranReference(q);const root=$('quranJump');
+ if(!root)return;
+ if(!match){root.hidden=true;root.innerHTML='';return;}
+ root.hidden=false;
+ root.innerHTML='<div class="qa-kicker">QURANICALLY / DIRECT QURAN REFERENCE</div><h3>Open Qur’an '+match.ref+'</h3><p>Jump directly to the selected verse in our existing Qur’an Reader. The Arabic text, translation and listening tools remain in the Reader.</p><a class="qst-verse-link" href="/study.html?surah='+match.surah+'&ayah='+match.ayah+'">Read Qur’an '+match.ref+' in the Reader '+ic('arrow')+'</a>';
+}
 function renderProviderResult(x){
   const external=String(x.source_url||'');
   let safe='';try{const u=new URL(external);if(u.protocol==='https:')safe=u.href;}catch{}
+  const verseMatch=x.kind==='quran'&&/^(\d{1,3}):(\d{1,3})$/.exec(String(x.reference||''));
+  const readHere=verseMatch?'<a href="/study.html?surah='+Number(verseMatch[1])+'&ayah='+Number(verseMatch[2])+'">Read in Quranically '+ic('arrow')+'</a>':'';
   return '<article class="provider-hit"><div class="provider-hit-top"><span>'+esc(x.kind==='quran'?'Quran verse':x.kind==='hadith'?'Hadith collection':'Supplication')+'</span><small>Provider indexed · review pending</small></div>'
     +'<h4>'+esc(x.title)+'</h4><p>'+esc(x.excerpt||'Provider reference available; examine the original source record.')+'</p>'
-    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
+    +'<div class="provider-hit-footer"><span>'+esc(x.reference||'')+'</span>'+readHere+(safe?'<a href="'+esc(safe)+'" rel="noopener noreferrer" target="_blank">Inspect original source '+ic('external')+'</a>':'')+'</div></article>';
 }
 let sourceSequence=0;
 async function liveSources(q,domain){
@@ -45,13 +68,18 @@ async function liveSources(q,domain){
   const params=new URLSearchParams({q});if(domain)params.set('domain',domain);
   const data=await api('/api/source-discovery?'+params);
   if(mySeq!==sourceSequence)return;
-  // Provider snippets must directly contain every meaningful query word.
-  // A keyword-index hit alone is not evidence about the user's actual concern.
-  const words=q.toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w.length>3&&!['have','with','about','please','prophetic','medicine','there','what','want'].includes(w));
-  const items=(Array.isArray(data.results)?data.results:[]).filter(x=>{
-    const body=(x.title+' '+x.excerpt+' '+x.reference).toLowerCase();
-    return words.length>0&&words.every(w=>body.includes(w));
-  }).slice(0,5);
+  // Rank references by meaningful subject terms. Do not discard every result
+  // because a natural-language query contains extra words like "clothing for men".
+  // Source excerpts are research leads, never automatic scholarly answers.
+  const ignored=new Set(['have','with','about','please','prophetic','medicine','there','what','want','need','from','which','where','when','does','would','could','should','were','their','them','that','this','seerah','biography','islamic','islam','sunnah','hadith','men','women','people','tell','explain','according','teachings','what','how','the','and','for','are','can']);
+  const words=[...new Set(q.toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').split(' ').filter(w=>w.length>2&&!ignored.has(w)))];
+  const sourceItems=Array.isArray(data.results)?data.results:[];
+  const items=sourceItems.map(x=>{
+    const title=String(x.title||'').toLowerCase();
+    const body=(title+' '+String(x.excerpt||'')+' '+String(x.reference||'')).toLowerCase();
+    const hits=words.filter(w=>body.includes(w));
+    return {x,score:hits.length*3+(hits.some(w=>title.includes(w))?2:0),hits:hits.length};
+  }).filter(v=>v.hits>0).sort((a,b)=>b.score-a.score).slice(0,8).map(v=>v.x);
   $('sourceResults').innerHTML=items.map(renderProviderResult).join('');
   const total=items.length,offline=(data.providers||[]).filter(p=>p.status==='temporarily_unavailable').map(p=>p.id);
   $('sourceResultState').textContent=total+' indexed source match(es) shown · fetched '+new Date(data.fetched_at).toLocaleString()+
@@ -61,6 +89,7 @@ async function liveSources(q,domain){
 }
 let refreshSequence=0;
 async function refresh(){
+ document.body.classList.toggle('qst-has-query',filters.q.trim().length>=2);
  const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
  const heading=filters.domain?titles[filters.domain]:'All reference entries';
@@ -68,6 +97,7 @@ async function refresh(){
  $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':'Follow subject pathways, alphabetic entries and cross-references.';
  $('loading').textContent='Retrieving referenced entries…';$('resultCount').textContent='Searching…';$('results').innerHTML='';renderAlphabet();
  sourceSequence++;$('federatedResults').hidden=true;
+ renderQuranJump(filters.q);
  const answerTask=window.QuranicallyAnswers.show(filters.q,filters.domain);
  try{
   const data=await api('/api/encyclopedia'+(params.size?'?'+params:''));
@@ -130,13 +160,17 @@ $('encyclopediaSearch').addEventListener('submit',event=>{
  const ref=/^(?:quran\\s+)?(\\d{1,3}):(\\d{1,3})$/i.exec(entered);
  if(ref){
    const chapter=Number(ref[1]),ayah=Number(ref[2]);
-   if(chapter>=1&&chapter<=114&&ayah>=1&&ayah<=286){
+   if(validVerse(chapter,ayah)){
      location.assign('/study.html?surah='+chapter+'&ayah='+ayah);return;
    }
  }
  filters.q=entered;filters.letter='';
- history.pushState({},'',indexLink());refresh();document.getElementById('inlineAnswer').scrollIntoView({behavior:'smooth',block:'start'});
+ history.pushState({},'',indexLink());refresh();(quranReference(entered)?$('quranJump'):$('inlineAnswer')).scrollIntoView({behavior:'smooth',block:'start'});
 });
+document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{
+ $('query').value=button.dataset.example;
+ $('encyclopediaSearch').requestSubmit();
+}));
 $('subjects').addEventListener('click',event=>{
  const b=event.target.closest('button[data-domain]');if(!b)return;filters.domain=b.dataset.domain;filters.letter='';filters.q='';$('query').value='';
  history.pushState({},'',indexLink());loadSubjects();refresh();$('results').scrollIntoView({behavior:'smooth'});

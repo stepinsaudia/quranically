@@ -1,0 +1,47 @@
+name: Quranically — verify full 6236-verse source index (no deployment)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-quran-verse-index.yml'
+      - 'scripts/build-quran-verse-index.mjs'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-quran-verse-index.yml'
+      - 'scripts/build-quran-verse-index.mjs'
+permissions:
+  contents: write
+concurrency:
+  group: quranically-publisher-verse-snapshot
+  cancel-in-progress: false
+jobs:
+  source-index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/relevant-source-search-20261029
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all 114 Surahs, 6,236 source verses and Pickthall provenance
+        run: node scripts/build-quran-verse-index.mjs
+      - name: Commit only complete and verified source data on the development branch
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          git config user.name 'quranically-source-index-bot'
+          git config user.email 'quranically-source-index-bot@users.noreply.github.com'
+          git add src/data/quran-verse-index.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Index all 6,236 authenticated verse coordinates (Pickthall translation)'
+            git pull --rebase origin fix/relevant-source-search-20261029
+            git push origin HEAD:fix/relevant-source-search-20261029
+          fi
+      - name: Preserve source evidence snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-quran-6236-verse-source-index
+          path: src/data/quran-verse-index.json
+          if-no-files-found: warn

@@ -1,0 +1,45 @@
+name: Quranically — Independent live Worker deployment inspection (READ ONLY)
+on:
+  pull_request:
+    paths: [.github/workflows/quranically-release-inspection.yml]
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths: [.github/workflows/quranically-release-inspection.yml]
+permissions:
+  contents: read
+jobs:
+  check-worker-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify access and inspect active existing Worker deployment
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          node scripts/native-admin-preflight.mjs
+          node --input-type=module <<'JS'
+          const base='https://api.cloudflare.com/client/v4/accounts/fb9597e74bae3ea18ad7bb013213d776/workers/scripts/qst-living-knowledge-v1';
+          const headers={Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN,Accept:'application/json'};
+          for(const suffix of ['/settings','/deployments']){
+            const r=await fetch(base+suffix,{headers,signal:AbortSignal.timeout(15000)});
+            const body=await r.json().catch(()=>null);
+            console.log('Cloudflare '+suffix+' HTTP='+r.status+' success='+body?.success);
+            if(!r.ok||body?.success!==true)throw Error('Existing Worker '+suffix+' metadata inaccessible');
+            const d=body.result;
+            if(suffix==='/settings'){
+              const bindings=d?.bindings||[];
+              console.log('Available binding types:',bindings.map(b=>b.name+':'+b.type).join(','));
+              if(!bindings.some(b=>b.name==='DB'&&b.type==='d1'&&String(b.database_id||b.id)==='6c7c8edb-e20c-4354-9d69-0bea89badfd9'))throw Error('Wrong D1 binding');
+            }else{
+              const deployments=Array.isArray(d)?d:d?.deployments;
+              if(!Array.isArray(deployments)||!deployments.length)throw Error('No deployments returned');
+              console.log('Active deployment:',JSON.stringify({id:deployments[0].id,created_on:deployments[0].created_on,versions:deployments[0].versions}));
+            }
+          }
+          JS

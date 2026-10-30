@@ -7,7 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/encyclopedia.css"><script src="/answer.js" defer></script><script src="/encyclopedia.js" defer></script>
-</head><body>
+<link rel="stylesheet" href="/canonical-header.css">
+<link rel="stylesheet" href="/qst-visual-system.css">
+</head><body data-qst-page="encyclopedia">
 <svg class="defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 <symbol id="e-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="7.6"/><path d="m16.6 16.6 5.1 5.1"/></symbol>
 <symbol id="e-book" viewBox="0 0 24 24"><path d="M3 5c3.7-2.2 6.6-1.6 9 .5 2.4-2.1 5.3-2.7 9-.5v14c-3.7-2.2-6.6-1.6-9 .5-2.4-2.1-5.3-2.7-9-.5V5Zm9 .5v14"/></symbol>
@@ -21,35 +23,39 @@
 <symbol id="e-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
 <symbol id="e-close" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19"/></symbol>
 <symbol id="e-spark" viewBox="0 0 24 24"><path d="m12 1 3.2 7.8L23 12l-7.8 3.2L12 23l-3.2-7.8L1 12l7.8-3.2L12 1Z"/></symbol>
+
+<symbol id="e-quran" viewBox="0 0 24 24"><path d="M4 5.5c3.3-1.5 5.8-1.3 8 1.2 2.2-2.5 4.7-2.7 8-1.2v13.1c-3.3-1.4-5.8-1.2-8 1.2-2.2-2.4-4.7-2.6-8-1.2V5.5ZM12 6.7v13.1"/><path d="M6.8 9.2h2.7m-2.7 3h2.7m5.7-3h2.6m-2.6 3h2.6"/></symbol>
+<symbol id="e-hadith" viewBox="0 0 24 24"><path d="M8.2 5.6 12 2l3.8 3.6M8.2 18.4 12 22l3.8-3.6"/><path d="M9 8.5 5.7 12 9 15.5M15 8.5l3.3 3.5-3.3 3.5M9.6 12h4.8"/><circle cx="12" cy="12" r="1.3"/></symbol>
+<symbol id="e-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.6 8.4-2.2 5-5 2.2 2.2-5 5-2.2Z"/><path d="M12 3v2M3 12h2m14 0h2m-9 7v2"/></symbol>
+<symbol id="e-leaf" viewBox="0 0 24 24"><path d="M21 3c-10 .1-17.5 3.5-17.5 11.6A6.4 6.4 0 0 0 10 21C18.1 21 21 13.7 21 3Z"/><path d="M4 20c2.6-4.3 6.3-8 12-11"/></symbol>
+<symbol id="e-path" viewBox="0 0 24 24"><circle cx="5" cy="18.5" r="2"/><path d="M7 18.5h2.4c4.2 0 2.5-11 7-11H19m-4-4 4 4-4 4"/></symbol>
 </svg>
 <div class="brand-rule" aria-hidden="true"></div>
-<header class="header"><div class="masthead shell">
-<a class="identity" href="/encyclopedia" aria-label="Quranically encyclopedia">
-<img src="/favicon.svg" alt="" width="49" height="49"><span><strong>QURANICALLY</strong><small>THE ISLAMIC REFERENCE ENCYCLOPEDIA</small></span></a>
-<div class="edition"><span>REFERENCE EDITION</span><b>Quran · Sunnah · Seerah · Knowledge</b></div>
-<a class="header-admin" href="/admin">Editorial Desk</a><button id="mobileMenu" class="mobile-menu" aria-label="Show navigation"><svg><use href="#e-menu"/></svg></button>
-</div>
-<nav class="global-nav"><div class="shell global-nav-inner" id="navLinks">
-<a href="/encyclopedia" class="current">Encyclopedia</a>
-<a href="/study.html">Quran Reader</a>
-<a href="/encyclopedia?domain=quranic_themes">Quranic Themes</a>
-<a href="/encyclopedia?domain=sunnah">Sunnah & Hadith</a>
-<a href="/encyclopedia?domain=seerah">Seerah</a>
-<a href="/encyclopedia?domain=prophetic_medicine">Prophetic Medicine</a>
-<a href="/guidance">Living Guidance</a>
-</div></nav>
-</header>
+<header class="qst-header" role="banner"><div class="qst-top"><a class="qst-brand" href="/encyclopedia" aria-label="Quranically home"><img src="/favicon.svg" width="43" height="43" alt=""><span><strong>QURANICALLY</strong><small>THE ISLAMIC REFERENCE ENCYCLOPEDIA</small></span></a><span class="qst-edition">QURAN · SUNNAH · SEERAH · PROPHETIC MEDICINE</span><div class="qst-utility"><a href="/admin">Editorial Desk</a><button id="mobileMenu" class="qst-legacy-control" type="button" aria-label="Open navigation">Menu</button></div></div><nav class="qst-nav" aria-label="Primary"><div class="qst-links" id="navLinks"><a href="/encyclopedia" aria-current="page">Encyclopedia</a><a href="/study.html">Quran Reader</a><a href="/encyclopedia?domain=quranic_themes">Quranic Themes</a><a href="/encyclopedia?domain=sunnah">Sunnah & Hadith</a><a href="/encyclopedia?domain=seerah">Seerah</a><a href="/tibb">Prophetic Medicine</a><a href="/guidance">Living Guidance</a></div></nav></header>
 <main id="main">
 <div class="shell breadcrumbs"><a href="/">Home</a><svg><use href="#e-chevron"/></svg><a href="/encyclopedia">Encyclopedia</a><svg id="articleCrumbArrow" hidden><use href="#e-chevron"/></svg><span id="crumbSubject">Reference index</span></div>
 <div id="indexView">
-<section class="index-intro shell"><div class="intro-copy"><p class="overline">THE QURANICALLY REFERENCE DESK / VOLUME I</p><h1>Knowledge,<br><em>with provenance.</em></h1><p>Explore the Qur’an, recorded Prophetic practice, Seerah, healing traditions and the questions of life—through contextual articles, identifiable primary sources, honest review status and bibliographies you can examine.</p>
-<div class="intro-detail"><span><svg><use href="#e-book"/></svg> Substantial articles</span><span><svg><use href="#e-link"/></svg> Traceable references</span><span><svg><use href="#e-shield"/></svg> Review status made explicit</span></div></div>
-<div class="intro-manuscript" aria-hidden="true"><div class="folio-frame"><div class="folio-top">THE QURANICALLY ENCYCLOPEDIA</div><div class="folio-ornament"><svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="105"/><path d="M120 17 148 77 207 43 163 100 223 120 163 140 207 197 148 163 120 223 92 163 33 197 77 140 17 120 77 100 33 43 92 77Z"/><circle cx="120" cy="120" r="42"/><path d="M102 108q18-13 36 0v29q-18-10-36 0Zm18 0v29"/></svg></div><span class="folio-ar" lang="ar" dir="rtl">اقْرَأْ بِاسْمِ رَبِّكَ</span><span class="folio-caption">READ · EXAMINE · UNDERSTAND</span></div></div>
+<section class="qst-search-home shell" aria-labelledby="qstWelcome">
+  <p class="qst-eyebrow">QURANICALLY · AUTHENTIC ISLAMIC KNOWLEDGE</p>
+  <h1 id="qstWelcome">Ask. Understand. Live it.</h1>
+  <p class="qst-lede">One question. Explore the Qur’an, authentic Sunnah, the Prophet’s ﷺ life, and Prophetic Medicine — with sources clearly identified.</p>
+  <form id="encyclopediaSearch" role="search" class="qst-main-search">
+    <svg aria-hidden="true"><use href="#e-search"/></svg>
+    <input type="search" id="query" aria-label="Ask Quranically" placeholder="Ask anything about Islam, the Qur’an, or Prophetic living…" autocomplete="off">
+    <button type="submit">Explore <svg aria-hidden="true"><use href="#e-arrow"/></svg></button>
+  </form>
+  <div class="qst-search-hints" aria-label="Example searches">
+    <span>Try:</span>
+    <button type="button" data-example="Where is Ayat al-Kursi?">Where is Ayat al-Kursi?</button>
+    <button type="button" data-example="What did the Prophet eat?">What did the Prophet ﷺ eat?</button>
+    <button type="button" data-example="Black seed in Prophetic Medicine">Black seed in Prophetic Medicine</button>
+  </div>
+  <p class="qst-integrity">Every answer identifies its sources and review status. Religious evidence, historical reports and medical research remain distinct.</p>
 </section>
-<section class="search-strip"><div class="shell search-frame"><div class="search-title"><span>SEARCH THE ENCYCLOPEDIA</span><small>Subjects, Arabic terms, alternate names and themes</small></div><form id="encyclopediaSearch" role="search"><svg><use href="#e-search"/></svg><input type="search" id="query" aria-label="Search all encyclopedia topics" placeholder="Try black seed, healing, patience, talbina…" autocomplete="off"><button type="submit">Search <svg><use href="#e-arrow"/></svg></button></form></div></section>
 <section class="reference-work shell">
 <aside class="subjects" id="subjectSidebar"><div class="side-label">BROWSE BY DISCIPLINE</div><div class="subject-controls" id="subjects"></div><div class="side-rule"></div><div class="side-label">METHOD & TRANSPARENCY</div><p class="side-explain">Religious texts are cited as religious evidence. Historical interpretation and modern clinical findings must be evaluated separately.</p><a href="#methodology" class="method-link">Read editorial methodology <svg><use href="#e-chevron"/></svg></a></aside>
 <div class="results">
+<section id="quranJump" class="qst-jump" hidden aria-live="polite"></section>
 <section id="inlineAnswer" class="inline-answer" hidden aria-label="Quranically source-grounded answer"><div id="inlineAnswerBody" aria-live="polite"></div></section>
 <div class="results-head"><div><p class="overline">ENCYCLOPEDIA ARTICLES / SUBJECT INDEX</p><h2 id="indexHeading">All reference entries</h2><p id="indexSubtitle">Browse curated opening entries while the editorial corpus is expanded.</p></div><div class="count" id="resultCount">Loading…</div></div>
 <div class="alphabet" id="alphabet" aria-label="Alphabetical index"></div>
@@ -87,6 +93,11 @@
 <div class="related-card"><p class="side-label">SEE ALSO</p><div id="relatedList"></div></div>
 </aside></div></div>
 </main>
-<footer class="footer"><div class="shell footer-columns"><div><div class="footer-brand"><img src="/favicon.svg" alt="" width="38" height="38"><strong>QURANICALLY</strong></div><p>An evolving Islamic reference encyclopedia—founded on traceable texts, scholarly humility and research transparency.</p></div><div><h4>REFERENCE</h4><a href="/encyclopedia">Encyclopedia Index</a><a href="/encyclopedia?domain=prophetic_medicine">Prophetic Medicine</a><a href="/encyclopedia?domain=quranic_themes">Quranic Themes</a></div><div><h4>EXPLORE</h4><a href="/study.html">Quran Reader</a><a href="/guidance">Living Guidance</a><a href="/encyclopedia?domain=seerah">Seerah</a></div><div><h4>GOVERNANCE</h4><a href="/encyclopedia#methodology">Editorial Method</a><a href="/admin">Editorial Desk</a><span>Source-linked pilot · Independent review pending</span></div></div><div class="shell bottom"><span>Quranically — The Islamic Reference Encyclopedia</span><span>Reference, context, responsibility.</span></div></footer>
+<footer class="qst-site-footer" role="contentinfo"><div class="shell qst-footer-grid">
+ <div class="qst-footer-intro"><a class="qst-footer-identity" href="/" aria-label="Quranically home"><img src="/favicon.svg" alt="" width="38" height="38"><span>QURANICALLY<small>THE ISLAMIC REFERENCE ENCYCLOPEDIA</small></span></a><p>A living library of revelation, authenticated reports and carefully attributed scholarship. Explore freely; examine every source.</p><span class="qst-footer-integrity">SOURCES BEFORE CLAIMS · REVIEW STATUSES VISIBLE</span></div>
+ <div class="qst-footer-group"><h2>Discover</h2><a href="/encyclopedia">Encyclopedia</a><a href="/encyclopedia?domain=quranic_themes">Qur’anic Themes</a><a href="/encyclopedia?domain=sunnah">Sunnah &amp; Hadith</a><a href="/encyclopedia?domain=seerah">Seerah &amp; Biography</a></div>
+ <div class="qst-footer-group"><h2>Learn &amp; apply</h2><a href="/study.html">Qur’an Reader</a><a href="/tibb">Prophetic Medicine</a><a href="/guidance">Living Guidance</a></div>
+ <div class="qst-footer-group"><h2>Transparency</h2><a href="/encyclopedia#methodology">Editorial methodology</a><a href="/admin">Editorial Desk</a><p>Publication is not independent scholarly or clinical approval.</p></div>
+ </div><div class="shell qst-footer-bottom"><span>© Quranically · Source-led Islamic knowledge</span><span>One identity. Five disciplines. Traceable references.</span></div></footer>
 <div id="toast" aria-live="polite" role="status" class="toast" hidden></div>
 </body></html>

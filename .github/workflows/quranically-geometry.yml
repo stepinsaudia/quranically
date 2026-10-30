@@ -1,0 +1,78 @@
+name: Quranically — Canonical visual geometry audit (NO DEPLOY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-geometry.yml'
+      - 'scripts/canonical-geometry-audit.mjs'
+      - 'src/qst-public-shell.mjs'
+      - 'scripts/sync-qst-shell.mjs'
+      - 'public/canonical-header.css'
+      - 'public/qst-visual-system.css'
+      - 'public/admin-canonical.css'
+      - 'public/admin-login-canonical.css'
+      - 'scripts/admin-geometry-audit.mjs'
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-geometry.yml'
+      - 'scripts/canonical-geometry-audit.mjs'
+      - 'scripts/admin-geometry-audit.mjs'
+      - 'scripts/sync-qst-shell.mjs'
+      - 'src/qst-public-shell.mjs'
+      - 'public/qst-visual-system.css'
+      - 'public/admin-canonical.css'
+      - 'public/admin-login-canonical.css'
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+      - name: Refuse duplicate or drifted headers/footers across all five public pages
+        run: node scripts/sync-qst-shell.mjs --check
+      - name: Start isolated canonical local Worker
+        run: |
+          node scripts/local-preview.mjs > /tmp/qst-geometry.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl --silent --fail http://127.0.0.1:8799/api/health >/dev/null && break
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8799/api/health
+      - name: Measure five public page families across four real retina viewports
+        run: node scripts/canonical-geometry-audit.mjs
+      - name: Measure protected Admin workbench and login without authorizing data access
+        run: node scripts/admin-geometry-audit.mjs
+      - name: Preserve full geometry JSON and actual retina screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-canonical-geometry-retina
+          path: artifacts/geometry-*.png
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Preserve editorial Admin retina screenshots and geometry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-admin-canonical-geometry
+          path: |
+            artifacts/qst-admin-*.png
+            artifacts/qst-admin-geometry.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Preserve numeric measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quranically-canonical-geometry-metrics
+          path: artifacts/canonical-geometry-before.json
+          retention-days: 14
+          if-no-files-found: warn

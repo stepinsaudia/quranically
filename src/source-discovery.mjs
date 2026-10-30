@@ -1,3 +1,4 @@
+import {validVerse} from './quran-search.mjs';
 // Quranically federated source discovery. No full-corpus mirroring and no AI-generated citations.
 // The API returns small, attributed pointers to provider data, not approved encyclopedia articles.
 const origin='https://ummahapi.com';
@@ -37,7 +38,7 @@ export async function liveSourceSearch(q,domain=''){
       const records=arr.slice(0,group.id==='hadith_collections'?12:8).map(x=>{
         if(group.id==='quran_verses'){
           const chapter=Number(x.surah_number),ayah=Number(x.ayah);
-          if(!(chapter>=1&&chapter<=114&&ayah>=1&&ayah<=286))return null;
+          if(!validVerse(chapter,ayah))return null;
           return {provider:'UmmahAPI / Quran index',kind:'quran',reference:chapter+':'+ayah,title:'Quran '+chapter+':'+ayah,excerpt:short(x.translation,240),source_url:'https://quran.com/'+chapter+'/'+ayah,review_status:'upstream_unreviewed'};
         }
         if(group.id==='hadith_collections'){
@@ -56,12 +57,14 @@ export async function liveSourceSearch(q,domain=''){
   return {term,results:responses.flatMap(x=>x.records),providers:responses.map(({id,status,total})=>({id,status,match_count:total})),fetched_at:new Date().toISOString(),review_notice:'These are independently attributed provider search records, not Quranically-verified religious rulings or medical advice.'};
 }
 export const CONNECTORS=[
+ {id:'alquran_cloud',title:'Qur’an word and exact-verse search',source:'Al Quran Cloud',mode:'live_translation_search',coverage:'All 114 chapters in provider-hosted English translation, with exact Arabic verse lookup and read-in-Reader links',verification:'provider_text_pending_review',source_url:'https://alquran.cloud/api'},
  {id:'ummah_quran',title:'Quran verse index',source:'UmmahAPI',mode:'live_search',coverage:'Quran search index; provider claims 6,236 verses',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/api/docs'},
  {id:'ummah_hadith',title:'Hadith collection index',source:'UmmahAPI',mode:'live_search',coverage:'Provider claims 36,000+ narrations in 10 collections; not independently authenticated by Quranically',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/hadith-api'},
  {id:'ummah_dua',title:'Supplication index',source:'UmmahAPI',mode:'live_search',coverage:'Provider indexed duas with source labels',verification:'provider_text_pending_review',source_url:'https://ummahapi.com/duas-api'},
- {id:'hadeethenc',title:'Hadith encyclopedia',source:'HadeethEnc',mode:'official_category_api',coverage:'Translated narrations grouped in curated categories; verbatim reuse requires exact attribution/version',verification:'publisher_source',source_url:'https://hadeethenc.com/en/home'},
+ {id:'hadeethenc',title:'Source-graded Hadith with publisher explanations',source:'HadeethEnc.com',mode:'live_category_and_hadith_api',coverage:'Topic-matched category discovery and original unabridged English hadith, explanation, attribution and source-reported grading; source edition en v1.25.0 reported separately from the live API',verification:'publisher_grade_not_quranically_reviewed',source_url:'https://hadeethenc.com/en/home'},
  {id:'sunnah_com',title:'Sunnah.com',source:'Sunnah.com',mode:'access_required',coverage:'Partial checked collections; API key approval required',verification:'permission_pending',source_url:'https://sunnah.com/developers'},
  {id:'dorar',title:'Dorar Hadith Encyclopedia',source:'Dorar.net',mode:'access_required',coverage:'Hadith authenticity/grading search; token approval required',verification:'permission_pending',source_url:'https://dorar.net/api-services/hadith'},
  {id:'quran_foundation',title:'Quran Foundation Content & Search',source:'Quran Foundation',mode:'access_required',coverage:'Licensed Quran content/search including tafsir; production permissions required',verification:'permission_pending',source_url:'https://api-docs.quran.com/'},
+ {id:'europe_pmc',title:'Biomedical literature bibliography',source:'Europe PMC / EMBL-EBI',mode:'live_bibliographic_search',coverage:'Journal and research bibliographic metadata only, relevant to health and Prophetic Medicine inquiries; no abstracts, efficacy verdicts, or treatment advice copied into results',verification:'independent_medical_review_required',source_url:'https://europepmc.org/RestfulWebService'},
  {id:'pubmed',title:'PubMed research index',source:'NCBI / NIH',mode:'contact_required',coverage:'Biomedical bibliographic research; registration/traffic and abstract rights apply',verification:'independent_medical_review_required',source_url:'https://pubmed.ncbi.nlm.nih.gov/'}
 ];

@@ -87,9 +87,11 @@
 header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gradient(120deg,#4e1832,#291225)}
 .full-qreader .qrHero{background:linear-gradient(110deg,#501930,#133f5b)!important}
 </style>
+<link rel="stylesheet" href="/canonical-header.css">
+<link rel="stylesheet" href="/qst-visual-system.css">
 </head>
-<body>
-<div class="top-line"></div>
+<body data-qst-page="reader">
+
 <svg style="display:none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
 <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></symbol>
@@ -116,11 +118,7 @@ header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gr
 <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/></symbol>
 <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
 </svg>
-<header><div class="container head">
-<a class="brand" href="/" aria-label="Quranically, return to home"><span class="brand-mark"><svg class="ico"><use href="#i-book"/></svg></span><span><div class="brand-strong">QURANICALLY</div><div class="brand-sub">QURAN · SEERAH · TIBB AL-NABAWI</div></span></a>
-<nav class="nav" aria-label="Primary"><a href="#reader" class="reader-open-link">Quran Reader · Audio & Transliteration</a><a href="#quran">Quran in Guidance</a><a href="#seerah">The Prophet's example</a><a href="#care">Prophetic guidance</a><a href="#action">Living the guidance</a><a href="/encyclopedia?domain=prophetic_medicine">Prophetic Medicine</a><a href="/">Home</a></nav>
-<div class="nav-side"><a class="tiny-pill" href="#reader" id="openReaderPill" style="text-decoration:none"><svg class="ico"><use href="#i-volume"/></svg> Listen Quran</a><button class="tiny-pill" id="copyJourney"><svg class="ico"><use href="#i-copy"/></svg> Copy references</button><button class="tiny-pill mobile-menu" id="mobileMenu" aria-label="Show sections"><svg class="ico"><use href="#i-book"/></svg></button></div>
-</div></header>
+<header class="qst-header" role="banner"><div class="qst-top"><a class="qst-brand" href="/encyclopedia" aria-label="Quranically home"><img src="/favicon.svg" width="43" height="43" alt=""><span><strong>QURANICALLY</strong><small>THE ISLAMIC REFERENCE ENCYCLOPEDIA</small></span></a><span class="qst-edition">QURAN · SUNNAH · SEERAH · PROPHETIC MEDICINE</span><div class="qst-utility"><a href="/admin">Editorial Desk</a><button id="mobileMenu" class="qst-legacy-control" type="button" aria-label="Open navigation">Menu</button></div></div><nav class="qst-nav" aria-label="Primary"><div class="qst-links" id="navLinks"><a href="/encyclopedia">Encyclopedia</a><a href="/study.html" aria-current="page">Quran Reader</a><a href="/encyclopedia?domain=quranic_themes">Quranic Themes</a><a href="/encyclopedia?domain=sunnah">Sunnah & Hadith</a><a href="/encyclopedia?domain=seerah">Seerah</a><a href="/tibb">Prophetic Medicine</a><a href="/guidance">Living Guidance</a></div></nav></header><div class="qst-internal-actions" hidden><a id="openReaderPill" href="#reader">Open Reader</a><button id="copyJourney" type="button">Copy references</button></div>
 <section id="fullReader" class="full-qreader" aria-label="Complete Quran Reader" hidden>
   <div class="qrHero">
     <div class="container qrHeroGrid">
@@ -131,7 +129,7 @@ header{background:#fffaf0;border-bottom-color:#eedfcb}.hero{background:linear-gr
   <div class="container qrBody">
     <div class="qrReaderHead">
       <div><span class="qrSectionLabel">THE QURAN READER</span><h2 id="qrSurahTitle">Al-Fatihah <span>الفاتحة</span></h2><p id="qrSurahSub">The Opening · Chapter 1 of 114 · Seven Ayahs</p></div>
-      <a href="#top" class="qrBack"><svg class="ico"><use href="#i-chevron"/></svg> Return to guided study</a>
+      <a href="/guidance" class="qrBack"><svg class="ico"><use href="#i-chevron"/></svg> Explore Living Guidance</a>
     </div>
     <div class="qrControlPanel">
       <div class="qrControlTop">
@@ -176,7 +174,12 @@ A question I want to ask a knowledgeable scholar…" aria-label="My private guid
 </section>
 <section class="chapter" id="action"><div class="sect-top"><span class="step">04</span><span class="rule"></span><span class="kind">Bring the knowledge into life</span></div><h2 class="chapter-title">A practical way forward.</h2><p class="chapter-intro" id="actionIntro">These are optional reflection and wellbeing steps, not religious prescriptions or a substitute for professional advice. Save the ones that are relevant to your circumstances.</p><div id="actionPlan" class="plan"></div><div class="end-note">This experience is a curated demonstration of what an on-site knowledge journey can look like. Religious cross-links and English explanations still require an editorial approval workflow before public launch. User questions should retrieve evidence, not generate unsupported religious certainty.</div></section>
 </div><aside class="sidebar"><div class="side-kicker">YOUR GUIDED RESEARCH PATH</div><h3>From revelation to understanding.</h3><nav class="side-nav" aria-label="Journey sections"><a href="#quran" class="active">01 · What Allah says</a><a href="#seerah">02 · The Prophet's example</a><a href="#care">03 · Spiritual & health support</a><a href="#action">04 · What to do now</a></nav><div class="side-brief"><h4>Source-led, not link-led</h4><p>Verses, narrations, Duas, context and source metadata are displayed here. Outbound links only provide independent verification.</p><div class="mini-stat"><svg class="ico"><use href="#i-shield"/></svg> Exact Quran and Hadith references</div><button id="downloadNotes" class="side-action"><svg class="ico"><use href="#i-download"/></svg> Save this research path</button></div><p class="side-disclaimer">Illustrative working product experience · not an AI fatwa service · not medical diagnosis or treatment.</p></aside></div>
-</main><footer class="footer"><div class="container footer-inner"><div><h4>Knowledge, made accountable.</h4><p>One search connecting the Quran, verified accounts of the Prophet ﷺ, and carefully reviewed guidance for the challenges of life. The Arabic is preserved; claims must be sourced; interpretation must be transparent.</p></div><div class="foot-mini">LEGACY INTERACTIVE QURAN READER · SOME READER FUNCTIONS DEPEND ON THIRD-PARTY DATA<br/>Quranically's live source-linked guidance and Prophetic Medicine libraries are separate modules.</div></div></footer><div class="toast" id="toast" role="status"></div>
+</main><footer class="qst-site-footer" role="contentinfo"><div class="shell qst-footer-grid">
+ <div class="qst-footer-intro"><a class="qst-footer-identity" href="/" aria-label="Quranically home"><img src="/favicon.svg" alt="" width="38" height="38"><span>QURANICALLY<small>THE ISLAMIC REFERENCE ENCYCLOPEDIA</small></span></a><p>A living library of revelation, authenticated reports and carefully attributed scholarship. Explore freely; examine every source.</p><span class="qst-footer-integrity">SOURCES BEFORE CLAIMS · REVIEW STATUSES VISIBLE</span></div>
+ <div class="qst-footer-group"><h2>Discover</h2><a href="/encyclopedia">Encyclopedia</a><a href="/encyclopedia?domain=quranic_themes">Qur’anic Themes</a><a href="/encyclopedia?domain=sunnah">Sunnah &amp; Hadith</a><a href="/encyclopedia?domain=seerah">Seerah &amp; Biography</a></div>
+ <div class="qst-footer-group"><h2>Learn &amp; apply</h2><a href="/study.html">Qur’an Reader</a><a href="/tibb">Prophetic Medicine</a><a href="/guidance">Living Guidance</a></div>
+ <div class="qst-footer-group"><h2>Transparency</h2><a href="/encyclopedia#methodology">Editorial methodology</a><a href="/admin">Editorial Desk</a><p>Publication is not independent scholarly or clinical approval.</p></div>
+ </div><div class="shell qst-footer-bottom"><span>© Quranically · Source-led Islamic knowledge</span><span>One identity. Five disciplines. Traceable references.</span></div></footer><div class="toast" id="toast" role="status"></div>
 <script>
 const icon=(name,cls='')=>`<svg class="ico ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const verses={

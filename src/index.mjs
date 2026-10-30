@@ -1,4 +1,11 @@
 import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
+import {searchQuran,quranSearchTerms,parseVerseReference} from './quran-search.mjs';
+import {bestArticle,scoreArticle,subjectTokens,normalizeSubject,subjectOverlap} from './article-match.mjs';
+import {searchHadeethEnc,hadeethCatalogInfo} from './hadeethenc-discovery.mjs';
+import {searchBiomedicalEvidence} from './biomedical-search.mjs';
+import {composeSourceAnswer} from './answer-compose.mjs';
+import {assessAnswerQuality} from './answer-quality.mjs';
+import {quranCorpusInfo,searchTranslationCorpus} from './quran-corpus-search.mjs';
 // Dedicated Quran–Seerah–Tibb Worker: no bindings to any existing project.
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const invalid=(detail='Invalid request')=>json({error:detail},400);
@@ -16,9 +23,10 @@ const field={
   encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url','source_note','verification_status','sort_order'],
   encyclopedia_links:['article_id','target_article_id','relation_label','sort_order'],
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
+  research_topics:['question','domain','research_stage','risk_class','source_notes','assigned_reviewer','linked_article_id','sort_order'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -36,8 +44,8 @@ const needed={journeys:['title','slug'],sources:['title','source_url','source_ty
  encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url'],
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
- tibb_offers:['entry_id','seller_name','product_name','offer_url']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+ tibb_offers:['entry_id','seller_name','product_name','offer_url'],research_topics:['question','domain','research_stage','risk_class']};
+const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -45,6 +53,7 @@ function normalize(table,payload,method){
   const output={};
   for(const k of keys){
     const val=payload[k];
+    if(k==='linked_article_id'&&val===''){output[k]=null;continue;}
     if(k==='sort_order'){
       if(!Number.isSafeInteger(Number(val))||Math.abs(Number(val))>100000)throw new Error('Invalid sort order');
       output[k]=Number(val);continue;
@@ -52,6 +61,7 @@ function normalize(table,payload,method){
     if(typeof val!=='string'||val.length>(textLimit[k]||1200))throw new Error('Invalid '+k);
     const txt=val.trim();
     const localEnums={
+      research_topics:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],research_stage:['queued','researching','source_check','scholar_review','medical_review','ready_for_article','closed'],risk_class:['general','interpretation','hadith_grade','historical','medical','jurisprudence']},
       encyclopedia_articles:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],entry_type:['ingredient','practice','devotion','concept','historical','guidance'],review_status:['editorial_draft','source_checked','scholar_reviewed','dual_reviewed']},
       encyclopedia_sections:{section_type:['overview','scripture','transmission','historical','interpretation','science','safety','practice','methodology']},
       encyclopedia_citations:{citation_type:['quran','hadith','clinical','reference','classical'],verification_status:['pending','source_checked','expert_checked']},
@@ -62,7 +72,7 @@ function normalize(table,payload,method){
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
     if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
-    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id'].includes(k)&&!validId(txt))throw new Error('Invalid identifier');
+    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id','linked_article_id'].includes(k)&&txt&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
   if(method==='POST'&&needed[table].some(k=>!output[k]))throw new Error('Missing required field');
@@ -280,6 +290,28 @@ async function publicApi(request,env,url){
     catch(e){return json({status:'database_not_ready',service:'qst-living-knowledge-v1'},503);}
   }
   if(request.method!=='GET')return json({error:'Method not allowed'},405);
+  // Source-index pagination returns more genuine Quran results without
+  // inventing references or requerying a limited third-party search page.
+  if(pathname==='/api/quran/search'){
+    const q=(url.searchParams.get('q')||'').trim().slice(0,95);
+    if(q.length<2)return invalid('Enter a meaningful Qur’an search term');
+    const offset=Math.max(0,Math.min(6236,Number(url.searchParams.get('offset'))||0));
+    const limit=Math.max(1,Math.min(30,Number(url.searchParams.get('limit'))||12));
+    const terms=quranSearchTerms(q);
+    const matches=searchTranslationCorpus(terms,{offset,limit});
+    const results=matches.results.map(v=>{
+      const reference=v.chapter+':'+v.verse;
+      return {provider:'Al Quran Cloud',kind:'quran',reference,
+        title:'Qur’an '+reference,excerpt:v.text,
+        translation:'Marmaduke Pickthall (en.pickthall)',
+        source_url:'https://quran.com/'+v.chapter+'/'+v.verse,
+        reader_url:'/study.html?surah='+v.chapter+'&ayah='+v.verse,
+        review_status:'publisher_translation_not_tafsir'};
+    });
+    return json({query:q,terms,total:matches.total,offset:matches.offset,
+      limit:matches.limit,next_offset:matches.next_offset,
+      results,source_corpus:quranCorpusInfo(),notice:'Complete attributed translation index, not Tafsir or a religious ruling.'});
+  }
   if(pathname==='/api/quran/chapters'){
     try{
       const r=await fetch('https://api.alquran.cloud/v1/surah',{headers:{accept:'application/json'},signal:AbortSignal.timeout(10000),cf:{cacheEverything:true,cacheTtl:86400}});
@@ -336,7 +368,7 @@ async function publicApi(request,env,url){
   if(pathname==='/api/source-connectors'){
     const states=(await env.DB.prepare('SELECT source_id,last_checked_at,last_state FROM source_connector_checks').all()).results;
     const byId=new Map(states.map(x=>[x.source_id,x]));
-    return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked'})),notice:'Provider availability and scholarly validation are distinct.'});
+    return json({connectors:CONNECTORS.map(c=>({...c,last_checked_at:byId.get(c.id)?.last_checked_at||null,last_state:byId.get(c.id)?.last_state||'not_checked',...(c.id==='hadeethenc'?{source_catalog:hadeethCatalogInfo()}:{}),...(c.id==='alquran_cloud'?{source_catalog:quranCorpusInfo()}:{} )})),notice:'Publisher-indexed reference titles are discoverable, not Quranically-reviewed Hadith text. Provider availability and scholarly validation are distinct.'});
   }
   if(pathname==='/api/source-discovery'){
     const q=(url.searchParams.get('q')||'').trim();
@@ -352,6 +384,78 @@ async function publicApi(request,env,url){
     if(cache)await cache.put(requestKey,response.clone());
     return response;
   }
+  // One search across editorial records and connected primary-source indexes.
+  // Source snippets are presented as research evidence, NEVER as verified fatwa or medical cures.
+  if(pathname==='/api/unified-search'){
+    const q=(url.searchParams.get('q')||'').trim();
+    const domain=(url.searchParams.get('domain')||'').trim();
+    if(domain&&!['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'].includes(domain))return invalid('Invalid subject');
+    if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
+    const normalize=normalizeSubject;
+    const terms=subjectTokens(q);
+    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).then(x=>x.results).catch(()=>[]);
+    const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    // If a question is asked inside one discipline, do not pretend that an
+    // article from another discipline is that discipline's authoritative
+    // answer. Offer it as a clearly labelled cross-disciplinary link instead.
+    const relatedArticles=domain
+      ?await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' AND domain!=? ORDER BY title LIMIT 1500").bind(domain).all()).then(x=>x.results).catch(()=>[])
+         .then(records=>records.map(article=>({...article,_score:scoreArticle(q,article).score}))
+           .filter(article=>article._score>=85)
+           .sort((a,b)=>b._score-a._score)
+           .slice(0,3).map(({_score,alternate_names,...rest})=>rest))
+      :[];
+    // Full source-grounded excerpts for relevant editorial answers: do not replace
+    // primary evidence with automatically generated medical or religious claims.
+    const contextualAnswers=await Promise.all(editorial.slice(0,2).map(async article=>{
+      try{
+        const [sections,citations]=await Promise.all([
+          env.DB.prepare('SELECT heading,section_type,body FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id LIMIT 6').bind(article.id).all(),
+          env.DB.prepare('SELECT citation_type,source_title,citation_ref,source_url,verification_status FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id LIMIT 12').bind(article.id).all()
+        ]);
+        if(!sections.results.length||!citations.results.length)return null;
+        return {slug:article.slug,title:article.title,domain:article.domain,abstract:article.abstract,review_status:article.review_status,sections:sections.results,citations:citations.results};
+      }catch{return null;}
+    }));
+    const journeyRows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).then(x=>x.results).catch(()=>[]);
+    const matches=journeyRows.map(j=>({...j,_score:subjectOverlap(q,[j.title,j.summary,j.tags].join(' '))})).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
+    const guidance=await Promise.all(matches.map(async({_score,...j})=>{
+      const [evidence,steps]=await Promise.all([
+        env.DB.prepare("SELECT e.evidence_type,e.title,e.reference,e.meaning,e.explanation,e.source_url,e.source_grade,e.review_status,s.title AS source_title FROM evidence e JOIN sources s ON s.id=e.source_id WHERE e.journey_id=? AND e.publish_status='published' ORDER BY e.sort_order LIMIT 8").bind(j.id).all(),
+        env.DB.prepare("SELECT instruction,category FROM steps WHERE journey_id=? ORDER BY sort_order LIMIT 6").bind(j.id).all()
+      ]);
+      return {slug:j.slug,title:j.title,summary:j.summary,clinical_note:j.clinical_note,evidence:evidence.results,steps:steps.results,review_policy:'Published editorial material; independent scholar review may be pending'};
+    }));
+    const ingredients=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).then(x=>x.results).catch(()=>[]);
+    const tibb=ingredients.map(x=>({...x,_score:subjectOverlap(q,[x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '))})).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
+    const [remote,quranFullText,hadeethEnc,biomedical]=await Promise.all([
+      liveSourceSearch(q,'').catch(()=>({results:[],providers:[],review_notice:'External indexes unavailable'})),
+      searchQuran(q).catch(()=>({status:'temporarily_unavailable',mode:'translation_keyword',searched:'',results:[]})),
+      searchHadeethEnc(q).catch(()=>({status:'temporarily_unavailable',results:[],publisher:'HadeethEnc.com'})),
+      searchBiomedicalEvidence(q,{ingredients:tibb,domain}).catch(()=>({status:'temporarily_unavailable',results:[],provider:'Europe PMC'}))
+    ]);
+    const ranked=(remote.results||[]).map(x=>{
+      const score=subjectOverlap(q,[x.title,x.excerpt,x.reference].join(' '));
+      return {...x,_score:score};
+    }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,12).map(({_score,...rest})=>rest);
+    const buckets={quran:[],hadith:[],dua:[]};
+    for(const item of hadeethEnc.results||[])buckets.hadith.push(item);
+    const uniqueVerses=new Set();
+    for(const item of quranFullText.results||[]){
+      if(!item.reference||uniqueVerses.has(item.reference))continue;
+      buckets.quran.push(item);uniqueVerses.add(item.reference);
+    }
+    for(const item of ranked){
+      if(!buckets[item.kind])continue;
+      if(item.kind==='quran'&&uniqueVerses.has(item.reference))continue;
+      buckets[item.kind].push(item);
+      if(item.kind==='quran')uniqueVerses.add(item.reference);
+    }
+    buckets.quran=buckets.quran.slice(0,12);
+    const answerBrief=composeSourceAnswer(q,{contextual_answers:contextualAnswers.filter(Boolean),guidance,evidence:buckets,tibb,biomedical_evidence:biomedical.results||[]});
+    const answerQuality=assessAnswerQuality(q,domain,answerBrief);
+    return json({query:q,editorial,related_articles:relatedArticles,answer_brief:answerBrief,answer_quality:answerQuality,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+  }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
   // This is controlled retrieval, never fabricated 'AI' medical or religious advice.
@@ -361,31 +465,8 @@ async function publicApi(request,env,url){
     if(q.length<2)return invalid('Ask a question with at least two characters');
     const domains=['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'];
     if(domain&&!domains.includes(domain))return invalid('Invalid subject');
-    const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u0600-\u06ff]+/g,' ').replace(/\s+/g,' ').trim();
-    const stop=new Set(['i','have','a','an','the','is','are','my','me','with','about','tell','can','you','please','what','how','do','to','in','on','of','for','and','prophetic','medicine','seerah','biography','please','want','need','help']);
-    const meaningful=value=>normalize(value).split(' ').filter(t=>t.length>2&&!stop.has(t));
-    const query=normalize(q),queryTokens=meaningful(q);
     const records=(await env.DB.prepare("SELECT * FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).results;
-    let best=null;
-    for(const a of records){
-      const aliases=[a.title,...String(a.alternate_names||'').split(',')].map(normalize).filter(Boolean);
-      let score=0,method='';
-      for(const alias of aliases){
-        const tokens=meaningful(alias);
-        if(!tokens.length)continue;
-        let n=0;
-        if(query===alias){n=150+Math.min(20,tokens.length*3);}
-        else if(query.includes(alias)&&tokens.length>1){n=115+Math.min(20,tokens.length*2);}
-        else if(alias.includes(query)&&queryTokens.length>1){n=75;}
-        else if(queryTokens.length&&tokens.length){
-          const hits=queryTokens.filter(t=>tokens.includes(t));
-          if(hits.length===queryTokens.length&&hits.length>=2)n=70;
-          else if(queryTokens.length===1&&hits.length===1&&tokens.length===1)n=55;
-        }
-        if(n>score){score=n;method=n>=100?'direct_subject':n>=70?'phrase_match':'subject_match';}
-      }
-      if(score>0&&(!best||score>best.score))best={article:a,score,method};
-    }
+    const best=bestArticle(q,records);
     if(!best)return json({outcome:'no_editorial_answer',query:q,domain,notice:'No matching full encyclopedia article has been reviewed for this question. Unrelated source excerpts are deliberately omitted.',answer:null});
     const entry=best.article;
     const [sections,citations,links,passages]=await Promise.all([
@@ -533,7 +614,9 @@ export default {
       ['ummah_quran','https://ummahapi.com/api/quran/surahs'],
       ['ummah_hadith','https://ummahapi.com/api/hadith/collections'],
       ['ummah_dua','https://ummahapi.com/api/duas/categories'],
-      ['hadeethenc','https://hadeethenc.com/api/v1/languages']
+      ['hadeethenc','https://hadeethenc.com/api/v1/categories/list/?language=en'],
+      ['alquran_cloud','https://api.alquran.cloud/v1/edition/language/en'],
+      ['europe_pmc','https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=asthma&format=json&pageSize=1']
     ];
     for(const [id,endpoint] of checks){
       let state='unavailable',http=null;
@@ -567,9 +650,10 @@ export default {
       }
       if(path==='/sitemap.xml')return await sitemapResponse(env,url);
       if(path==='/tibb'||path==='/tibb/'||path==='/tibb.html'){
-        const entry=(url.searchParams.get('entry')||'').trim();
-        const target=validId(entry)?('/encyclopedia/'+entry):('/encyclopedia?domain=prophetic_medicine');
-        return Response.redirect(new URL(target,url.origin),302);
+        // Real dedicated Prophetic Medicine experience. Its cards and detail
+        // views are rendered from the same D1/API source records as Admin.
+        // Do not silently redirect the discipline to generic encyclopedia.
+        return env.ASSETS.fetch(new Request(new URL('/tibb.html'+url.search,url.origin),request));
       }
       if(path==='/encyclopedia'||path==='/encyclopedia/')return env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
       if(path.startsWith('/encyclopedia/')){

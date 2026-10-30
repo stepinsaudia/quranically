@@ -1,0 +1,113 @@
+/* Canonical Quranically public masthead — first-paint HTML, no JS injection */
+.qst-header{position:relative;z-index:80;background:#fffaf2;color:#242126;border-bottom:1px solid #e6ddd1;font-family:Manrope,'DM Sans',sans-serif}
+.qst-header *{box-sizing:border-box}
+.qst-header .qst-top{width:min(calc(100% - 80px),1320px);margin:auto;min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.qst-header .qst-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#211c20;flex-shrink:0}
+.qst-header .qst-brand img{width:43px;height:43px;object-fit:contain}
+.qst-header .qst-brand strong{display:block;font-size:16px;font-weight:800;letter-spacing:.08em;line-height:1.3;color:#231d22}
+.qst-header .qst-brand small{display:block;font-size:9px;font-weight:700;letter-spacing:.11em;color:#74636c}
+.qst-header .qst-edition{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#74636c}
+.qst-header .qst-nav{background:#fffaf2;border-top:1px solid #eee5da}
+.qst-header .qst-links{width:min(calc(100% - 80px),1320px);margin:auto;display:flex;align-items:center;gap:clamp(10px,2vw,30px);min-height:48px;flex-wrap:wrap}
+.qst-header .qst-links a{color:#423941;text-decoration:none;font-size:12px;font-weight:700;line-height:1.4;padding:15px 0 12px;border-bottom:3px solid transparent;white-space:nowrap}
+.qst-header .qst-links a[aria-current="page"]{color:#371a2b;border-bottom-color:#371a2b}
+.qst-header .qst-links a:hover{color:#6c2946}
+.qst-header .qst-utility{display:flex;align-items:center;gap:10px;font-size:11px}
+.qst-header .qst-utility a{color:#4c3040;text-decoration:none;font-weight:700}
+.qst-header .qst-utility button{border:1px solid #e8d9c9;background:transparent;color:#3c2632;padding:7px 10px;border-radius:6px;cursor:pointer}
+.qst-header .qst-utility .qst-legacy-control{display:none}
+body > .brand-rule{display:none}
+@media(max-width:850px){.qst-header .qst-top,.qst-header .qst-links{width:calc(100% - 32px)}.qst-header .qst-top{min-height:66px}.qst-header .qst-brand strong{font-size:14px}.qst-header .qst-brand small{font-size:8px}.qst-header .qst-edition{display:none}.qst-header .qst-links{gap:12px;min-height:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.qst-header .qst-links a{padding:12px 0 9px;font-size:11px}.qst-header .qst-utility a{font-size:10px}}
+
+/* Explicitly override inherited page-level header rules, including the
+   former Reader's generic header selector, without an extra paint cycle. */
+body > .qst-header{padding:0;border-top:0;box-shadow:none}
+body > .qst-header .qst-top{height:auto;max-width:1320px}
+body > .qst-header .qst-nav{display:block;position:static;width:100%;height:auto;opacity:1;visibility:visible;transform:none}
+body > .qst-header .qst-links{display:flex}
+body > .qst-header .qst-brand{width:auto;min-width:0}
+body > .qst-header .qst-brand img{display:block}
+@media print{body > .qst-header{display:none!important}}
+
+/* Quran verse deep links retain the search-first experience. */
+.qst-jump{background:#fffdf8;border:1px solid #e6d8c6;border-left:4px solid #987548;border-radius:10px;padding:22px 25px;margin:0 0 24px;color:#2d2530}
+.qst-jump h3{font-family:Georgia,serif;font-size:23px;margin:4px 0 9px;color:#241d25}
+.qst-jump p{margin:0 0 14px;color:#60575d;font-size:13px;line-height:1.7}
+.qst-jump .qst-verse-link{display:inline-flex;align-items:center;gap:8px;background:#381a2b;border-radius:6px;color:#fff;text-decoration:none;font-weight:750;font-size:12px;padding:10px 16px}
+.qst-jump .qst-verse-link svg{width:16px;height:16px}
+
+/* Search-first Quranically homepage: one input before any reference index. */
+.qst-search-home{padding:clamp(54px,8vw,112px) 20px 56px;text-align:center;max-width:1040px}
+.qst-search-home .qst-eyebrow{color:#987347;font:800 10px/1.5 Manrope,sans-serif;letter-spacing:.17em}
+.qst-search-home h1{color:#29212a;font:500 clamp(36px,5vw,65px)/1.14 'Playfair Display',Georgia,serif;letter-spacing:-.035em;margin:14px 0}
+.qst-search-home .qst-lede{color:#72656a;max-width:670px;margin:0 auto 30px;font-size:14px;line-height:1.8}
+.qst-main-search{width:100%;max-width:830px;margin:0 auto;border:1px solid #d5c3ae;border-radius:13px;display:flex;align-items:center;gap:13px;background:#fff;padding:10px 10px 10px 22px;box-shadow:0 15px 45px #4b203019}
+.qst-main-search>svg{color:#876851;flex-shrink:0;width:21px;height:21px}
+.qst-main-search input{border:0;outline:0;flex:1;min-width:0;padding:13px 0;color:#29212a;font-size:14px;background:transparent}
+.qst-main-search button{border:0;border-radius:8px;padding:14px 24px;background:#3b182c;color:white;font-weight:800;font-size:13px;display:flex;align-items:center;gap:10px}
+.qst-main-search button svg{width:15px;height:15px}
+.qst-search-hints{margin:20px auto 0;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
+.qst-search-hints span{font-size:11px;color:#837774}
+.qst-search-hints button{border:1px solid #e1d6c8;border-radius:30px;color:#65545d;background:#fffcf8;padding:8px 12px;font-size:11px;line-height:1.3;cursor:pointer}
+.qst-search-hints button:hover{border-color:#a7845a;color:#3b182c}
+.qst-integrity{max-width:720px;margin:30px auto 0;font-size:11px;color:#8c817e;line-height:1.8}
+@media(max-width:600px){.qst-search-home{padding:58px 0 35px}.qst-main-search{padding:6px 6px 6px 12px;gap:8px}.qst-main-search input{font-size:12px}.qst-main-search button{padding:12px;font-size:11px}.qst-main-search>svg{width:18px;height:18px}}
+
+/* Quranic citations rendered within the single answer pane, with source provenance. */
+.qst-evidence{border-top:1px solid #e8e0d7;padding:15px 0;margin-top:8px}
+.qst-evidence strong{font-weight:750;color:#342630}
+.qst-evidence p{font-size:13px;line-height:1.75}
+.qst-evidence small{display:block;color:#8b7b75;font-size:11px;margin-top:8px}
+.qst-evidence a{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#603647;text-decoration:underline;text-underline-offset:3px}
+.qst-arabic-verse{font:24px/2 'Amiri','Noto Naskh Arabic',serif;text-align:right;color:#322b2d;unicode-bidi:isolate}
+
+/* Search results: remove homepage-only spacing and ancillary browsing chrome.
+   Keep the landing spacious until a real question is entered. */
+body.qst-has-query #indexView .qst-search-home{padding:20px 0 18px;max-width:1020px}
+body.qst-has-query #indexView .qst-search-home .qst-eyebrow,
+body.qst-has-query #indexView .qst-search-home h1,
+body.qst-has-query #indexView .qst-search-home .qst-lede,
+body.qst-has-query #indexView .qst-search-home .qst-search-hints,
+body.qst-has-query #indexView .qst-search-home .qst-integrity{display:none}
+body.qst-has-query #indexView .reference-work{grid-template-columns:minmax(0,1fr);gap:0;padding-top:12px}
+body.qst-has-query #indexView .reference-work:has(.inline-answer:not([hidden])){grid-template-columns:minmax(0,1fr)}
+body.qst-has-query #indexView .reference-work .subjects,
+body.qst-has-query #indexView .reference-work .reference-rail{display:none}
+body.qst-has-query #indexView .inline-answer{max-width:1020px;margin-inline:auto;width:100%}
+body.qst-has-query #indexView .results-head,
+body.qst-has-query #indexView .alphabet{margin-top:22px}
+body.qst-has-query #indexView .breadcrumbs{padding-block:9px}
+@media(max-width:600px){
+ body.qst-has-query #indexView .qst-search-home{padding:13px 0 11px}
+ body.qst-has-query #indexView .reference-work{padding-top:8px}
+ body.qst-has-query #indexView .inline-answer{margin-bottom:20px}
+}
+
+/* Original, source-attributed Hadith record. Treat publisher prose as distinct
+   from Quranically interpretation and do not collapse/abridge it in the UI. */
+.qst-publisher-hadith{background:#fffdf9;border:1px solid #e6dbca;border-left:4px solid #866c4f;border-radius:8px;padding:clamp(16px,2.5vw,26px);margin:16px 0;overflow-wrap:anywhere}
+.qst-publisher-hadith h5{font:600 clamp(19px,2vw,24px)/1.4 'Playfair Display',Georgia,serif;color:#312632;margin:6px 0 15px}
+.qst-publisher-hadith h6{font-size:13px;color:#312632;margin:16px 0 8px}
+.qst-publisher-hadith blockquote{border-left:2px solid #c6ae83;padding:12px 16px;margin:8px 0;background:#f9f3e8;font-size:15px;line-height:1.85;color:#382f34;white-space:pre-wrap}
+.qst-publisher-hadith p,.qst-publisher-hadith li{font-size:13px;line-height:1.8;color:#50464b;white-space:pre-wrap}
+.qst-publisher-hadith ol{padding-left:22px}
+.qst-publisher-hadith small{display:block;font-size:10px;color:#7f736f;margin:12px 0;line-height:1.7}
+.qst-publisher-hadith a{font-size:12px;color:#613a4c;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.qst-publisher-hadith .qst-source-grade{font-size:11px;color:#6c5f61}
+@media(max-width:520px){.qst-publisher-hadith{padding:15px}.qst-publisher-hadith blockquote{font-size:14px}}
+
+/* Expand a real Quran translation search inline without navigating away. */
+.qst-more-quran{border-top:1px solid #e4d6c5;margin-top:20px}
+.qst-more-quran-button{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+ border:1px solid #6d4957;border-radius:7px;background:#fff;color:#432333;
+ font:750 12px/1.4 Manrope,sans-serif;padding:12px 20px;margin:15px 0 6px}
+.qst-more-quran-button:focus-visible{outline:3px solid #9d875e;outline-offset:3px}
+.qst-more-quran-button:disabled{cursor:wait;opacity:.65}
+.qst-more-quran .qst-evidence{margin:0}
+
+/* Distinguish source leads from complete reviewed answers without a modal or
+   alarm-coloured UI. */
+.qst-quality-status{padding:13px 17px;margin:8px 0 14px;border:1px solid #e4d9cb;
+  border-left:3px solid #9b8266;background:#fcfaf5;border-radius:5px}
+.qst-quality-status strong{display:block;font:750 12px/1.45 Manrope,sans-serif;color:#463040}
+.qst-quality-status p{margin:5px 0 0;font-size:12px;line-height:1.7;color:#675b59}

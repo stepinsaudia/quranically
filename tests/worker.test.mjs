@@ -2,7 +2,7 @@ import {test} from 'node:test';import assert from 'node:assert/strict';import fs
 import {DatabaseSync} from 'node:sqlite';import worker from '../src/index.mjs';
 const root=path.resolve('.');
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const name of ['0001_init.sql','0002_seed.sql','0003_native_admin.sql','0004_tibb.sql','0005_tibb_seed.sql','0006_tibb_original_excerpts.sql','0007_encyclopedia.sql','0008_encyclopedia_medicine.sql','0009_encyclopedia_cross_domain.sql','0010_encyclopedia_passages.sql','0011_source_connectors.sql','0012_discovery_gap_articles.sql','0013_weak_eyesight_answer.sql'])sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const name of fs.readdirSync(path.join(root,'migrations')).filter(x=>/^\d{4}_.*\.sql$/.test(x)).sort())sqlite.exec(fs.readFileSync(path.join(root,'migrations',name),'utf8'));
  const DB={prepare:(sql)=>({bind(...params){return{first:()=>sqlite.prepare(sql).get(...params)||null,all:()=>({results:sqlite.prepare(sql).all(...params)}),run:()=>sqlite.prepare(sql).run(...params)}},first:()=>sqlite.prepare(sql).get()||null,all:()=>({results:sqlite.prepare(sql).all()}),run:()=>sqlite.prepare(sql).run()})};
  return {DB,ASSETS:{fetch:async()=>new Response('asset',{status:200})},ACCESS_AUD:'',ACCESS_TEAM_DOMAIN:'',ADMIN_EMAIL:''};
 }
@@ -142,7 +142,7 @@ test('Native Admin exposes Tibb modules through canonical endpoint without givin
 
 test('encyclopedia has source-linked articles spanning five disciplines',async()=>{
  const e=fixture();const articleCount=e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_articles').first().c;
- assert.equal(articleCount,18);
+ assert(articleCount>=21);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_sections').first().c>=70);
  assert(e.DB.prepare('SELECT COUNT(*) c FROM encyclopedia_citations').first().c>=30);
  const groups=await get(e,'/api/encyclopedia/subjects');assert.equal(groups.status,200);
@@ -161,7 +161,7 @@ test('encyclopedia has source-linked articles spanning five disciplines',async()
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
  assert((await fullSection.json()).entries.some(x=>x.slug==='honey'));
  const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
- assert.equal((await med.json()).entries.length,10);
+ assert((await med.json()).entries.length>=13);
  const s=await get(e,'/api/encyclopedia?letter=H');
  assert((await s.json()).entries.some(x=>x.slug==='honey'));
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
@@ -188,7 +188,7 @@ test('encyclopedia article publication requires sources and sections; Admin audi
  const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
  assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={origin:'https://test.local',cookie,'content-type':'application/json'};
  const bootstrap=await get(e,'/api/admin/bootstrap',{headers});assert.equal(bootstrap.status,200);const state=await bootstrap.json();
- assert.equal(state.encyclopedia_articles.length,18);
+ assert(state.encyclopedia_articles.length>=21);
  assert(state.encyclopedia_sections.length>=70);assert(state.encyclopedia_citations.length>=30);
  assert(state.encyclopedia_passages.length>=10);
  const make=await get(e,'/api/admin/encyclopedia_articles',{method:'POST',headers,body:JSON.stringify({slug:'test-reference-entry',title:'A test reference entry',domain:'quranic_themes',entry_type:'concept',abstract:'An isolated test entry.',status:'draft'})});
@@ -333,15 +333,23 @@ test('Scheduled source checks use metadata only and do not store religious text 
   globalThis.fetch=async url=>{called.push(String(url));return new Response('{}',{status:200});};
   await worker.scheduled({},env);
   const records=(await env.DB.prepare('SELECT * FROM source_connector_checks').all()).results;
-  assert.equal(records.length,4);
+  assert.equal(records.length,6);
   assert(records.every(x=>x.last_state==='healthy'));
-  assert.equal(called.length,4);
+  assert.equal(called.length,6);
   assert(called.every(x=>!x.includes('search?q=')));
   const list=await get(env,'/api/source-connectors');
   assert.equal(list.status,200);
   const data=await list.json();
   assert(data.connectors.some(x=>x.id==='sunnah_com'&&x.mode==='access_required'));
   assert(data.connectors.some(x=>x.id==='ummah_hadith'&&x.last_state==='healthy'));
+  assert(data.connectors.some(x=>x.id==='hadeethenc'&&x.last_state==='healthy'));
+  const official=data.connectors.find(x=>x.id==='hadeethenc');
+  assert.equal(official.source_catalog.title_count,2328);
+  assert.equal(official.source_catalog.root_subjects,7);
+  assert.equal(official.source_catalog.original_titles_only,true);
+  assert(data.connectors.some(x=>x.id==='alquran_cloud'&&x.last_state==='healthy'));
+  assert(data.connectors.some(x=>x.id==='europe_pmc'&&x.last_state==='healthy'));
+  assert(data.connectors.find(x=>x.id==='europe_pmc').verification==='independent_medical_review_required');
  }finally{globalThis.fetch=old;}
 });
 
@@ -371,4 +379,301 @@ test('on-page canonical answers address weak eyesight, diabetes, and clothing wi
  const crossed=await get(env,'/api/encyclopedia/answer?q=weak%20eyesight&domain=seerah');
  assert.equal((await crossed.json()).outcome,'no_editorial_answer');
  assert.equal((await get(env,'/api/encyclopedia/answer?q=x')).status,400);
+});
+
+test('unified search rejects invalid queries and returns the canonical evidence schema',async()=>{
+ const e=fixture();
+ assert.equal((await get(e,'/api/unified-search?q=x')).status,400);
+ const response=await get(e,'/api/unified-search?q=black%20seed');
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.query,'black seed');
+ assert.ok(Array.isArray(body.editorial));
+ assert.ok(Array.isArray(body.tibb));
+ assert.ok(body.tibb.some(x=>x.slug==='black-seed'&&x.safety_note&&x.reference_label));
+ assert.equal(body.answer_policy,'source_first_no_fabrication');
+ assert.ok(Array.isArray(body.evidence.quran));
+ assert.ok(Array.isArray(body.evidence.hadith));
+ assert.ok(Array.isArray(body.evidence.dua));
+ assert.ok(body.editorial.every(x=>x.slug && x.review_status));
+ assert.ok(!JSON.stringify(body).includes('guaranteed cure'));
+});
+
+test('unified search gives source-linked Living Guidance and actual practical steps',async()=>{
+ const env=fixture();
+ const response=await get(env,'/api/unified-search?q=anxiety');
+ assert.equal(response.status,200);
+ const data=await response.json();
+ const guidance=data.guidance.find(item=>item.slug==='anxiety');
+ assert(guidance);
+ assert(guidance.evidence.some(x=>x.reference==='Sahih al-Bukhari 6369'&&x.source_url));
+ assert(guidance.steps.some(x=>/support|healthcare/i.test(x.instruction)));
+ assert(guidance.clinical_note);
+});
+
+test('unified evidence search fails open safely when older D1 has missing editorial tables',async()=>{
+ const env=fixture();const original=env.DB;
+ env.DB={prepare(sql){
+  if(/FROM (encyclopedia_articles|tibb_entries|journeys)\b/.test(sql))throw Error('D1_ERROR: no such table');
+  return original.prepare(sql);
+ }};
+ const r=await get(env,'/api/unified-search?q=black%20seed');
+ assert.equal(r.status,200);
+ const data=await r.json();
+ assert.deepEqual(data.editorial,[]);
+ assert.deepEqual(data.tibb,[]);
+ assert.deepEqual(data.guidance,[]);
+ assert.ok(Array.isArray(data.evidence.quran));
+ assert.ok(Array.isArray(data.evidence.hadith));
+ assert.equal(data.answer_policy,'source_first_no_fabrication');
+});
+
+test('unified questions return actual on-page answer sections and original citations, not just links',async()=>{
+ const e=fixture();
+ for(const [q,expectedSlug] of [
+   ['I have diabetes and need Prophetic Medicine','diabetes-and-prophetic-medicine'],
+   ['How did men dress in the Seerah?','mens-clothing-prophetic-era']
+ ]){
+   const response=await get(e,'/api/unified-search?q='+encodeURIComponent(q));
+   assert.equal(response.status,200,q);
+   const body=await response.json();
+   const answer=body.contextual_answers.find(x=>x.slug===expectedSlug);
+   assert(answer, 'Missing source-grounded answer for '+q);
+   assert(answer.sections.length>=3, 'Not enough explanation for '+q);
+   assert(answer.sections.every(x=>x.heading&&x.body), 'Missing on-page explanation');
+   assert(answer.citations.length>=1);
+   assert(answer.citations.every(x=>x.citation_ref&&x.source_url&&x.verification_status));
+ }
+});
+
+test('full Quran verse index supports real paginated results without source API calls',async()=>{
+ const env=fixture();
+ const first=await get(env,'/api/quran/search?q=patience&offset=0&limit=4');
+ assert.equal(first.status,200);
+ const data=await first.json();
+ assert.equal(data.source_corpus.verses,6236);
+ assert.equal(data.source_corpus.surahs,114);
+ assert.equal(data.results.length,4);
+ assert.equal(data.next_offset,4);
+ assert(data.total>=8);
+ const second=await get(env,'/api/quran/search?q=patience&offset=4&limit=4');
+ const next=await second.json();
+ assert.equal(next.results.length,4);
+ assert.notEqual(data.results[0].reference,next.results[0].reference);
+ assert(data.results.every(x=>x.reader_url.startsWith('/study.html?')));
+ assert(data.results.every(x=>x.review_status==='publisher_translation_not_tafsir'));
+});
+test('unified search gives transparent source corpus coverage and grounded answer plan',async()=>{
+ const env=fixture();
+ const res=await get(env,'/api/unified-search?q=patience');
+ assert.equal(res.status,200);
+ const body=await res.json();
+ assert.equal(body.quran_lookup.source_corpus.verses,6236);
+ assert(body.answer_brief.type==='source_first_evidence_brief'||body.answer_brief.type==='editorial_with_primary_sources');
+ assert(body.answer_brief.sources_count>=1);
+ assert(body.answer_brief.sections.some(x=>x.heading==='Relevant Qur’anic passages'));
+});
+
+test('three source-linked Seerah dossiers render comprehensive canonical answers',async()=>{
+ const env=fixture();
+ for(const [q,slug,primary] of [
+  ['What happened during the Hijrah?','hijrah-to-madinah','9:40'],
+  ['What happened at the Battle of Badr?','battle-of-badr-sourced-account','3:123'],
+  ['How did the Prophet treat his neighbours?','prophetic-guidance-neighbours','6014']
+ ]){
+  const response=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'seerah'}));
+  assert.equal(response.status,200,q);
+  const data=await response.json();
+  assert.equal(data.outcome,'full_article_answer',q);
+  assert.equal(data.answer.slug,slug,q);
+  assert(data.answer.sections.length>=4,q);
+  assert(data.answer.citations.some(c=>c.citation_ref.includes(primary)),q);
+  assert(data.answer.citations.every(c=>c.source_url?.startsWith('https://')&&c.verification_status==='pending'),q);
+  assert.equal(data.answer.review_status,'editorial_draft',q);
+  const all=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'seerah'}));
+  assert.equal(all.status,200,q);
+  const related=await all.json();
+  assert(related.contextual_answers.some(x=>x.slug===slug),q);
+  assert.equal(related.answer_quality?.status,'published_reference_available',q);
+ }
+});
+
+test('three canonical Living Guidance dossiers return substantial sections and source links',async()=>{
+ const env=fixture();
+ for(const [q,slug,ref] of [
+  ['How should I manage anger?','anger-and-self-restraint','6116'],
+  ['What is repentance in Islam?','repentance-tawbah-in-islam','39:53'],
+  ['What does Islam teach about family relationships?','family-relationships-kindness','17:23']
+ ]){
+  const r=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'living_guidance'}));
+  assert.equal(r.status,200,q);
+  const answer=(await r.json()).answer;
+  assert(answer&&answer.slug===slug,'Wrong Living Guidance topic: '+q);
+  assert(answer.sections.length>=4,q);
+  assert(answer.citations.some(x=>x.citation_ref.includes(ref)),q);
+  assert(answer.citations.every(x=>x.source_url.startsWith('https://')&&x.verification_status==='pending'),q);
+  assert.equal(answer.review_status,'editorial_draft',q);
+  const u=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'living_guidance'}));
+  assert.equal(u.status,200,q);
+  assert((await u.json()).contextual_answers.some(x=>x.slug===slug),q);
+ }
+});
+
+test('three medically bounded Tibb dossiers answer without unverified cure claims',async()=>{
+ const env=fixture();
+ for(const [query,slug,sourceRef] of [
+   ['What about honey for a cough?','honey-for-cough-evidence','5684'],
+   ['What is hijama and is it safe?','hijama-cupping-safety','5681'],
+   ['Does Prophetic Medicine cure asthma?','asthma-prophetic-medicine-boundaries','26:80']
+ ]){
+  const route='/api/encyclopedia/answer?'+new URLSearchParams({q:query,domain:'prophetic_medicine'});
+  const response=await get(env,route);
+  assert.equal(response.status,200,query);
+  const data=await response.json();
+  assert.equal(data.outcome,'full_article_answer',query);
+  assert.equal(data.answer.slug,slug,query);
+  assert(data.answer.sections.length>=4,query);
+  assert(data.answer.citations.some(x=>x.citation_ref.includes(sourceRef)),query);
+  assert(data.answer.citations.some(x=>x.citation_type==='clinical'),query);
+  assert(data.answer.citations.every(x=>x.source_url?.startsWith('https://')&&x.verification_status==='pending'),query);
+  assert.equal(data.answer.review_status,'editorial_draft');
+  const unified=await get(env,'/api/unified-search?'+new URLSearchParams({q:query,domain:'prophetic_medicine'}));
+  assert.equal(unified.status,200,query);
+  const result=await unified.json();
+  assert(result.contextual_answers.some(x=>x.slug===slug),query);
+  assert(result.answer_quality.flags.includes('no_individualized_medical_claim'),query);
+ }
+});
+
+test('five sourced Quranic and Sunnah dossiers answer without fabricated tafsir or fatwa',async()=>{
+ const env=fixture();
+ for(const [q,domain,slug,ref] of [
+  ['What does Quran say about patience?','quranic_themes','patience-quranic-theme','2:153'],
+  ['Does Quran discuss riba?','quranic_themes','riba-in-quranic-text','2:275'],
+  ['Where is Maryam mentioned?','quranic_themes','maryam-in-quran','19:16'],
+  ['What hadith discuss honesty?','sunnah','truthfulness-in-sunnah','6094'],
+  ['What is Sunnah about backbiting?','sunnah','backbiting-ghibah-sunnah','2589']
+ ]){
+  const res=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain}));
+  assert.equal(res.status,200,q);
+  const body=await res.json();
+  assert.equal(body.outcome,'full_article_answer',q);
+  assert.equal(body.answer.slug,slug,q);
+  assert(body.answer.sections.length>=4,q);
+  assert(body.answer.citations.some(c=>c.citation_ref.includes(ref)),q);
+  assert(body.answer.citations.every(c=>c.source_url?.startsWith('https://')&&c.verification_status==='pending'),q);
+  assert.equal(body.answer.review_status,'editorial_draft',q);
+  const unified=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain}));
+  assert.equal(unified.status,200,q);
+  assert((await unified.json()).contextual_answers.some(a=>a.slug===slug),q);
+ }
+});
+
+test('Ayat al-Kursi 2:255 includes full reference, contextual sections and authenticated hadith pointers',async()=>{
+ const env=fixture(),q='Where is Ayat al Kursi?';
+ const r=await get(env,'/api/encyclopedia/answer?'+new URLSearchParams({q,domain:'quranic_themes'}));
+ assert.equal(r.status,200);
+ const body=await r.json();
+ assert.equal(body.outcome,'full_article_answer');
+ assert.equal(body.answer.slug,'ayat-al-kursi-guide');
+ assert(body.answer.sections.length>=4);
+ assert(body.answer.citations.some(x=>x.citation_ref==='2:255'));
+ assert(body.answer.citations.some(x=>x.citation_ref==='810'));
+ assert(body.answer.citations.some(x=>x.citation_ref==='5010'));
+ assert.equal(body.answer.review_status,'editorial_draft');
+ const u=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'quranic_themes'}));
+ const answer=await u.json();
+ assert(answer.contextual_answers.some(x=>x.slug==='ayat-al-kursi-guide'));
+ assert(answer.evidence.quran.some(v=>v.reference==='2:255'));
+});
+
+test('Sunnah question finds the Seerah clothing article as a labelled cross-discipline link only',async()=>{
+ const env=fixture(),q='How should Muslim men dress?';
+ const r=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'sunnah'}));
+ assert.equal(r.status,200);
+ const body=await r.json();
+ assert.equal(body.contextual_answers.length,0,'Do not claim Seerah as a Sunnah editorial answer');
+ assert(body.related_articles.some(x=>x.slug==='mens-clothing-prophetic-era'&&x.domain==='seerah'));
+ assert.notEqual(body.answer_quality.status,'published_reference_available');
+ const historical=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain:'seerah'}));
+ const answer=await historical.json();
+ assert(answer.contextual_answers.some(x=>x.slug==='mens-clothing-prophetic-era'));
+ assert.equal(answer.answer_quality.status,'published_reference_available');
+});
+test('a specific medical or fiqh question cannot become a complete answer through one shared noun',async()=>{
+ const env=fixture();
+ for(const [q,domain] of [
+  ['Can I replace insulin with black seed during Ramadan?','prophetic_medicine'],
+  ['Does honey cure cancer without chemotherapy?','prophetic_medicine'],
+  ['Does the Quran define zakat on cryptocurrency?','quranic_themes'],
+  ['Can hijama replace medical care for asthma?','prophetic_medicine']
+ ]){
+  const r=await get(env,'/api/unified-search?'+new URLSearchParams({q,domain}));
+  assert.equal(r.status,200,q);
+  const x=await r.json();
+  assert.equal(x.contextual_answers.length,0,'False complete answer for '+q);
+  assert.notEqual(x.answer_quality.status,'published_reference_available',q);
+ }
+});
+
+test('the 60-topic research queue is private, source-review staged and editable only through canonical authenticated Admin',async()=>{
+ const e=fixture();
+ const current=e.DB.prepare('SELECT COUNT(*) AS n FROM research_topics').first();
+ assert.equal(current.n,60);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE research_stage='queued'").first().n,60);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE linked_article_id IS NOT NULL").first().n,0);
+ const visitor=await get(e,'/api/admin/research_topics');
+ assert.equal(visitor.status,503);
+ const publicLeak=await get(e,'/api/research_topics');
+ assert.notEqual(publicLeak.status,200,'Private editorial research cannot be published as user-facing content');
+ const password='Private-editorial-research-test-password-2026';
+ const salt=new Uint8Array(16).fill(0x65);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const derived=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=u=>Array.from(u,x=>x.toString(16).padStart(2,'0')).join('');
+ e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(derived);
+ const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const boot=await get(e,'/api/admin/bootstrap',{headers:{cookie}});
+ assert.equal(boot.status,200);
+ const loaded=await boot.json();
+ assert.equal(loaded.research_topics.length,60);
+ assert(loaded.research_topics.every(x=>x.research_stage==='queued'&&x.linked_article_id===null));
+ const create=await get(e,'/api/admin/research_topics',{method:'POST',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},
+  body:JSON.stringify({question:'How are astronomic observations authenticated?',domain:'quranic_themes',research_stage:'queued',
+    risk_class:'interpretation',source_notes:'Research only: evidence not yet verified',linked_article_id:'',sort_order:5})});
+ assert.equal(create.status,200);
+ const added=await create.json();
+ assert(added.id);
+ const saved=e.DB.prepare('SELECT * FROM research_topics WHERE id=?').bind(added.id).first();
+ assert.equal(saved.linked_article_id,null);
+ assert.equal(saved.research_stage,'queued');
+ const edit=await get(e,'/api/admin/research_topics/'+added.id,{method:'PUT',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},
+ body:JSON.stringify({research_stage:'source_check',assigned_reviewer:'Editorial Desk'})});
+ assert.equal(edit.status,200);
+ assert.equal(e.DB.prepare('SELECT research_stage FROM research_topics WHERE id=?').bind(added.id).first().research_stage,'source_check');
+ const invalid=await get(e,'/api/admin/research_topics/'+added.id,{method:'PUT',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},body:JSON.stringify({research_stage:'expert_approved_without_sources'})});
+ assert.equal(invalid.status,400);
+ assert.equal(e.DB.prepare("SELECT COUNT(*) AS n FROM research_topics WHERE research_stage='source_check'").first().n,1);
+ assert(e.DB.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE table_name='research_topics'").first().n>=2);
+});
+
+test('dedicated Prophetic Medicine route serves the real D1-backed Tibb experience, not an encyclopedia redirect',async()=>{
+ const e=fixture();const paths=[];
+ e.ASSETS.fetch=async request=>{
+  paths.push(new URL(request.url).pathname);
+  return new Response('<!doctype html><html><body data-qst-page="tibb"><main>Prophetic Medicine</main></body></html>',{status:200,headers:{'content-type':'text/html'}});
+ };
+ for(const pathname of ['/tibb','/tibb/','/tibb.html','/tibb?entry=black-seed']){
+  const res=await get(e,pathname);
+  assert.equal(res.status,200,'route '+pathname);
+  assert.equal(res.headers.get('location'),null,'should never redirect '+pathname);
+  assert.match(await res.text(),/data-qst-page="tibb"/);
+ }
+ assert.deepEqual(paths,['/tibb.html','/tibb.html','/tibb.html','/tibb.html']);
+ const catalogue=await get(e,'/api/tibb');
+ assert.equal(catalogue.status,200,'D1-backed Prophetic Medicine catalogue must still work');
+ const entries=(await catalogue.json()).entries;
+ assert(entries.length>=8);
 });

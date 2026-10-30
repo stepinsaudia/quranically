@@ -1,0 +1,28 @@
+/* Protected Quranically sign-in; typography, spacing and geometry track the public brand. */
+:root{color-scheme:light}
+body{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:stretch!important;min-height:100dvh!important;padding:0!important;background:#fbfaf7!important;color:#1e1c1e!important;font:13px/1.6 Manrope,'DM Sans',sans-serif!important}
+body *{box-sizing:border-box}
+body .ornament{display:none!important}
+.admin-login-header{background:#fffdfa;border-bottom:1px solid #e8e0d4;width:100%;z-index:1}
+.admin-login-header-inner{width:min(calc(100% - clamp(32px,6.5vw,104px)),1280px);min-height:66px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.admin-login-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#202024}
+.admin-login-brand img{width:39px;height:39px}
+.admin-login-brand strong{display:block;font:800 15px/1.25 Manrope,sans-serif;letter-spacing:.08em;color:#202024}
+.admin-login-brand small{display:block;font:700 9px/1.4 Manrope,sans-serif;letter-spacing:.09em;color:#74636c}
+.admin-login-header-inner>span{font:800 9px/1.4 Manrope,sans-serif;letter-spacing:.12em;color:#97734c}
+body .card{width:min(calc(100% - 32px),470px);margin:clamp(44px,7vh,90px) auto!important;flex:none!important;
+ padding:clamp(24px,4vw,38px)!important;background:#fff!important;color:#201f22!important;
+ border:1px solid #e1d5c5!important;border-top:3px solid #a88050!important;
+ border-radius:13px!important;box-shadow:0 22px 55px rgba(26,22,22,.07)!important}
+body .card .logo{width:49px;height:49px;background:#34212f;border-radius:12px;margin-bottom:15px}
+body .card h1{font:550 clamp(27px,3vw,34px)/1.2 'Playfair Display',Georgia,serif!important;color:#1e1c1e!important}
+body .card .eyebrow{font:800 10px Manrope,sans-serif;letter-spacing:.13em;color:#987148}
+body .card p{font-size:12px;line-height:1.78;color:#6d6664;margin-bottom:20px}
+body .card label{font-size:11px}
+body .card input{font:13px Manrope,sans-serif;border:1px solid #d9ccba;border-radius:8px;padding:13px}
+body .card button{font:800 12px Manrope,sans-serif;background:#34212f!important;border-radius:8px!important;padding:14px}
+body .card button:hover{background:#593d4e!important}
+body .card .small{font-size:11px;color:#81766f;margin-top:18px}
+.admin-login-footer{margin-top:auto!important;background:#181a1d;color:#b4aeaa;padding:17px max(16px,calc((100vw - 1280px)/2))!important;min-height:53px;display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:10px}
+.admin-login-footer a{color:#e0c7a6;text-decoration:none}
+@media(max-width:600px){.admin-login-header-inner{min-height:64px}.admin-login-brand strong{font-size:14px}.admin-login-brand small{font-size:7.5px}.admin-login-header-inner>span{display:none}.admin-login-footer{display:grid;gap:5px}}
