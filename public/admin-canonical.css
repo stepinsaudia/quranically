@@ -9,6 +9,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .admin-top-inner{width:min(calc(100% - var(--admin-gutter)),var(--admin-width));min-height:66px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:22px}
 .admin-brand{display:flex;align-items:center;gap:12px;flex-shrink:0;text-decoration:none!important;letter-spacing:0!important}
 .admin-brand img{width:39px;height:39px;display:block}
+/* Legacy Admin mobile rules hid every span in the masthead. The brand text must remain visible at all widths. */
+.admin-top .admin-brand>span{display:block!important;margin:0!important;min-width:0}
 .admin-brand strong{font:800 15px/1.28 Manrope,sans-serif!important;letter-spacing:.08em;color:#202024}
 .admin-brand small{display:block;font:700 9px/1.4 Manrope,sans-serif;color:#74636c;letter-spacing:.09em}
 .admin-top .admin-context{display:grid;gap:3px;text-align:center;min-width:0}
@@ -77,6 +79,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 @media(max-width:430px){
  .admin-top #owner{display:none!important}
+ .admin-top .admin-brand small{display:none!important}
+ .admin-top .admin-brand{gap:9px!important}
+ .admin-top .admin-brand strong{font-size:13px!important;white-space:nowrap}
  .admin-top #signOut{font-size:10px!important;padding:8px 10px!important}
  .admin-layout .work-top{gap:11px}
  .admin-layout .work h2{font-size:26px!important}
