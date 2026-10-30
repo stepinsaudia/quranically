@@ -392,6 +392,16 @@ async function publicApi(request,env,url){
     const terms=subjectTokens(q);
     const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).then(x=>x.results).catch(()=>[]);
     const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
+    // If a question is asked inside one discipline, do not pretend that an
+    // article from another discipline is that discipline's authoritative
+    // answer. Offer it as a clearly labelled cross-disciplinary link instead.
+    const relatedArticles=domain
+      ?await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' AND domain!=? ORDER BY title LIMIT 1500").bind(domain).all()).then(x=>x.results).catch(()=>[])
+         .then(records=>records.map(article=>({...article,_score:scoreArticle(q,article).score}))
+           .filter(article=>article._score>=85)
+           .sort((a,b)=>b._score-a._score)
+           .slice(0,3).map(({_score,alternate_names,...rest})=>rest))
+      :[];
     // Full source-grounded excerpts for relevant editorial answers: do not replace
     // primary evidence with automatically generated medical or religious claims.
     const contextualAnswers=await Promise.all(editorial.slice(0,2).map(async article=>{
@@ -441,7 +451,7 @@ async function publicApi(request,env,url){
     buckets.quran=buckets.quran.slice(0,12);
     const answerBrief=composeSourceAnswer(q,{contextual_answers:contextualAnswers.filter(Boolean),guidance,evidence:buckets,tibb,biomedical_evidence:biomedical.results||[]});
     const answerQuality=assessAnswerQuality(q,domain,answerBrief);
-    return json({query:q,editorial,answer_brief:answerBrief,answer_quality:answerQuality,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
+    return json({query:q,editorial,related_articles:relatedArticles,answer_brief:answerBrief,answer_quality:answerQuality,contextual_answers:contextualAnswers.filter(Boolean),tibb,guidance,evidence:buckets,biomedical_evidence:biomedical.results||[],biomedical_lookup:{status:biomedical.status,query_terms:biomedical.query_terms||[],provider:biomedical.provider||'Europe PMC'},quran_lookup:{status:quranFullText.status,mode:quranFullText.mode,searched:quranFullText.searched,total:quranFullText.total||0,source_corpus:quranCorpusInfo()},hadeethenc_lookup:{status:hadeethEnc.status,categories:hadeethEnc.matched_categories||[],publisher:hadeethEnc.publisher||'HadeethEnc.com',catalog:hadeethEnc.catalog||hadeethCatalogInfo(),search_method:hadeethEnc.search_method||'publisher_index'},providers:remote.providers||[],review_notice:'Qur’an results are translation keyword matches, not tafsir. HadeethEnc displays its publisher-assigned grades and explanations; Quranically has not independently regraded them. Other external Hadith and supplication snippets are not independently authenticated. Scholarly interpretation and medical treatment require competent review.',answer_policy:'source_first_no_fabrication'});
   }
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
