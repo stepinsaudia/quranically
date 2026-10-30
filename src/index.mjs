@@ -1,5 +1,5 @@
 import {liveSourceSearch,CONNECTORS} from './source-discovery.mjs';
-import {searchQuran} from './quran-search.mjs';
+import {searchQuran,quranSearchTerms,parseVerseReference} from './quran-search.mjs';
 import {bestArticle,scoreArticle,subjectTokens,normalizeSubject} from './article-match.mjs';
 import {searchHadeethEnc,hadeethCatalogInfo} from './hadeethenc-discovery.mjs';
 import {searchBiomedicalEvidence} from './biomedical-search.mjs';
@@ -286,6 +286,28 @@ async function publicApi(request,env,url){
     catch(e){return json({status:'database_not_ready',service:'qst-living-knowledge-v1'},503);}
   }
   if(request.method!=='GET')return json({error:'Method not allowed'},405);
+  // Source-index pagination returns more genuine Quran results without
+  // inventing references or requerying a limited third-party search page.
+  if(pathname==='/api/quran/search'){
+    const q=(url.searchParams.get('q')||'').trim().slice(0,95);
+    if(q.length<2)return invalid('Enter a meaningful Qur’an search term');
+    const offset=Math.max(0,Math.min(6236,Number(url.searchParams.get('offset'))||0));
+    const limit=Math.max(1,Math.min(30,Number(url.searchParams.get('limit'))||12));
+    const terms=quranSearchTerms(q);
+    const matches=searchTranslationCorpus(terms,{offset,limit});
+    const results=matches.results.map(v=>{
+      const reference=v.chapter+':'+v.verse;
+      return {provider:'Al Quran Cloud',kind:'quran',reference,
+        title:'Qur’an '+reference,excerpt:v.text,
+        translation:'Marmaduke Pickthall (en.pickthall)',
+        source_url:'https://quran.com/'+v.chapter+'/'+v.verse,
+        reader_url:'/study.html?surah='+v.chapter+'&ayah='+v.verse,
+        review_status:'publisher_translation_not_tafsir'};
+    });
+    return json({query:q,terms,total:matches.total,offset:matches.offset,
+      limit:matches.limit,next_offset:matches.next_offset,
+      results,source_corpus:quranCorpusInfo(),notice:'Complete attributed translation index, not Tafsir or a religious ruling.'});
+  }
   if(pathname==='/api/quran/chapters'){
     try{
       const r=await fetch('https://api.alquran.cloud/v1/surah',{headers:{accept:'application/json'},signal:AbortSignal.timeout(10000),cf:{cacheEverything:true,cacheTtl:86400}});
