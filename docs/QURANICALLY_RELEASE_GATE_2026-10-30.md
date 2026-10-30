@@ -1,44 +1,45 @@
-# Quranically — source quality and production release gate
+# Quranically — verified production soft release
 
-Date: 2026-10-30. Development branch: `fix/relevant-source-search-20261029`.
+**As of 30 October 2026. This file supersedes the earlier pre-release gate.**
 
-## What is actually in the development build
+## Canonical production environment
 
-- All 6,236 Qur'an verses across 114 Surahs indexed from the attributed `en.pickthall` edition; translation is **not** Tafsir.
-- 2,328 original English HadeethEnc source titles indexed for discovery, with publisher text and grading retrieved live when needed. Publisher grades are not Quranically's independent authentication.
-- Canonical D1 article, section and citation model; the public frontend and Admin read the same records.
-- 15 new source-led dossiers spanning Seerah, Living Guidance, Prophetic Medicine, Qur'anic themes and Sunnah, in additive migration files `0014` through `0018`.
-- A source-grounded overview and answer-quality status that distinguish a matched, published editorial article from related source leads and unverified clinical conclusions.
+- **Live Worker**: `qst-living-knowledge-v1`, https://qst-living-knowledge-v1.stepinsaudia.workers.dev/
+- **Existing D1**: `qst-knowledge-v1-db` (`6c7c8edb-e20c-4354-9d69-0bea89badfd9`).
+- **One canonical development branch**: `fix/relevant-source-search-20261029` pending integration into `main` after final review. Do not deploy `main` while it is out of date.
+- **No new Worker, database, custom domain, proxy or parallel content layer was created.**
+- The emergency one-time DB promotion and Worker deployment workflows were **removed after successful use**, leaving the original explicit-confirmation, existing-Worker release workflow in place.
 
-## Verified QA evidence
+## What was independently verified in production
 
-- 24-question quality test: 23 questions retrieve a relevant published-source article, 0 return only source leads, 1 intentionally invalid Qur'an reference (`1:100`) is correctly rejected. This is **sample coverage**, not measured accuracy across all Islamic questions.
-- Application tests and desktop/mobile browser QA are part of required CI checks.
-- Live source provider checks use read-only GET operations. An external source's availability does not establish its authenticity.
-- Wrangler bundle `--dry-run` confirms compilation but **does not deploy**.
-- No independent scholar, qualified Tafsir specialist, Hadith authentication reviewer, Seerah historian or clinician has approved the editorial dossiers. They remain marked `editorial_draft` with citation review `pending`.
+1. **D1 source dossier promotion**: all 15 additive editorial dossiers are present in the existing D1 after export/backup-first validation. Production read-only audit reported **42 published encyclopedia articles, 109 encyclopedia citations, 8 Prophetic Medicine entries, and 15/15 new dossiers**.
+2. **Published Worker engine**: a separate read-only check found the **6,236-verse complete English Qur’an index operational**, along with the canonical Battle of Badr Seerah answer.
+3. **Canonical production release smoke**: homepage HTML, Qur’an Reader, Admin login page, unauthenticated Admin API HTTP 401, health API, paginated Qur’an results, sourced Seerah and medicine articles, and a unified source-grounded Hijrah answer all passed.
+4. **Real browser QA on public URL**: one canonical global header, actual diabetes and men’s-clothing source-backed answers, source links, direct Ayat al-Kursi Reader navigation, and no mobile/desktop horizontal overflow passed in Playwright. Real desktop/mobile screenshots are available as a private artifact on the GitHub Actions live browser QA run.
+5. **Local correctness tests**: 76 automated unit/integration tests; prior full-suite and Cloudflare dry runs passed. The 24-question answer audit found **23 matching published-source articles and one intentionally rejected nonexistent verse (Qur’an 1:100)**.
 
-## Production release boundary
+These facts describe technical functionality and representative coverage, **not** an independent religious or clinical accuracy certification.
 
-The live Worker is `qst-living-knowledge-v1`, and the existing D1 database is `qst-knowledge-v1-db`. No other Worker or database is in scope.
+## Knowledge and review status
 
-As of the last read-only audit, the live database held 27 published encyclopedia articles, 8 Tibb records, and 63 encyclopedia citations. The new 15 dossiers live on the development branch until the additive migrations are carefully applied to production.
+- Qur’an: all 6,236 verse positions in the attributed Marmaduke Pickthall English translation. A translation search match is **not Tafsir**.
+- Hadith: 2,328 publisher-original English HadeethEnc reference titles indexed, with original reports, explanations and provider-reported grading fetched using source IDs. This is **not** the full searchable text of all Hadith collections, and publisher grading is **not** Quranically’s own authentication.
+- Canonical encyclopedia: 42 published records with structured sections and 109 article citations, including the 15 new source-linked dossiers.
+- Prophetic Medicine: 8 structured ingredient records and additional topic-specific medically bounded encyclopedia articles. Europe PMC searches provide **bibliographic metadata only**, not efficacy decisions or treatment prescriptions.
+- All 15 promoted records carry `review_status='editorial_draft'` and their source citations carry `verification_status='pending'`. Expert scholarly and clinical review remains outstanding.
+- The live public interface must visibly label the difference between publisher text, local editorial summaries, provisional review and authoritative sources.
 
-Apply migrations only in order after backup and preview:
-1. `0014_seerah_primary_sources.sql`
-2. `0015_living_guidance_primary_sources.sql`
-3. `0016_tibb_health_safety_dossiers.sql`
-4. `0017_quranic_sunnah_source_dossiers.sql`
-5. `0018_ayat_al_kursi_source_dossier.sql`
+## Remaining post-soft-launch work
 
-They use `INSERT OR IGNORE`, but must still be reviewed, tested and audited before any production data write. The existing-worker release workflow now refuses deployment until all 15 new dossier IDs are present in the **existing** production D1. Read-only infrastructure health is tracked separately from dossier migration readiness.
+1. A comprehensive, licensed and qualified **Tafsir** collection and deeper authentic **Seerah** primary-source coverage.
+2. Wider representative-question audits beyond the initial 24, including difficult contradictory interpretations, poor matches, source outages and culturally varied transliterations.
+3. Independent scholarly validation of source attribution, language, Hadith gradings, historical chronology and interpretations; clinical review for all medical implications.
+4. Complete accessibility, responsive design, image/icon and Admin editorial/publishing QA; no unsupported or fabricated source claims.
+5. Consolidate this tested branch into the canonical `main` repository only after branch parity and historical production verification. Future releases use the original guarded existing-Worker workflow.
 
-## Non-negotiable remaining product gates
+## Operations and rollback
 
-1. Obtain authorized licensing/API access to qualified Tafsir and additional authenticated primary sources; integrate without inventing an equivalent text source.
-2. Expand Seerah, Hadith and Prophetic Medicine beyond the initial 24-question benchmark and verify cross-references.
-3. Qualified scholars review interpretation, grading, source attribution, and historical timelines; clinicians review medical implications.
-4. Visual parity and interaction QA across homepage, study reader, question answers, topic exploration, Admin and mobile.
-5. Confirm remote D1 data migration, protected Admin access, approved evidence statuses, production smoke results and release authorization before declaring launch complete.
-
-**Never claim that CI, a dry run or matching article coverage equals a complete scholarly encyclopedia or a live release.**
+- Cloudflare tracks Worker deployments and supports restoring an earlier Worker version with Wrangler or the Cloudflare dashboard. Code rollback does **not** reverse D1 data migrations. See Cloudflare Workers version/rollback documentation.
+- The D1 content migration used only additive `INSERT OR IGNORE` statements from `migrations/0014_...` through `0018_...`. The production DB was exported and validated before writing. Private backups were not committed or uploaded as public artifacts.
+- **Never** run the legacy first-deploy workflows or provision another Quranically Worker/database.
+- **Never** declare a source corpus scholarly approved because unit tests, browser QA or provider connectivity succeeded.
