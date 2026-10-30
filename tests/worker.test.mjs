@@ -161,7 +161,7 @@ test('encyclopedia has source-linked articles spanning five disciplines',async()
  const fullSection=await get(e,'/api/encyclopedia?q=botulism');assert.equal(fullSection.status,200);
  assert((await fullSection.json()).entries.some(x=>x.slug==='honey'));
  const med=await get(e,'/api/encyclopedia?domain=prophetic_medicine');assert.equal(med.status,200);
- assert.equal((await med.json()).entries.length,10);
+ assert((await med.json()).entries.length>=13);
  const s=await get(e,'/api/encyclopedia?letter=H');
  assert((await s.json()).entries.some(x=>x.slug==='honey'));
  assert.equal((await get(e,'/api/encyclopedia?domain=unknown')).status,400);
