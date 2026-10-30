@@ -390,7 +390,7 @@ async function publicApi(request,env,url){
     if(q.length<2||q.length>95)return invalid('Enter a question between 2 and 95 characters');
     const normalize=normalizeSubject;
     const terms=subjectTokens(q);
-    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published' ORDER BY title LIMIT 1500").all()).then(x=>x.results).catch(()=>[]);
+    const rows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,domain,abstract,alternate_names,review_status FROM encyclopedia_articles WHERE status='published'"+(domain?" AND domain=?":"")+" ORDER BY title LIMIT 1500").bind(...(domain?[domain]:[])).all()).then(x=>x.results).catch(()=>[]);
     const editorial=rows.map(a=>({...a,_score:scoreArticle(q,a).score})).filter(x=>x._score>=60).sort((a,b)=>b._score-a._score).slice(0,6).map(({_score,...rest})=>rest);
     // Full source-grounded excerpts for relevant editorial answers: do not replace
     // primary evidence with automatically generated medical or religious claims.
