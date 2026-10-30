@@ -17,7 +17,12 @@ function showIndex(){selectedEntry=null;$('articleView').hidden=true;$('indexVie
 function renderSubjects(counts){
  const map=new Map(counts.map(x=>[x.domain,Number(x.entries)]));const total=counts.reduce((n,x)=>n+Number(x.entries),0);
  const icons={prophetic_medicine:'leaf',quranic_themes:'quran',sunnah:'hadith',seerah:'compass',living_guidance:'path'};
- $('subjects').innerHTML=domains.map(([key,name])=>'<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'"><span class="qst-subject-name"><svg class="qst-subject-icon" aria-hidden="true"><use href="#e-'+(icons[key]||'spark')+'"></use></svg>'+esc(name)+'</span><b>'+ (key?(map.get(key)||0):total)+'</b></button>').join('');
+  $('subjects').innerHTML=domains.map(([key,name])=>{
+    const native=key==='prophetic_medicine'?'/tibb':key==='living_guidance'?'/guidance':'';
+    const contents='<span class="qst-subject-name"><svg class="qst-subject-icon" aria-hidden="true"><use href="#e-'+(icons[key]||'spark')+'"></use></svg>'+esc(name)+'</span><b>'+(key?(map.get(key)||0):total)+'</b>';
+    return native?'<a href="'+native+'" class="qst-subject-native">'+contents+'</a>':
+     '<button type="button" data-domain="'+esc(key)+'" class="'+(filters.domain===key?'active':'')+'">'+contents+'</button>';
+  }).join('');
 }
 async function loadSubjects(){try{const data=await api('/api/encyclopedia/subjects');renderSubjects(data.subjects);}catch(e){$('subjects').textContent='Subject index unavailable';}}
 const alphabet=['ALL',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
@@ -170,9 +175,12 @@ async function refresh(){
  document.body.classList.toggle('qst-has-query',filters.q.trim().length>=2);
  const seq=++refreshSequence;
  const params=new URLSearchParams();if(filters.domain)params.set('domain',filters.domain);if(filters.q)params.set('q',filters.q);if(filters.letter)params.set('letter',filters.letter);
- const heading=filters.domain?titles[filters.domain]:'All reference entries';
+ const heading=filters.domain?(filters.q?'Source-linked search results':{
+ quranic_themes:'Theme studies & verse references',sunnah:'Transmission & source studies',seerah:'Follow the documented episodes',
+ prophetic_medicine:'Medical tradition & evidence dossiers',living_guidance:'Questions for everyday life'
+ }[filters.domain]):'All reference entries';
  $('indexHeading').textContent=heading;
- $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':'Follow subject pathways, alphabetic entries and cross-references.';
+ $('indexSubtitle').textContent=filters.q?'Results matching “'+filters.q+'”':(filters.domain?'Published, cited studies from the Quranically editorial catalogue.':'Follow subject pathways, alphabetic entries and cross-references.');
  $('loading').textContent='Retrieving referenced entries…';$('resultCount').textContent='Searching…';$('results').innerHTML='';renderAlphabet();
  sourceSequence++;$('federatedResults').hidden=true;
  renderQuranJump(filters.q);
