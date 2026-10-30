@@ -1,0 +1,20 @@
+name: Quranically — Read-only upstream source compatibility
+on:
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - '.github/workflows/quranically-source-compatibility.yml'
+      - 'scripts/upstream-readonly-check.mjs'
+permissions:
+  contents: read
+jobs:
+  public-provider-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check live published Quran and HadeethEnc API response schemas (no production access)
+        run: node scripts/upstream-readonly-check.mjs
