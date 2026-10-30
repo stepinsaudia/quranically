@@ -1,5 +1,9 @@
 name: Quranically — Read-only upstream source compatibility
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/quranically-source-compatibility.yml'
+      - 'scripts/upstream-readonly-check.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
