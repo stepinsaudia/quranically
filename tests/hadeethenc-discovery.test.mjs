@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {searchHadeethEnc,titleRelevance} from '../src/hadeethenc-discovery.mjs';
+import {searchHadeethEnc,titleRelevance,hadeethCatalogInfo} from '../src/hadeethenc-discovery.mjs';
 const response=data=>({ok:true,status:200,headers:new Headers(),text:async()=>JSON.stringify(data)});
 test('official HadeethEnc topic search returns exact publisher content, grade, source and edition',async()=>{
  const urls=[];
@@ -73,4 +73,28 @@ test('complete publisher title-index matching reaches beyond first-page category
 test('source index refuses to match a single generic word in a long multi-subject question',()=>{
  assert.equal(titleRelevance(['marriage','diabetes','pilgrimage'],'A narration about marriage'),0);
  assert(titleRelevance(['clothing'],'The Prophet wore clothing')>0);
+});
+
+test('publisher source index is comprehensive metadata, retains exact IDs and avoids inventing review',()=>{
+ const catalog=hadeethCatalogInfo();
+ assert.equal(catalog.title_count,2328);
+ assert.equal(catalog.root_subjects,7);
+ assert.equal(catalog.original_titles_only,true);
+ assert.equal(catalog.translation_version,'not_supplied_by_live_api');
+ assert.equal(catalog.publisher,'HadeethEnc.com');
+});
+test('common unlisted Islamic questions search full title index before narrow categories',async()=>{
+ let queried=0;
+ const mock=async url=>{
+  assert(url.includes('/hadeeths/one/?language=en&id='),'Only matched publisher details should be requested');
+  queried++;
+  const id=url.match(/&id=(\d+)/)?.[1];
+  return response({id,title:'Official hadith',hadeeth:'Verbatim source text for '+id,explanation:'Official explanation'});
+ };
+ const result=await searchHadeethEnc('What is the Sunnah regarding prayer?',mock);
+ assert.equal(result.status,'available');
+ assert.equal(result.catalog.title_count,2328);
+ assert.equal(result.search_method,'indexed_original_english_titles');
+ assert(queried>=1&&queried<=3);
+ assert(result.results.every(x=>x.original_hadith.startsWith('Verbatim source text for ')));
 });
