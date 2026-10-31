@@ -126,6 +126,7 @@ async function show(q,domain){
    +'<h3>'+esc(a.title)+'</h3><p class="qa-summary">'+esc(a.abstract)+'</p>'
    +'<div class="qa-badges"><span>'+esc(a.domain.replaceAll('_',' '))+'</span><span>'+esc(a.review_status.replaceAll('_',' '))+'</span><span>'+a.sections.length+' sections</span><span>'+a.citations.length+' sources</span></div>'
    +(passages?'<div class="qa-source"><h4>Original source text</h4>'+passages+'</div>':'')
+   +(a.domain==='prophetic_medicine'?'':window.QuranicallyLearning.render(a.learning_guide||null,a.domain))
    +'<div class="qa-chapters">'+a.sections.map(section).join('')+'</div>'
    +'<section class="qa-bibliography"><h4>References and evidence</h4><p>These are source links for independent examination; they do not replace the answer or establish clinical efficacy.</p><ol>'+a.citations.map(citation).join('')+'</ol></section>'
    +(related?'<div class="qa-related"><strong>Related reference articles</strong>'+related+'</div>':'')
