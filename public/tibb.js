@@ -7,7 +7,7 @@ const kinds={food:'Foods & ingredients',care:'Personal care',practice:'Tradition
 async function api(path){const r=await fetch(path,{headers:{accept:'application/json'}});let x;try{x=await r.json()}catch{throw Error('The knowledge library is unavailable.')}if(!r.ok)throw Error(x?.error||'Request failed');return x;}
 const safeURL=s=>/^https:\/\/[^\s"<>]+$/i.test(String(s||''))?s:'';
 function card(x){
- return '<article class="entry"><div class="med-icon">'+ic(x.category==='practice'?'shield':x.category==='spiritual'?'book':'leaf')+'</div><span class="ey">'+esc(kinds[x.category]||'Knowledge')+'</span><h3>'+esc(x.title)+'</h3><div class="arabicname" lang="ar" dir="rtl">'+esc(x.arabic_name)+'</div><p>'+esc(x.tradition_summary)+'</p><div class="entryfoot"><small>'+esc(x.reference_label)+'</small><button type="button" data-entry="'+esc(x.slug)+'">Explore '+ic('arrow')+'</button></div></article>';
+ return '<article class="entry"><div class="med-icon">'+ic(x.category==='practice'?'shield':x.category==='spiritual'?'book':'leaf')+'</div><span class="ey">'+esc(kinds[x.category]||'Knowledge')+'</span><h3>'+esc(x.title)+'</h3><div class="arabicname" lang="ar" dir="rtl">'+esc(x.arabic_name)+'</div><p>'+esc(x.tradition_summary)+'</p><div class="entryfoot"><small>'+esc(x.reference_label)+'</small><button type="button" data-entry="'+esc(x.slug)+'">'+(Number(x.practical_guide_available)?'How to use':'Explore')+' '+ic('arrow')+'</button></div></article>';
 }
 async function search(){
  $('status').textContent='Searching source-linked material…';
@@ -24,7 +24,7 @@ async function open(slug,updateHistory=true){
  $('overlay').hidden=false;document.body.style.overflow='hidden';$('detailBody').innerHTML='<p>Retrieving the original reference…</p>';
  if(updateHistory){const u=new URL(location.href);u.searchParams.set('entry',slug);history.pushState({entry:slug},'',u);}
  try{
- const data=await api('/api/tibb/'+encodeURIComponent(slug));const x=data.entry;current=x;
+ const data=await api('/api/tibb/'+encodeURIComponent(slug));const x=data.entry;const guide=data.guide;current=x;
  let offers={offers:[],notice:'Seller availability has not been verified.'};
  try{offers=await api('/api/tibb/offers/'+encodeURIComponent(slug));}catch{}
  const href=safeURL(x.reference_url);
@@ -32,6 +32,20 @@ async function open(slug,updateHistory=true){
   +'<h2 id="detailTitle">'+esc(x.title)+'</h2><div class="detail-ar" lang="ar" dir="rtl">'+esc(x.arabic_name)+'</div>'
   +(x.scientific_name?'<p class="minor">'+esc(x.scientific_name)+'</p>':'')
   +'<div class="notice">'+ic('shield')+' Source-linked educational record · '+esc(x.review_stage.replaceAll('_',' '))+'. Religious-source review and clinical validation are distinct.</div>'
+  +(guide?'<section class="tibb-practical"><div class="kicker">TIBB IN DAILY LIFE · PRACTICAL APPLICATION</div>'+
+   '<h3>How can this actually be used?</h3>'+
+   '<div class="tibb-practical-review">Religious review: '+esc(guide.religious_review.replaceAll('_',' '))+
+   ' · Clinical review: '+esc(guide.medical_review.replaceAll('_',' '))+'</div>'+
+   '<h4>Everyday food or care practice</h4><p>'+esc(guide.daily_life_use)+'</p>'+
+   '<h4>What is actually reported?</h4><p>'+esc(guide.reported_method||'No specific application method has been confirmed from a traceable original report.')+'</p>'+
+   '<p class="minor"><strong>Who advised this method:</strong> '+esc(guide.method_attribution)+'</p>'+
+   '<h4>Quantity, timing and repetition</h4><p>'+esc(guide.schedule_or_dose||'No universally established schedule or quantity is recorded for this entry.')+'</p>'+
+   '<h4>Medical evidence</h4><p>'+esc(guide.medical_evidence||'Clinical evidence has not been reviewed for this preparation.')+'</p>'+
+   '<h4>When not to use it yourself</h4><p>'+esc(guide.safety_boundaries)+'</p>'+
+   '<div class="tibb-practical-references"><strong>Check the original sources</strong>'+
+   [['Prophetic report',guide.primary_url],['Supporting report',guide.supporting_url],['Clinical evidence',guide.clinical_url],['Safety reference',guide.safety_url]].map(([title,url])=>safeURL(url)?'<a href="'+esc(safeURL(url))+'" target="_blank" rel="noopener noreferrer">'+esc(title)+' '+ic('external')+'</a>':'').join('')+
+   '</div><p class="minor">Published educational guidance, not an individualized treatment plan. Review flags do not imply expert endorsement.</p></section>':
+   '<section class="tibb-practical tibb-practical-pending"><div class="kicker">TIBB IN DAILY LIFE</div><h3>How to use this authentically</h3><p>A source-checked practical application guide has not yet been published for this entry. The historical reference below must not be treated as an automatic personal prescription.</p></section>')
   +'<div class="section"><h3>Original source excerpt</h3>'+(x.source_arabic?'<blockquote class="source-arabic" dir="rtl" lang="ar">'+esc(x.source_arabic)+'</blockquote>':'<p class="minor">Arabic excerpt pending source review.</p>')+(x.source_meaning?'<p>'+esc(x.source_meaning)+'</p>':'')+'<p class="minor">Short excerpt and original editorial explanation; inspect the complete cited context.</p></div>'
   +'<div class="section"><h3>What the source describes</h3><p>'+esc(x.tradition_summary)+'</p><p><strong>Reference:</strong> '+esc(x.reference_label)+'</p>'
   +(href?'<a class="sourcelink" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">Inspect original source '+ic('external')+'</a>':'')+'</div>'
