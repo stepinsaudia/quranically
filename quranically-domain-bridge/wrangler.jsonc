@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "quranically-bridge",
+  "account_id": "fb9597e74bae3ea18ad7bb013213d776",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-31",
+  "services": [
+    {
+      "binding": "QURANICALLY_ORIGIN",
+      "service": "qst-living-knowledge-v1"
+    }
+  ]
+}
