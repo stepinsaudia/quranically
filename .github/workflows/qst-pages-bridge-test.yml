@@ -1,0 +1,36 @@
+name: Quranically — Pages CNAME gateway syntax and original-Worker contract (NO DEPLOY)
+on:
+  push:
+    branches: [fix/relevant-source-search-20261029]
+    paths:
+      - 'quranically-domain-bridge/**'
+      - 'tests/domain-bridge.test.mjs'
+      - '.github/workflows/qst-pages-bridge-test.yml'
+  pull_request:
+    paths:
+      - 'quranically-domain-bridge/**'
+      - 'tests/domain-bridge.test.mjs'
+      - '.github/workflows/qst-pages-bridge-test.yml'
+permissions:
+  contents: read
+jobs:
+  verify-proxy-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate the free Pages bridge, preserving custom hostname and Admin security
+        run: |
+          node --check quranically-domain-bridge/dist/_worker.js
+          node --test tests/domain-bridge.test.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const c=JSON.parse(fs.readFileSync('quranically-domain-bridge/wrangler.jsonc','utf8'));
+          if(c.name!=='quranically-bridge'||c.services?.[0]?.binding!=='QURANICALLY_ORIGIN'||
+             c.services?.[0]?.service!=='qst-living-knowledge-v1'||c.d1_databases)
+            throw Error('Gateway must bind only to canonical Quranically Worker without its own D1');
+          console.log('PASS: correct Pages project, one original-Worker service binding, no D1 cloning');
+          JS
