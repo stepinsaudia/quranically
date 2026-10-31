@@ -94,5 +94,41 @@ try {
   if(!page.url().includes('q=truthfulness'))throw Error('Discipline question did not navigate into canonical source search');
   await page.close();
  }
+
+ // DEEP KNOWLEDGE QA — actually open the four lived-learning articles, not only their directory cards.
+ for(const viewport of [{name:'desktop',width:1440,height:900},{name:'mobile',width:390,height:844}]){
+  const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:2});
+  page.on('pageerror',error=>failures.push(viewport.name+' learning '+error.message));
+  for(const [slug,expected] of [
+   ['patience-quranic-theme','From revelation to understanding'],
+   ['truthfulness-in-sunnah','What was taught — and how to apply it'],
+   ['hijrah-to-madinah','Learn from the life of the Prophet'],
+   ['anger-and-self-restraint','How to respond in everyday life']
+  ]){
+   await page.goto(base+'/encyclopedia/'+slug,{waitUntil:'domcontentloaded',timeout:25000});
+   await page.locator('#articleLearningGuide .qst-lived-citation a').waitFor({timeout:15000});
+   const title=await page.locator('#articleLearningGuide h2').innerText();
+   if(!title.includes(expected))throw Error('Wrong learning method for '+slug+': '+title);
+   if((await page.locator('#articleLearningGuide .qst-lived-step').count())<4)throw Error('Missing practical steps and boundaries for '+slug);
+   const source=await page.locator('#articleLearningGuide .qst-lived-citation a').getAttribute('href');
+   if(!source.startsWith('https://'))throw Error('Untraceable learning source on '+slug);
+   const review=await page.locator('#articleLearningGuide .qst-lived-review').innerText();
+   if(!review.includes('pending'))throw Error('Unreviewed material not clearly disclosed '+slug);
+   const dimensions=await page.evaluate(()=>({width:innerWidth,document:document.documentElement.scrollWidth}));
+   if(dimensions.document>dimensions.width+3)throw Error('Learning article overflow '+slug+' '+viewport.name);
+   await page.screenshot({path:'artifacts/quranically-learning-'+slug+'-'+viewport.name+'.png',fullPage:false});
+   console.log('PASS',viewport.name,slug,'practical knowledge with original citation and review boundaries');
+  }
+  await page.goto(base+'/study.html?surah=2&ayah=153',{waitUntil:'domcontentloaded',timeout:25000});
+  await page.locator('#qrLearningResults .qrLearningItem a').first().waitFor({timeout:15000});
+  const link=await page.locator('#qrLearningResults .qrLearningItem a').first().getAttribute('href');
+  if(link!=='/encyclopedia/patience-quranic-theme')throw Error('Reader exact verse study mismatched '+link);
+  await page.locator('#qrLearningAyah').fill('154');
+  await page.locator('#qrLearningForm button').click();
+  await page.locator('#qrLearningResults p').first().waitFor({timeout:15000});
+  if(await page.locator('#qrLearningResults a[href="/encyclopedia/patience-quranic-theme"]').count())throw Error('Adjacent verse leaked a different verse guide');
+  await page.screenshot({path:'artifacts/quranically-reader-learning-'+viewport.name+'.png',fullPage:false});
+  await page.close();
+ }
 }finally{await browser.close();}
 if(failures.length)throw Error('Browser script errors: '+failures.join(' | '));
