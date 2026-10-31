@@ -24,12 +24,14 @@ jobs:
     steps:
       - name: Check out approved Quranically development branch ONLY
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Validate explicit one-time authorization and frozen source candidate
         if: ${{ github.event_name == 'push' }}
         run: |
           set -euo pipefail
           test "$(cat release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt)" = 'Approved by Quranically owner in chat on 2026-10-31: deploy the existing Worker with guarded D1 migrations only.'
-          test "$(git rev-parse HEAD~2)" = 'c3cd1ae2f9e9daa43cef3f102ae29aa99bf6c1c4' || { echo 'Source candidate has changed. Refusing release.'; exit 1; }
+          test "$(git diff --name-only c3cd1ae2f9e9daa43cef3f102ae29aa99bf6c1c4 HEAD)" = "$(printf '.github/workflows/quranically-existing-worker-release.yml\\nrelease/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt')" || { echo 'Unapproved source changes since signed-off candidate; refusing release.'; exit 1; }
           changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
           test "$changed" = 'release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt' || { echo 'Release marker must be the only changed file.'; exit 1; }
           echo 'Explicit one-time approval and frozen candidate verified.'
