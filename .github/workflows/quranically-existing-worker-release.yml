@@ -118,17 +118,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
         run: |
           set -euo pipefail
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          const sql=fs.readFileSync('migrations/0020_tibb_use_guides.sql','utf8');
-          const statements=sql.split(';').map(x=>x.trim()).filter(Boolean)
-            .map(x=>x.replace(/^(?:--[^\n]*\n\s*)+/g,'').trim()).filter(Boolean);
-          if(statements.length!==3 || !/^CREATE TABLE IF NOT EXISTS tibb_use_guides\b/.test(statements[0]) ||
-             !/^CREATE INDEX IF NOT EXISTS idx_tibb_use_guides_status\b/.test(statements[1]) ||
-             !/^INSERT OR IGNORE INTO tibb_use_guides\b/.test(statements[2]))
-            throw Error('Unexpected migration 0020 content; refusing to modify live D1');
-          console.log('Practical Tibb migration 0020 contains only the approved additive schema and one cited seed');
-          JS
+          test "$(git hash-object migrations/0020_tibb_use_guides.sql)" = "605aa9b99a18613d7a851daea4998f8877d63317" || {
+            echo 'Tibb migration changed from approved canonical source; deployment refused.'
+            exit 1
+          }
+          echo 'Approved additive Tibb migration hash verified.'
           npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT name FROM sqlite_master WHERE type='table' AND name='tibb_use_guides';" > /tmp/qst-tibb-schema-check.json
           if node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-tibb-schema-check.json","utf8"));process.exit(r?.[0]?.results?.some(x=>x.name==="tibb_use_guides")?0:1)'; then
             echo 'Practical Tibb schema already exists; verify published guide below.'
