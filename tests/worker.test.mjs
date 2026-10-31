@@ -782,4 +782,10 @@ test('authenticated Admin refuses cross-article and cross-discipline evidence fo
  const doc=await (await get(e,'/api/encyclopedia/truthfulness-in-sunnah')).json();
  assert(doc.learning_guide.everyday_example.includes('unverified claim'));
  assert.equal(doc.learning_guide.citation_type,'hadith');
+ const tamperCitation=await get(e,'/api/admin/encyclopedia_citations/truthfulness-in-sunnah-r1',{method:'PUT',
+  headers:{origin:'https://test.local',cookie,'content-type':'application/json'},body:JSON.stringify({citation_type:'clinical'})});
+ assert.equal(tamperCitation.status,400,'An existing Hadith teaching must never be converted to clinical evidence');
+ const tamperDomain=await get(e,'/api/admin/encyclopedia_articles/truthfulness-in-sunnah',{method:'PUT',
+  headers:{origin:'https://test.local',cookie,'content-type':'application/json'},body:JSON.stringify({domain:'seerah'})});
+ assert.equal(tamperDomain.status,400,'A source-linked guide cannot silently migrate to another discipline');
 });
