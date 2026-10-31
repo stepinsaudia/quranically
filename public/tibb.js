@@ -9,6 +9,18 @@ const safeURL=s=>/^https:\/\/[^\s"<>]+$/i.test(String(s||''))?s:'';
 function card(x){
  return '<article class="entry"><div class="med-icon">'+ic(x.category==='practice'?'shield':x.category==='spiritual'?'book':'leaf')+'</div><span class="ey">'+esc(kinds[x.category]||'Knowledge')+'</span><h3>'+esc(x.title)+'</h3><div class="arabicname" lang="ar" dir="rtl">'+esc(x.arabic_name)+'</div><p>'+esc(x.tradition_summary)+'</p><div class="entryfoot"><small>'+esc(x.reference_label)+'</small><button type="button" data-entry="'+esc(x.slug)+'">'+(Number(x.practical_guide_available)?'How to use':'Explore')+' '+ic('arrow')+'</button></div></article>';
 }
+function showTibbKnowledge(){
+ const shell=$('tibbAnswerShell');
+ if(query.trim().length<2){
+  shell.hidden=true;
+  window.QuranicallyAnswers.clear();
+  return;
+ }
+ shell.hidden=false;
+ window.QuranicallyAnswers.show(query,'prophetic_medicine').catch(()=>{
+  $('inlineAnswerBody').textContent='The source-linked answer could not be retrieved. Ingredient records remain available below.';
+ });
+}
 async function search(){
  $('status').textContent='Searching source-linked material…';
  try{
@@ -16,7 +28,7 @@ async function search(){
  const data=await api('/api/tibb'+(params.size?'?'+params:''));
  $('entryGrid').innerHTML=data.entries.map(card).join('');
  $('resultsCount').textContent=data.entries.length+' entries';
- $('status').textContent=data.entries.length?'':'No matching entries are published. Try another ingredient or topic. We do not invent results.';
+ $('status').textContent=data.entries.length?'':(query?'No matching ingredient record. The source-linked answer to your question appears above when supported by authenticated references.':'No matching entries are published. We do not invent results.');
  }catch(e){$('entryGrid').innerHTML='';$('status').textContent=e.message;}
 }
 async function open(slug,updateHistory=true){
@@ -61,8 +73,17 @@ function close(){
  $('overlay').hidden=true;document.body.style.overflow='';current=null;document.title='Prophetic Medicine — Quranically';
  const u=new URL(location.href);if(u.searchParams.has('entry')){u.searchParams.delete('entry');history.replaceState({},'',u);}
 }
-$('searchForm').addEventListener('submit',e=>{e.preventDefault();query=$('searchInput').value.trim();search();$('library').scrollIntoView({behavior:'smooth'});});
-document.querySelectorAll('[data-query]').forEach(b=>b.addEventListener('click',()=>{category='';document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('selected',x.dataset.category===''));query=b.dataset.query;$('searchInput').value=query;search();$('library').scrollIntoView({behavior:'smooth'});}));
+$('searchForm').addEventListener('submit',e=>{
+ e.preventDefault();query=$('searchInput').value.trim();category='';
+ document.querySelectorAll('[data-category]').forEach(b=>b.classList.toggle('selected',b.dataset.category===''));
+ const u=new URL(location.href);if(query)u.searchParams.set('q',query);else u.searchParams.delete('q');
+ history.replaceState({},'',u);
+ showTibbKnowledge();search();
+ (query.trim().length>=2?$('tibbAnswerShell'):$('library')).scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.querySelectorAll('[data-query]').forEach(b=>b.addEventListener('click',()=>{category='';document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('selected',x.dataset.category===''));query=b.dataset.query;$('searchInput').value=query;
+ const u=new URL(location.href);u.searchParams.set('q',query);history.replaceState({},'',u);
+ showTibbKnowledge();search();$('tibbAnswerShell').scrollIntoView({behavior:'smooth',block:'start'});}));
 $('filters').addEventListener('click',e=>{const b=e.target.closest('button[data-category]');if(!b)return;category=b.dataset.category;document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('selected',x===b));search();});
 $('entryGrid').addEventListener('click',e=>{const b=e.target.closest('button[data-entry]');if(b)open(b.dataset.entry);});
 $('closeDetail').addEventListener('click',close);$('overlayBack').addEventListener('click',close);
@@ -72,5 +93,10 @@ $('detailBody').addEventListener('click',e=>{
  if(e.target.closest('#shareEntry')){const u=new URL(location.href);if(current)u.searchParams.set('entry',current.slug);navigator.clipboard?.writeText(u.toString()).then(()=>{e.target.textContent='Link copied';}).catch(()=>{e.target.textContent='Copy from address bar';});}
 });
 window.addEventListener('popstate',()=>{const entry=new URLSearchParams(location.search).get('entry');if(entry)open(entry,false);else if(!$('overlay').hidden)close();});
-const requested=new URLSearchParams(location.search).get('entry');search().then(()=>{if(requested)open(requested,false);});
+const currentParams=new URLSearchParams(location.search);
+query=(currentParams.get('q')||'').trim().slice(0,180);
+if(query)$('searchInput').value=query;
+const requested=currentParams.get('entry');
+showTibbKnowledge();
+search().then(()=>{if(requested)open(requested,false);});
 })();
