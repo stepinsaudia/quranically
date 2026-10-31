@@ -32,9 +32,16 @@ try {
    if(sections<3)throw Error(query+': only '+sections+' substantial answer sections');
    if(await page.locator('#federatedResults:visible').count())throw Error('Duplicate source panel when complete answer exists');
    if(slug==='clothing'){
-    await page.locator('#inlineAnswer .qst-publisher-hadith').first().waitFor({timeout:20000});
-    if(!await page.locator('#inlineAnswer .qst-publisher-hadith a[href^="https://hadeethenc.com/"]').first().isVisible())throw Error('Publisher full Hadith and original proof missing');
-    if(!await page.locator('#inlineAnswer .qst-publisher-hadith blockquote').first().isVisible())throw Error('Hadith must render full in the answer');
+    // External publisher can be unavailable or rate-limited; that is not permission
+    // to hallucinate its words. Require canonical cited answer in both states.
+    const published=page.locator('#inlineAnswer .qst-publisher-hadith').first();
+    if(await published.count()){
+     if(!await page.locator('#inlineAnswer .qst-publisher-hadith a[href^="https://hadeethenc.com/"]').first().isVisible())throw Error('Rendered publisher report missing original source link');
+     if(!await page.locator('#inlineAnswer .qst-publisher-hadith blockquote').first().isVisible())throw Error('Rendered hadith text must be complete, not fabricated summary');
+    }else{
+     if(await page.locator('#inlineAnswer .qa-bibliography li').count()<1)throw Error('Missing canonical Hadith bibliography when external publisher unavailable');
+     console.log('External HadeethEnc unavailable during this request; original sourced article and citations shown without invented narration');
+    }
    }
    await page.screenshot({path:'artifacts/quranically-'+slug+'-'+viewport.name+'.png',fullPage:true});
   }
