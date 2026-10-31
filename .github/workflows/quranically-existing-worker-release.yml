@@ -177,9 +177,17 @@ jobs:
         run: |
           node --input-type=module -e '
             const root="https://qst-living-knowledge-v1.stepinsaudia.workers.dev";
-            for(const route of ["/","/study.html","/api/health","/api/unified-search?q=black%20seed"]){
+            for(const route of ["/","/study.html","/tibb","/tibb?q=diabetes","/encyclopedia?domain=seerah&q=Hijrah","/api/tibb/black-seed","/api/health","/api/unified-search?q=black%20seed"]){
               const r=await fetch(root+route,{signal:AbortSignal.timeout(20000)});
               if(r.status!==200)throw Error("Live check failed at "+route+" ("+r.status+")");
+              if(route.startsWith("/tibb")){
+                const html=await r.text();
+                if(!html.includes('id="entryGrid"')||!html.includes('id="tibbAnswerShell"'))throw Error("Real Tibb page or answer module missing");
+              }
+              if(route.startsWith("/api/tibb/")){
+                const data=await r.json();
+                if(data.entry?.slug!=="black-seed"||!data.guide?.daily_life_use)throw Error("Source-linked practical Tibb guide unavailable");
+              }
               if(route.includes("unified-search")){
                 const data=await r.json();
                 if(!Array.isArray(data.tibb)||!data.evidence)throw Error("Unified search response invalid");
