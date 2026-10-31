@@ -112,7 +112,35 @@ jobs:
           if(!d||Number(d.research_topics)<60)throw Error('Canonical research Admin schema or 60 approved draft queue records missing. Refusing Worker update.');
           console.log('Verified',d.research_topics,'private research topics in existing D1; public content remains review-gated.');
           JS
-      - name: Deploy to EXACT existing Quranically Worker (no D1 migrations)
+      - name: Require exact backed-up practical Tibb schema before any Worker promotion
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const sql=fs.readFileSync('migrations/0020_tibb_use_guides.sql','utf8');
+          const statements=sql.split(';').map(x=>x.trim()).filter(Boolean)
+            .map(x=>x.replace(/^(?:--[^\n]*\n\s*)+/g,'').trim()).filter(Boolean);
+          if(statements.length!==3 || !/^CREATE TABLE IF NOT EXISTS tibb_use_guides\b/.test(statements[0]) ||
+             !/^CREATE INDEX IF NOT EXISTS idx_tibb_use_guides_status\b/.test(statements[1]) ||
+             !/^INSERT OR IGNORE INTO tibb_use_guides\b/.test(statements[2]))
+            throw Error('Unexpected migration 0020 content; refusing to modify live D1');
+          console.log('Practical Tibb migration 0020 contains only the approved additive schema and one cited seed');
+          JS
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT name FROM sqlite_master WHERE type='table' AND name='tibb_use_guides';" > /tmp/qst-tibb-schema-check.json
+          if node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-tibb-schema-check.json","utf8"));process.exit(r?.[0]?.results?.some(x=>x.name==="tibb_use_guides")?0:1)'; then
+            echo 'Practical Tibb schema already exists; verify published guide below.'
+          else
+            umask 077
+            npx wrangler d1 export qst-knowledge-v1-db --remote --output=/tmp/quranically-pre-tibb-backup.sql >/dev/null
+            test -s /tmp/quranically-pre-tibb-backup.sql || { echo 'Practical Tibb backup failed'; exit 1; }
+            npx wrangler d1 execute qst-knowledge-v1-db --remote --file=migrations/0020_tibb_use_guides.sql --yes
+          fi
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM tibb_use_guides WHERE id='black-seed-use' AND entry_id='black-seed' AND status='published' AND religious_review='pending' AND medical_review='pending' AND LENGTH(primary_url)>10 AND LENGTH(safety_boundaries)>50;" > /tmp/qst-tibb-verified.json
+          node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-tibb-verified.json","utf8"));if(Number(r?.[0]?.results?.[0]?.n)!==1)throw Error("Tibb source integrity check failed; Worker deploy blocked");console.log("Verified one safe, provenance-labelled practical black seed guide");'
+      - name: Deploy to EXACT existing Quranically Worker (verified additive Tibb migration only)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
@@ -133,7 +161,7 @@ jobs:
           '
       - name: Remove temporary release backup from runner
         if: always()
-        run: rm -f /tmp/quranically-private-pre-release.sql /tmp/quranically-schema-check.json /tmp/quranically-research-count.json /tmp/quranically-research-ready.json /tmp/qst-release-readonly.json
+        run: rm -f /tmp/quranically-private-pre-release.sql /tmp/quranically-pre-tibb-backup.sql /tmp/qst-tibb-schema-check.json /tmp/qst-tibb-verified.json /tmp/quranically-schema-check.json /tmp/quranically-research-count.json /tmp/quranically-research-ready.json /tmp/qst-release-readonly.json
       - name: Record release for review
         run: |
           echo '### Quranically — existing Worker release' >> "$GITHUB_STEP_SUMMARY"
