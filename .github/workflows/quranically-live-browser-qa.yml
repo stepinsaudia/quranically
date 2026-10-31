@@ -1,3 +1,4 @@
+# 31 October 2026 independently verify deployed Quranically Worker; strictly read-only.
 name: Quranically — LIVE existing Worker browser and answer verification (read only)
 on:
   pull_request:
