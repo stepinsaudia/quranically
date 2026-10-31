@@ -9,6 +9,11 @@ on:
       - 'public/encyclopedia.js'
       - 'public/answer.js'
       - 'src/index.mjs'
+      - 'public/tibb.js'
+      - 'public/admin.js'
+      - 'public/admin.html'
+      - 'migrations/0020_tibb_use_guides.sql'
+      - 'tests/worker.test.mjs'
   push:
     branches: [fix/relevant-source-search-20261029]
     paths:
@@ -34,6 +39,12 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund playwright
           npx playwright install --with-deps chromium
+      - name: Verify source and practical Tibb migrations, API isolation and Admin access
+        run: |
+          node --check src/index.mjs
+          node --check public/tibb.js
+          node --check public/admin.js
+          npm test
       - name: Run local Worker with canonical D1 seed records (no production writes)
         run: |
           node scripts/local-preview.mjs > /tmp/quranically-local-preview.log 2>&1 &
