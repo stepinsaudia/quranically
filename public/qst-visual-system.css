@@ -626,3 +626,22 @@ body[data-qst-page=encyclopedia] #articleLearningGuide[hidden]{display:none!impo
 body[data-qst-page=encyclopedia] .qa-body .qst-lived-knowledge,
 body[data-qst-page=encyclopedia] .qa-chapters .qst-lived-knowledge{margin-top:12px}
 @media(max-width:580px){.qst-lived-step{grid-template-columns:21px minmax(0,1fr);gap:8px}.qst-lived-knowledge{padding:18px}}
+
+/* The Qur'an Reader offers actual verse-linked studies, never presumed Tafsir. */
+body[data-qst-page=reader] .qrLearning{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 24px;
+ background:#f3f8f3;border:1px solid #d4e1d5;border-left:4px solid #26836d;
+ border-radius:11px;padding:23px;margin:0 0 27px;
+}
+body[data-qst-page=reader] .qrLearning h3{font:500 clamp(21px,2.2vw,28px)/1.25 'Playfair Display',Georgia,serif!important;color:#214b3f!important;margin:6px 0 6px!important}
+body[data-qst-page=reader] .qrLearning p{font:400 12px/1.75 Manrope,sans-serif;color:#50645c;margin:0}
+body[data-qst-page=reader] .qrLearningForm{display:flex;align-items:end;gap:9px;flex-wrap:wrap}
+body[data-qst-page=reader] .qrLearningForm label{font-size:11px;font-weight:800;color:#346551}
+body[data-qst-page=reader] .qrLearningForm input{width:85px;min-width:0;min-height:40px;padding:7px;background:#fff;border:1px solid #bdd3c2;border-radius:6px}
+body[data-qst-page=reader] .qrLearningForm button{min-height:40px;background:#276c59;color:#fff;border:0;border-radius:6px;padding:8px 13px;font:800 11px Manrope,sans-serif;cursor:pointer}
+body[data-qst-page=reader] .qrLearningResults{grid-column:1/-1;min-width:0;font-size:12px;color:#426451}
+body[data-qst-page=reader] .qrLearningItem{background:#fff;border:1px solid #d6e5db;border-radius:7px;padding:15px;margin:9px 0}
+body[data-qst-page=reader] .qrLearningItem h4{font:600 16px/1.4 Georgia,serif;color:#286b55;margin:0 0 7px}
+body[data-qst-page=reader] .qrLearningItem a{color:#186450;text-decoration:underline;text-underline-offset:3px}
+body[data-qst-page=reader] .qrLearningItem small{color:#806b50;font-size:10px}
+@media(max-width:720px){body[data-qst-page=reader] .qrLearning{grid-template-columns:1fr;padding:16px}body[data-qst-page=reader] .qrLearningResults{grid-column:1}}
