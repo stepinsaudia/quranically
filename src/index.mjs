@@ -67,6 +67,7 @@ function normalize(table,payload,method){
     const txt=val.trim();
     const localEnums={
       research_topics:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],research_stage:['queued','researching','source_check','scholar_review','medical_review','ready_for_article','closed'],risk_class:['general','interpretation','hadith_grade','historical','medical','jurisprudence']},
+      discipline_learning_guides:{review_status:['pending','source_checked','scholar_reviewed']},
       encyclopedia_articles:{domain:['prophetic_medicine','quranic_themes','sunnah','seerah','living_guidance'],entry_type:['ingredient','practice','devotion','concept','historical','guidance'],review_status:['editorial_draft','source_checked','scholar_reviewed','dual_reviewed']},
       encyclopedia_sections:{section_type:['overview','scripture','transmission','historical','interpretation','science','safety','practice','methodology']},
       encyclopedia_citations:{citation_type:['quran','hadith','clinical','reference','classical'],verification_status:['pending','source_checked','expert_checked']},
