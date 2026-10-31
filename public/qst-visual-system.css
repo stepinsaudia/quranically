@@ -599,3 +599,30 @@ body[data-qst-page=tibb] .tibb-practical-pending{background:#fcfaf6;border-color
  body[data-qst-page=tibb] .tibb-practical{padding:17px}
  body[data-qst-page=tibb] .tibb-practical-review{display:block}
 }
+
+/* Canonical lived-knowledge pedagogy: one evidence-backed component, four distinct meanings. */
+.qst-lived-knowledge{
+ --learn-color:#297363;--learn-bg:#f6faf7;
+ margin:16px 0 26px;padding:clamp(19px,3vw,33px);
+ background:var(--learn-bg);border:1px solid #d5e1d7;border-top:4px solid var(--learn-color);
+ border-radius:13px;color:#253c36;
+}
+.qst-lived-knowledge .qst-lived-kicker{font:800 10px/1.4 Manrope,sans-serif;letter-spacing:.13em;color:var(--learn-color);margin:0 0 10px}
+.qst-lived-knowledge>h2{font:500 clamp(23px,2.4vw,31px)/1.19 'Playfair Display',Georgia,serif!important;color:#273a32!important;margin:0 0 14px!important}
+.qst-lived-review{font:600 11px/1.7 Manrope,sans-serif;color:#7e6450;background:#fff9ed;border-left:3px solid #bd9d62;padding:9px 11px;margin:0 0 19px!important}
+.qst-lived-step{display:grid;grid-template-columns:28px minmax(0,1fr);gap:13px;border-bottom:1px solid #dce6df;padding:14px 0}
+.qst-lived-index{font:800 10px/1.5 Manrope,sans-serif;color:var(--learn-color)}
+.qst-lived-step h3{font:800 13px/1.4 Manrope,sans-serif!important;margin:0 0 6px!important;color:#204b41!important}
+.qst-lived-step p,.qst-lived-differences{font:400 12px/1.85 Manrope,sans-serif!important;color:#3c4f49!important;margin:0!important}
+.qst-lived-differences{padding:15px 0;border-bottom:1px solid #dce6df}
+.qst-lived-citation{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin-top:18px;font:600 11px/1.7 Manrope,sans-serif}
+.qst-lived-citation a{color:var(--learn-color);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.qst-lived-citation small{color:#6e7670}
+.qst-lived-empty{background:#faf8f3;border:1px solid #e9e1d5}
+html[data-qst-discipline=sunnah] .qst-lived-knowledge{--learn-color:#725748;--learn-bg:#fbf8f3}
+html[data-qst-discipline=seerah] .qst-lived-knowledge{--learn-color:#967043;--learn-bg:#fffaf0}
+html[data-qst-discipline=living_guidance] .qst-lived-knowledge{--learn-color:#586897;--learn-bg:#f7f8fd}
+body[data-qst-page=encyclopedia] #articleLearningGuide[hidden]{display:none!important}
+body[data-qst-page=encyclopedia] .qa-body .qst-lived-knowledge,
+body[data-qst-page=encyclopedia] .qa-chapters .qst-lived-knowledge{margin-top:12px}
+@media(max-width:580px){.qst-lived-step{grid-template-columns:21px minmax(0,1fr);gap:8px}.qst-lived-knowledge{padding:18px}}
