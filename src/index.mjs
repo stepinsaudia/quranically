@@ -273,6 +273,13 @@ async function adminApi(request,env,url,identity){
       if(!offerUrl||!allowedUrl(offerUrl))return invalid('A valid HTTPS seller URL is required');
     }
   }
+  if(entity==='encyclopedia_articles'&&values.domain&&request.method!=='POST'){
+    const old=await env.DB.prepare("SELECT domain FROM encyclopedia_articles WHERE id=?").bind(id).first();
+    if(old&&old.domain!==values.domain){
+      const guides=await env.DB.prepare("SELECT COUNT(*) AS n FROM discipline_learning_guides WHERE article_id=?").bind(id).first();
+      if(Number(guides?.n)>0)return invalid('Change of discipline requires archiving and removing the linked learning guide in a supervised migration');
+    }
+  }
   if(entity==='encyclopedia_articles'&&(values.status==='published')){
     if(request.method==='POST')return invalid('Create the article as draft and add sections and citations before publication');
     const sections=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_sections WHERE article_id=?').bind(id).first();
@@ -293,6 +300,15 @@ async function adminApi(request,env,url,identity){
     }
     const intended=values.status||old?.status||'draft';
     if(intended==='published'&&(!articleId||!citationId))return invalid('Published passages require a linked article and source');
+  }
+  if(entity==='encyclopedia_citations'&&request.method!=='POST'&&(values.citation_type||values.article_id)){
+    const linked=await env.DB.prepare("SELECT a.domain,c.citation_type,c.article_id FROM discipline_learning_guides g JOIN encyclopedia_articles a ON a.id=g.article_id JOIN encyclopedia_citations c ON c.id=g.primary_citation_id WHERE g.primary_citation_id=?").bind(id).first();
+    if(linked){
+      const allowed={quranic_themes:['quran'],sunnah:['hadith'],seerah:['quran','hadith','classical'],living_guidance:['quran','hadith']};
+      if(values.article_id&&values.article_id!==linked.article_id)return invalid('Cannot move a cited primary source to an unrelated article');
+      if(values.citation_type&&!allowed[linked.domain]?.includes(values.citation_type))
+        return invalid('Cited primary source type is fixed by the discipline; archive the dependent guide first');
+    }
   }
   if(entity==='encyclopedia_citations'&&values.article_id&&request.method!=='POST'){
     const used=await env.DB.prepare('SELECT COUNT(*) AS n FROM encyclopedia_passages WHERE citation_id=? AND article_id<>?').bind(id,values.article_id).first();
@@ -509,7 +525,9 @@ async function publicApi(request,env,url){
   // This is controlled retrieval, never fabricated 'AI' medical or religious advice.
   async function publishedLearningGuide(entry){
     if(!['quranic_themes','sunnah','seerah','living_guidance'].includes(entry.domain))return null;
-    return await env.DB.prepare("SELECT g.source_teaching,g.how_to_understand,g.everyday_application,g.everyday_example,g.boundaries,g.interpretation_notes,g.review_status,c.citation_type,c.citation_ref,c.source_title,c.source_url FROM discipline_learning_guides g JOIN encyclopedia_citations c ON c.id=g.primary_citation_id AND c.article_id=g.article_id WHERE g.article_id=? AND g.status='published'").bind(entry.id).first();
+    const guide=await env.DB.prepare("SELECT g.source_teaching,g.how_to_understand,g.everyday_application,g.everyday_example,g.boundaries,g.interpretation_notes,g.review_status,c.citation_type,c.citation_ref,c.source_title,c.source_url FROM discipline_learning_guides g JOIN encyclopedia_citations c ON c.id=g.primary_citation_id AND c.article_id=g.article_id WHERE g.article_id=? AND g.status='published'").bind(entry.id).first();
+    const accepted={quranic_themes:['quran'],sunnah:['hadith'],seerah:['quran','hadith','classical'],living_guidance:['quran','hadith']};
+    return guide&&accepted[entry.domain]?.includes(guide.citation_type)&&guide.source_url?guide:null;
   }
   if(pathname==='/api/encyclopedia/answer'){
     const q=(url.searchParams.get('q')||'').trim().slice(0,110);
