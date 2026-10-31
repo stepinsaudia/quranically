@@ -540,7 +540,8 @@ async function publicApi(request,env,url){
     const q=(url.searchParams.get('q')||'').trim().slice(0,90);
     const category=(url.searchParams.get('category')||'').trim();
     if(category&& !['food','care','practice','spiritual'].includes(category))return invalid('Invalid category');
-    let query="SELECT id,slug,title,arabic_name,scientific_name,category,tags,tradition_summary,reference_label,review_stage,seller_eligible FROM tibb_entries WHERE status='published'";
+    let query="SELECT id,slug,title,arabic_name,scientific_name,category,tags,tradition_summary,reference_label,review_stage,seller_eligible,"+
+      " EXISTS(SELECT 1 FROM tibb_use_guides g WHERE g.entry_id=tibb_entries.id AND g.status='published') AS practical_guide_available FROM tibb_entries WHERE status='published'";
     const params=[];
     if(category){query+=' AND category=?';params.push(category);}
     if(q){
