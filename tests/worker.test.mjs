@@ -671,7 +671,8 @@ test('dedicated Prophetic Medicine route serves the real D1-backed Tibb experien
   assert.equal(res.headers.get('location'),null,'should never redirect '+pathname);
   assert.match(await res.text(),/data-qst-page="tibb"/);
  }
- assert.deepEqual(paths,['/tibb.html','/tibb.html','/tibb.html','/tibb.html']);
+ // Cloudflare canonical /tibb serves the tibb.html asset; asking for /tibb.html causes a 307 redirect to /tibb.
+ assert.deepEqual(paths,['/tibb','/tibb','/tibb','/tibb']);
  const catalogue=await get(e,'/api/tibb');
  assert.equal(catalogue.status,200,'D1-backed Prophetic Medicine catalogue must still work');
  const entries=(await catalogue.json()).entries;
