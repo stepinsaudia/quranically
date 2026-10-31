@@ -1,0 +1,1 @@
+Read-only Cloudflare zone status and Worker hostname inspection. No DNS, billing, or Worker modification.
