@@ -730,3 +730,56 @@ test('practical Tibb guide API cannot publish unreviewed records without authent
  const state=await (await get(env,'/api/tibb/black-seed')).json();
  assert(state.guide?.daily_life_use.includes('food-grade'));
 });
+
+test('Quranically discipline learning guides enforce citation-family isolation, public source attribution and draft hiding',async()=>{
+ const e=fixture();
+ const cases=[
+  ['patience-quranic-theme','quranic_themes','quran'],
+  ['truthfulness-in-sunnah','sunnah','hadith'],
+  ['hijrah-to-madinah','seerah','quran'],
+  ['anger-and-self-restraint','living_guidance','quran']
+ ];
+ for(const [slug,domain,kind] of cases){
+  const response=await get(e,'/api/encyclopedia/'+slug);
+  assert.equal(response.status,200,slug);
+  const data=await response.json(),g=data.learning_guide;
+  assert.equal(data.entry.domain,domain);
+  assert(g&&g.source_teaching&&g.everyday_application&&g.boundaries,slug+' must have a practical, bounded, cited guide');
+  assert.equal(g.citation_type,kind);
+  assert(g.source_url.startsWith('https://'));
+  assert.equal(g.review_status,'pending','Not independently reviewed; do not mislabel');
+  assert(data.citations.some(c=>c.citation_ref===g.citation_ref&&c.source_url===g.source_url));
+ }
+ const verse=await (await get(e,'/api/quran/learning?surah=2&ayah=153')).json();
+ assert.equal(verse.reference,'2:153');
+ assert(verse.studies.some(s=>s.slug==='patience-quranic-theme'));
+ const unrelated=await (await get(e,'/api/quran/learning?surah=2&ayah=154')).json();
+ assert(!unrelated.studies.some(s=>s.slug==='patience-quranic-theme'),'Nearby verse must not inherit unrelated teaching');
+ const invalid=await get(e,'/api/quran/learning?surah=123&ayah=4');
+ assert.equal(invalid.status,400);
+ e.DB.prepare("UPDATE discipline_learning_guides SET status='draft' WHERE article_id='patience-quranic-theme'").run();
+ const hidden=await (await get(e,'/api/encyclopedia/patience-quranic-theme')).json();
+ assert.equal(hidden.learning_guide,null,'Unpublished guidance must not leak');
+});
+test('authenticated Admin refuses cross-article and cross-discipline evidence for practical learning',async()=>{
+ const e=fixture();
+ const password='Only-for-QST-discipline-isolation-test';
+ const salt=new Uint8Array(16);salt.fill(0x27);
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+ const digest=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},key,256));
+ const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
+ e.ADMIN_PASSWORD_RECORD='pbkdf2-sha256:100000:'+hex(salt)+':'+hex(digest);
+ const login=await get(e,'/api/admin/login',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({password})});
+ assert.equal(login.status,200);
+ const cookie=login.headers.get('set-cookie').split(';')[0];
+ const write=async data=>get(e,'/api/admin/discipline_learning_guides/sunnah-truthfulness-application',{
+  method:'PUT',headers:{origin:'https://test.local',cookie,'content-type':'application/json'},body:JSON.stringify(data)
+ });
+ assert.equal((await write({primary_citation_id:'patience-quranic-theme-r1'})).status,400,'Different parent article must be forbidden');
+ assert.equal((await write({primary_citation_id:'truthfulness-in-sunnah-r2'})).status,400,'A Qur’an verse cannot become a Hadith report');
+ assert.equal((await write({boundaries:'',status:'published'})).status,400,'Published guide must have limitations');
+ assert.equal((await write({everyday_example:'Reflect before sending an unverified claim.'})).status,200);
+ const doc=await (await get(e,'/api/encyclopedia/truthfulness-in-sunnah')).json();
+ assert(doc.learning_guide.everyday_example.includes('unverified claim'));
+ assert.equal(doc.learning_guide.citation_type,'hadith');
+});
