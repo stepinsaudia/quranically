@@ -24,10 +24,11 @@ const field={
   encyclopedia_links:['article_id','target_article_id','relation_label','sort_order'],
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
   research_topics:['question','domain','research_stage','risk_class','source_notes','assigned_reviewer','linked_article_id','sort_order'],
+  discipline_learning_guides:['article_id','primary_citation_id','source_teaching','how_to_understand','everyday_application','everyday_example','boundaries','interpretation_notes','review_status','status'],
   tibb_use_guides:['entry_id','daily_life_use','reported_method','method_attribution','schedule_or_dose','medical_evidence','safety_boundaries','primary_url','supporting_url','clinical_url','safety_url','religious_review','medical_review','status','review_note'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_use_guides:'tibb_use_guides',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_use_guides:'tibb_use_guides',discipline_learning_guides:'discipline_learning_guides',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -42,13 +43,14 @@ const enumVals={
 const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
  tibb_use_guides:['entry_id','daily_life_use','method_attribution','safety_boundaries','primary_url'],
+ discipline_learning_guides:['article_id','primary_citation_id','source_teaching','how_to_understand','everyday_application','boundaries'],
  encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
  encyclopedia_sections:['article_id','heading','section_type','body'],
  encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url'],
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url'],research_topics:['question','domain','research_stage','risk_class']};
-const textLimit={daily_life_use:2600,reported_method:2400,method_attribution:2200,schedule_or_dose:1800,medical_evidence:2500,safety_boundaries:3000,review_note:1800,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+const textLimit={source_teaching:2600,how_to_understand:3000,everyday_application:2800,everyday_example:2600,boundaries:2800,interpretation_notes:2600,daily_life_use:2600,reported_method:2400,method_attribution:2200,schedule_or_dose:1800,medical_evidence:2500,safety_boundaries:3000,review_note:1800,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -75,7 +77,7 @@ function normalize(table,payload,method){
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
     if(['source_url','audio_url','reference_url','offer_url','primary_url','supporting_url','clinical_url','safety_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
-    if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id','linked_article_id'].includes(k)&&txt&&!validId(txt))throw new Error('Invalid identifier');
+    if(['slug','journey_id','source_id','entry_id','article_id','primary_citation_id','target_article_id','citation_id','linked_article_id'].includes(k)&&txt&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
   if(method==='POST'&&needed[table].some(k=>!output[k]))throw new Error('Missing required field');
@@ -227,6 +229,25 @@ async function adminApi(request,env,url,identity){
   // A commercial listing may be public only after explicit independent
   // verification and only for a seller-eligible ingredient—not for procedures
   // or devotional practices. The public API applies the same filter.
+  if(entity==='discipline_learning_guides'){
+    const old=request.method==='POST'?null:await env.DB.prepare("SELECT article_id,primary_citation_id,status,source_teaching,how_to_understand,everyday_application,boundaries FROM discipline_learning_guides WHERE id=?").bind(id).first();
+    const articleId=values.article_id||old?.article_id;
+    const citationId=values.primary_citation_id||old?.primary_citation_id;
+    const article=await env.DB.prepare("SELECT domain,status FROM encyclopedia_articles WHERE id=?").bind(articleId).first();
+    if(!article||!['quranic_themes','sunnah','seerah','living_guidance'].includes(article.domain))
+      return invalid('Learning guides are limited to Qur’an themes, Sunnah, Seerah and Living Guidance articles');
+    if(old?.article_id&&values.article_id&&values.article_id!==old.article_id)
+      return invalid('Cannot transfer a learning guide between unrelated articles');
+    const citation=await env.DB.prepare("SELECT article_id,citation_type,source_url FROM encyclopedia_citations WHERE id=?").bind(citationId).first();
+    const accepted={quranic_themes:['quran'],sunnah:['hadith'],seerah:['quran','hadith','classical'],living_guidance:['quran','hadith']};
+    if(!citation||citation.article_id!==articleId||!accepted[article.domain].includes(citation.citation_type)||!citation.source_url||!allowedUrl(citation.source_url))
+      return invalid('Primary citation must be an authorised source type from the SAME article');
+    if((values.status||old?.status)==='published'){
+      const required=['source_teaching','how_to_understand','everyday_application','boundaries'];
+      if(article.status!=='published'||required.some(k=>!String(values[k]??old?.[k]??'').trim()))
+        return invalid('Published learning requires a published article and all four learning fields');
+    }
+  }
   if(entity==='tibb_use_guides'){
     const old=request.method==='POST'?null:await env.DB.prepare('SELECT entry_id,status,primary_url FROM tibb_use_guides WHERE id=?').bind(id).first();
     const entryId=values.entry_id||old?.entry_id;
@@ -290,7 +311,7 @@ async function adminApi(request,env,url,identity){
       if(!route[1])return invalid('Record ID required');
       const before=await env.DB.prepare(`SELECT id FROM ${entity} WHERE id=?`).bind(id).first();
       if(!before)return json({error:'Record not found'},404);
-      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_use_guides','tibb_offers','encyclopedia_articles'].includes(entity);
+      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_use_guides','discipline_learning_guides','tibb_offers','encyclopedia_articles'].includes(entity);
       await env.DB.prepare(`UPDATE ${entity} SET ${fields.map(k=>k+'=?').join(',')}${hasUpdated?",updated_at=datetime('now')":''} WHERE id=?`).bind(...vals,id).run();
       await audit(env.DB,identity.email,'update',entity,id);
     }
@@ -473,6 +494,10 @@ async function publicApi(request,env,url){
   // Full on-page answer, built entirely from the SAME canonical published
   // encyclopedia articles, sections and bibliography that Admin edits.
   // This is controlled retrieval, never fabricated 'AI' medical or religious advice.
+  async function publishedLearningGuide(entry){
+    if(!['quranic_themes','sunnah','seerah','living_guidance'].includes(entry.domain))return null;
+    return await env.DB.prepare("SELECT g.source_teaching,g.how_to_understand,g.everyday_application,g.everyday_example,g.boundaries,g.interpretation_notes,g.review_status,c.citation_type,c.citation_ref,c.source_title,c.source_url FROM discipline_learning_guides g JOIN encyclopedia_citations c ON c.id=g.primary_citation_id AND c.article_id=g.article_id WHERE g.article_id=? AND g.status='published'").bind(entry.id).first();
+  }
   if(pathname==='/api/encyclopedia/answer'){
     const q=(url.searchParams.get('q')||'').trim().slice(0,110);
     const domain=(url.searchParams.get('domain')||'').trim();
@@ -483,16 +508,17 @@ async function publicApi(request,env,url){
     const best=bestArticle(q,records);
     if(!best)return json({outcome:'no_editorial_answer',query:q,domain,notice:'No matching full encyclopedia article has been reviewed for this question. Unrelated source excerpts are deliberately omitted.',answer:null});
     const entry=best.article;
-    const [sections,citations,links,passages]=await Promise.all([
+    const [sections,citations,links,passages,learningGuide]=await Promise.all([
       env.DB.prepare('SELECT heading,section_type,body,sort_order FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
       env.DB.prepare('SELECT citation_type,source_title,citation_ref,source_url,source_note,verification_status,sort_order FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
       env.DB.prepare("SELECT l.relation_label,a.slug,a.title FROM encyclopedia_links l JOIN encyclopedia_articles a ON a.id=l.target_article_id WHERE l.article_id=? AND a.status='published' ORDER BY l.sort_order,l.id").bind(entry.id).all(),
-      env.DB.prepare("SELECT passage_type,arabic_excerpt,editorial_meaning,review_status FROM encyclopedia_passages WHERE article_id=? AND status='published' ORDER BY sort_order,id").bind(entry.id).all()
+      env.DB.prepare("SELECT passage_type,arabic_excerpt,editorial_meaning,review_status FROM encyclopedia_passages WHERE article_id=? AND status='published' ORDER BY sort_order,id").bind(entry.id).all(),
+      publishedLearningGuide(entry)
     ]);
     if(sections.results.length<3||!citations.results.length)return json({outcome:'no_editorial_answer',query:q,domain,notice:'This topic does not yet have enough attributable sections for a full answer.',answer:null});
     return json({outcome:'full_article_answer',query:q,match:best.method,
       answer:{id:entry.id,slug:entry.slug,title:entry.title,arabic_title:entry.arabic_title,domain:entry.domain,abstract:entry.abstract,review_status:entry.review_status,updated_at:entry.updated_at,
-        sections:sections.results,citations:citations.results,related:links.results,passages:passages.results},
+        sections:sections.results,citations:citations.results,related:links.results,passages:passages.results,learning_guide:learningGuide||null},
       provenance:'Live, canonical D1 encyclopedia article; source texts and interpretations are not independently expert-approved unless explicitly indicated.'});
   }
   if(pathname==='/api/encyclopedia/subjects'){
@@ -527,14 +553,15 @@ async function publicApi(request,env,url){
     if(!validId(slug))return invalid('Invalid encyclopedia entry');
     const entry=await env.DB.prepare("SELECT * FROM encyclopedia_articles WHERE slug=? AND status='published'").bind(slug).first();
     if(!entry)return json({error:'Entry not published'},404);
-    const [sections,citations,links,passages]=await Promise.all([
+    const [sections,citations,links,passages,learningGuide]=await Promise.all([
       env.DB.prepare('SELECT id,heading,section_type,body,sort_order FROM encyclopedia_sections WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
       env.DB.prepare('SELECT id,citation_type,source_title,citation_ref,source_url,source_note,verification_status,sort_order FROM encyclopedia_citations WHERE article_id=? ORDER BY sort_order,id').bind(entry.id).all(),
       env.DB.prepare("SELECT l.relation_label,a.slug,a.title,a.domain FROM encyclopedia_links l JOIN encyclopedia_articles a ON a.id=l.target_article_id WHERE l.article_id=? AND a.status='published' ORDER BY l.sort_order,l.id").bind(entry.id).all(),
-      env.DB.prepare("SELECT p.id,p.citation_id,p.passage_type,p.arabic_excerpt,p.editorial_meaning,p.context_note,p.review_status,c.citation_ref,c.source_title FROM encyclopedia_passages p JOIN encyclopedia_citations c ON c.id=p.citation_id WHERE p.article_id=? AND p.status='published' ORDER BY p.sort_order,p.id").bind(entry.id).all()
+      env.DB.prepare("SELECT p.id,p.citation_id,p.passage_type,p.arabic_excerpt,p.editorial_meaning,p.context_note,p.review_status,c.citation_ref,c.source_title FROM encyclopedia_passages p JOIN encyclopedia_citations c ON c.id=p.citation_id WHERE p.article_id=? AND p.status='published' ORDER BY p.sort_order,p.id").bind(entry.id).all(),
+      publishedLearningGuide(entry)
     ]);
     if(!sections.results.length||!citations.results.length)return json({error:'Encyclopedia entry incomplete'},503);
-    return json({entry,sections:sections.results,citations:citations.results,related:links.results,passages:passages.results,editorial_notice:'Primary source references, interpretation and contemporary medical evidence are separate layers. Scholar and clinical review statuses are not inferred.'});
+    return json({entry,sections:sections.results,citations:citations.results,related:links.results,passages:passages.results,learning_guide:learningGuide||null,editorial_notice:'Primary source references, interpretation and contemporary medical evidence are separate layers. Scholar and clinical review statuses are not inferred.'});
   }
   if(pathname==='/api/tibb'){
     const q=(url.searchParams.get('q')||'').trim().slice(0,90);
