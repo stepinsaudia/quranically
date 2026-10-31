@@ -1,0 +1,1 @@
+Authorize pending FREE Cloudflare DNS zone onboarding only. Preserve GoDaddy nameservers, existing website/email records, existing Worker and D1; no charges.
