@@ -132,9 +132,29 @@ jobs:
             test -s /tmp/quranically-pre-tibb-backup.sql || { echo 'Practical Tibb backup failed'; exit 1; }
             npx wrangler d1 execute qst-knowledge-v1-db --remote --file=migrations/0020_tibb_use_guides.sql --yes
           fi
-          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM tibb_use_guides WHERE id='black-seed-use' AND entry_id='black-seed' AND status='published' AND religious_review='pending' AND medical_review='pending' AND LENGTH(primary_url)>10 AND LENGTH(safety_boundaries)>50;" > /tmp/qst-tibb-verified.json
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM tibb_use_guides WHERE id='black-seed-use' AND entry_id='black-seed' AND status='published' AND religious_review='pending' AND medical_review='pending' AND LENGTH(primary_url)>10 AND LENGTH(safety_boundaries)>50;" > /tmp/qst-tibb-verified.json /tmp/quranically-pre-discipline-backup.sql /tmp/qst-discipline-schema.json /tmp/qst-discipline-verified.json
           node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-tibb-verified.json","utf8"));if(Number(r?.[0]?.results?.[0]?.n)!==1)throw Error("Tibb source integrity check failed; Worker deploy blocked");console.log("Verified one safe, provenance-labelled practical black seed guide");'
-      - name: Deploy to EXACT existing Quranically Worker (verified additive Tibb migration only)
+      - name: Safely stage four canonical discipline learning guides in EXISTING D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
+        run: |
+          set -euo pipefail
+          test "$(git hash-object migrations/0021_discipline_learning_guides.sql)" = "611487ad5bdbb07b907d5222c5858278c9a1d436" || {
+            echo 'Discipline learning migration changed; deploy refused'; exit 1;
+          }
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT name FROM sqlite_master WHERE type='table' AND name='discipline_learning_guides';" > /tmp/qst-discipline-schema.json
+          if node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-discipline-schema.json","utf8"));process.exit(r?.[0]?.results?.some(x=>x.name==="discipline_learning_guides")?0:1)'; then
+            echo 'Canonical discipline learning guides schema already present.'
+          else
+            umask 077
+            npx wrangler d1 export qst-knowledge-v1-db --remote --output=/tmp/quranically-pre-discipline-backup.sql >/dev/null
+            test -s /tmp/quranically-pre-discipline-backup.sql || { echo 'Pre-discipline D1 backup failed'; exit 1; }
+            npx wrangler d1 execute qst-knowledge-v1-db --remote --file=migrations/0021_discipline_learning_guides.sql --yes
+          fi
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM discipline_learning_guides g JOIN encyclopedia_citations c ON c.id=g.primary_citation_id AND c.article_id=g.article_id JOIN encyclopedia_articles a ON a.id=g.article_id WHERE g.status='published' AND g.review_status='pending' AND a.status='published' AND a.domain IN ('quranic_themes','sunnah','seerah','living_guidance') AND LENGTH(g.source_teaching)>30 AND LENGTH(g.everyday_application)>30 AND LENGTH(g.boundaries)>30;" > /tmp/qst-discipline-verified.json
+          node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-discipline-verified.json","utf8"));const n=Number(r?.[0]?.results?.[0]?.n);if(n<4)throw Error("Four canonical discipline guides missing; deploy refused");console.log("Verified four same-source editorial learning guides",n)'
+      - name: Deploy to EXACT existing Quranically Worker (only verified additive migrations 0019, 0020, 0021)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: fb9597e74bae3ea18ad7bb013213d776
@@ -161,5 +181,5 @@ jobs:
           echo '### Quranically — existing Worker release' >> "$GITHUB_STEP_SUMMARY"
           echo "Git commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo 'Worker: qst-living-knowledge-v1 (existing)' >> "$GITHUB_STEP_SUMMARY"
-          echo 'D1: qst-knowledge-v1-db (no migrations in this workflow)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'D1: qst-knowledge-v1-db (only approved additive migrations when absent)' >> "$GITHUB_STEP_SUMMARY"
           echo 'Live URL: https://qst-living-knowledge-v1.stepinsaudia.workers.dev' >> "$GITHUB_STEP_SUMMARY"
