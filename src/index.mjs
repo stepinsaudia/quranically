@@ -731,7 +731,10 @@ export default {
         // Real dedicated Prophetic Medicine experience. Its cards and detail
         // views are rendered from the same D1/API source records as Admin.
         // Do not silently redirect the discipline to generic encyclopedia.
-        return env.ASSETS.fetch(new Request(new URL('/tibb.html'+url.search,url.origin),request));
+        // Cloudflare's default html_handling canonicalizes /tibb.html -> /tibb.
+        // Fetch the CANONICAL URL: rewriting /tibb to /tibb.html yields
+        // a 307 redirect back to /tibb and an infinite redirect loop.
+        return env.ASSETS.fetch(new Request(new URL('/tibb'+url.search,url.origin),request));
       }
       if(path==='/encyclopedia'||path==='/encyclopedia/'){
         const response=await env.ASSETS.fetch(new Request(new URL('/encyclopedia',url.origin),request));
