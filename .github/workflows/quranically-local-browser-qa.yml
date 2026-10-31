@@ -4,6 +4,9 @@ on:
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'scripts/tibb-seerah-real-user-qa.mjs'
+      - 'public/qst-visual-system.css'
+      - 'public/tibb.js'
       - 'scripts/canonical-release-smoke.mjs'
       - 'public/canonical-header.css'
       - 'public/encyclopedia.js'
@@ -24,6 +27,9 @@ on:
     paths:
       - '.github/workflows/quranically-local-browser-qa.yml'
       - 'scripts/local-search-visual-qa.mjs'
+      - 'scripts/tibb-seerah-real-user-qa.mjs'
+      - 'public/qst-visual-system.css'
+      - 'public/tibb.js'
       - 'scripts/canonical-release-smoke.mjs'
       - 'public/canonical-header.css'
       - 'public/encyclopedia.js'
@@ -73,6 +79,8 @@ jobs:
         run: node scripts/canonical-release-smoke.mjs
       - name: Browser QA of direct answer, Quran reference, header and mobile overflow
         run: node scripts/local-search-visual-qa.mjs
+      - name: Reproduce actual Tibb browsing, black seed details and full-width Seerah Hijrah answer
+        run: node scripts/tibb-seerah-real-user-qa.mjs
       - name: Preserve screenshot evidence
         if: always()
         uses: actions/upload-artifact@v4
