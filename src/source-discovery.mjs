@@ -25,8 +25,8 @@ export async function liveSourceSearch(q,domain=''){
   if(term.length<2)return {term,results:[],providers:[]};
   const groups=[
    {id:'quran_verses',endpoint:'/api/quran/search?q='+encodeURIComponent(term)+'&limit=8',enabled:true},
-   {id:'hadith_collections',endpoint:'/api/hadith/search?q='+encodeURIComponent(term)+'&limit=12',enabled:true},
-   {id:'duas',endpoint:'/api/duas/search?q='+encodeURIComponent(term),enabled:domain!=='seerah'&&domain!=='prophetic_medicine'}
+   {id:'hadith_collections',endpoint:'/api/hadith/search?q='+encodeURIComponent(term)+'&limit=12',enabled:domain!=='quranic_themes'},
+   {id:'duas',endpoint:'/api/duas/search?q='+encodeURIComponent(term),enabled:!domain||domain==='living_guidance'}
   ];
   const responses=await Promise.all(groups.map(async group=>{
     if(!group.enabled)return {id:group.id,status:'not_queried',records:[],total:0};
