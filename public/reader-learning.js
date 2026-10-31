@@ -30,7 +30,6 @@
  select.addEventListener('change',()=>{input.value='1';load();});
  const params=new URLSearchParams(location.search),jump=Number(params.get('ayah'));
  if(Number.isInteger(jump)&&jump>0&&jump<=286)input.value=String(jump);
- // Chapter loading runs independently; retrieve only when a valid selected chapter exists.
- if(select.value)load();
- else {const check=()=>{if(select.value){select.removeEventListener('change',check);load();}};select.addEventListener('change',check); }
+ // Query URL determines initial verse even before asynchronous Surah selection completes.
+ load();
 })();
