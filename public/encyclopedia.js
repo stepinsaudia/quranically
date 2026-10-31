@@ -227,7 +227,7 @@ async function openArticle(slug,writeHistory=true){
  if(writeHistory)history.pushState({article:slug},'',linkFor(slug));
  window.scrollTo({top:0,behavior:'instant'});
  try{
- const {entry,sections,citations,related,passages=[]}=await api('/api/encyclopedia/'+encodeURIComponent(slug));selectedEntry=entry;
+ const {entry,sections,citations,related,passages=[],learning_guide=null}=await api('/api/encyclopedia/'+encodeURIComponent(slug));selectedEntry=entry;
  const domain=titles[entry.domain]||entry.domain;
  $('crumbSubject').textContent=entry.title;
  $('articleSeries').textContent='QURANICALLY / '+domain.toUpperCase()+' / REFERENCE ARTICLE';
@@ -239,14 +239,15 @@ async function openArticle(slug,writeHistory=true){
  $('primaryExcerptContent').innerHTML=passages.map((p,i)=>'<figure class="transmitted-text"><blockquote class="arabic-source" lang="ar" dir="rtl">'+esc(p.arabic_excerpt)+'</blockquote>'
    +'<figcaption><span class="transmission-kind">'+esc(p.passage_type==='quran'?'Quranic excerpt':'Hadith excerpt')+' · '+esc(p.citation_ref)+'</span>'
    +'<p>'+esc(p.editorial_meaning)+'</p><small>'+esc(p.context_note)+' · Review: '+esc(p.review_status.replaceAll('_',' '))+'</small></figcaption></figure>').join('');
+ const practical=$('articleLearningGuide');practical.hidden=false;practical.innerHTML=window.QuranicallyLearning.render(learning_guide,entry.domain);
  $('articleSections').innerHTML=sections.map(sectionHTML).join('');
- $('tocNav').innerHTML=sections.map((s,i)=>'<a href="#section-'+i+'">'+String(i+1).padStart(2,'0')+' '+esc(s.heading)+'</a>').join('')+'<a href="#bibliography">Bibliography & provenance</a>';
+ $('tocNav').innerHTML=(entry.domain==='prophetic_medicine'?'':'<a href="#articleLearningGuide">Understanding & everyday application</a>')+sections.map((s,i)=>'<a href="#section-'+i+'">'+String(i+1).padStart(2,'0')+' '+esc(s.heading)+'</a>').join('')+'<a href="#bibliography">Bibliography & provenance</a>';
  $('articleCitations').innerHTML=citations.map(citationHTML).join('');
  $('docCode').textContent='QUR / '+entry.slug.toUpperCase().replaceAll('-',' ');
  $('docDomain').textContent=domain;$('docReview').textContent=entry.review_status.replaceAll('_',' ');$('docSources').textContent=String(citations.length);
  $('relatedList').innerHTML=related.length?related.map(x=>'<a href="'+esc(linkFor(x.slug))+'" data-open="'+esc(x.slug)+'">'+esc(x.title)+ic('chevron')+'</a>').join(''):'<p class="toc-foot">Related articles are being catalogued.</p>';
  document.title=entry.title+' | Quranically Encyclopedia';
- }catch(e){selectedEntry=null;$('articleTitle').textContent='Entry unavailable';$('articleAbstract').textContent=e.message;$('articleSections').textContent='';$('articleMeta').textContent='';}
+ }catch(e){selectedEntry=null;$('articleLearningGuide').hidden=true;$('articleLearningGuide').innerHTML='';$('articleTitle').textContent='Entry unavailable';$('articleAbstract').textContent=e.message;$('articleSections').textContent='';$('articleMeta').textContent='';}
 }
 $('encyclopediaSearch').addEventListener('submit',event=>{
  event.preventDefault();
