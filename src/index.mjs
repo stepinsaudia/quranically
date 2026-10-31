@@ -348,6 +348,16 @@ async function publicApi(request,env,url){
       limit:matches.limit,next_offset:matches.next_offset,
       results,source_corpus:quranCorpusInfo(),notice:'Complete attributed translation index, not Tafsir or a religious ruling.'});
   }
+  // Canonical verse-to-guidance discovery. Exact verse citations only; never synthetic Tafsir.
+  if(pathname==='/api/quran/learning'){
+    const surah=Number(url.searchParams.get('surah'));
+    const ayah=Number(url.searchParams.get('ayah'));
+    if(!Number.isInteger(surah)||surah<1||surah>114||!Number.isInteger(ayah)||ayah<1||ayah>286)
+      return invalid('Enter a valid chapter and verse reference');
+    const ref=surah+':'+ayah;
+    const studies=(await env.DB.prepare("SELECT a.slug,a.title,a.review_status AS article_review,g.everyday_application,g.review_status,c.citation_ref,c.source_url FROM encyclopedia_citations c JOIN encyclopedia_articles a ON a.id=c.article_id AND a.status='published' AND a.domain='quranic_themes' JOIN discipline_learning_guides g ON g.article_id=a.id AND g.status='published' WHERE c.citation_type='quran' AND c.citation_ref=? ORDER BY a.title LIMIT 8").bind(ref).all()).results;
+    return json({reference:ref,studies,notice:'Only articles with an exact verse citation and published source-linked learning guide are shown. These are editorial reflection pathways, not independently authenticated Tafsir.'});
+  }
   if(pathname==='/api/quran/chapters'){
     try{
       const r=await fetch('https://api.alquran.cloud/v1/surah',{headers:{accept:'application/json'},signal:AbortSignal.timeout(10000),cf:{cacheEverything:true,cacheTtl:86400}});
