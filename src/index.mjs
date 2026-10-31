@@ -24,9 +24,10 @@ const field={
   encyclopedia_links:['article_id','target_article_id','relation_label','sort_order'],
   encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt','editorial_meaning','context_note','review_status','status','sort_order'],
   research_topics:['question','domain','research_stage','risk_class','source_notes','assigned_reviewer','linked_article_id','sort_order'],
+  tibb_use_guides:['entry_id','daily_life_use','reported_method','method_attribution','schedule_or_dose','medical_evidence','safety_boundaries','primary_url','supporting_url','clinical_url','safety_url','religious_review','medical_review','status','review_note'],
   tibb_offers:['entry_id','seller_name','product_name','country','offer_url','price_note','verification_status','status']
 };
-const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
+const tableFor={journeys:'journeys',sources:'sources',evidence:'evidence',steps:'steps',tibb_entries:'tibb_entries',tibb_use_guides:'tibb_use_guides',tibb_offers:'tibb_offers',encyclopedia_articles:'encyclopedia_articles',encyclopedia_sections:'encyclopedia_sections',encyclopedia_citations:'encyclopedia_citations',encyclopedia_links:'encyclopedia_links',encyclopedia_passages:'encyclopedia_passages',research_topics:'research_topics'};
 const enumVals={
  status:['draft','published','archived'],publish_status:['draft','published','archived'],
  review_status:['review_needed','reviewed','editorial_pending','scholar_reviewed','medical_reviewed'],
@@ -35,17 +36,19 @@ const enumVals={
  evidence_type:['quran','seerah','sunnah','dua','tibb','clinical'],
  seller_eligible:['yes','no'],
  review_stage:['pending','source_reviewed','clinical_reviewed','dual_reviewed'],
+ religious_review:['pending','source_checked','scholar_reviewed'],medical_review:['pending','clinician_reviewed'],
  verification_status:['pending','verified','rejected']
 };
 const needed={journeys:['title','slug'],sources:['title','source_url','source_type'],evidence:['journey_id','source_id','evidence_type','title','reference'],steps:['journey_id','instruction'],
  tibb_entries:['slug','title','category','tradition_summary','reference_label','reference_url','safety_note'],
+ tibb_use_guides:['entry_id','daily_life_use','method_attribution','safety_boundaries','primary_url'],
  encyclopedia_articles:['slug','title','domain','entry_type','abstract'],
  encyclopedia_sections:['article_id','heading','section_type','body'],
  encyclopedia_citations:['article_id','citation_type','source_title','citation_ref','source_url'],
  encyclopedia_links:['article_id','target_article_id'],
  encyclopedia_passages:['article_id','citation_id','passage_type','arabic_excerpt'],
  tibb_offers:['entry_id','seller_name','product_name','offer_url'],research_topics:['question','domain','research_stage','risk_class']};
-const textLimit={arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
+const textLimit={daily_life_use:2600,reported_method:2400,method_attribution:2200,schedule_or_dose:1800,medical_evidence:2500,safety_boundaries:3000,review_note:1800,arabic:6000,meaning:5000,explanation:8000,summary:1800,clinical_note:1600,review_note:1000,tags:500,tradition_summary:2200,health_context:2200,safety_note:2200,availability_note:1200,source_arabic:3500,source_meaning:1800,abstract:2000,identity_text:1500,editorial_note:1800,body:6800,source_note:1800,source_notes:4500,question:350,assigned_reviewer:240,arabic_excerpt:3800,editorial_meaning:1800,context_note:1600};
 function normalize(table,payload,method){
   if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('Expected an object');
   const keys=Object.keys(payload);
@@ -71,7 +74,7 @@ function normalize(table,payload,method){
       if(!localEnums[table][k].includes(txt))throw new Error('Invalid '+k);
     }else if(enumVals[k]&&!enumVals[k].includes(txt))throw new Error('Invalid '+k);
     if(table==='tibb_entries'&&k==='category'&&!['food','care','practice','spiritual'].includes(txt))throw new Error('Invalid medicine category');
-    if(['source_url','audio_url','reference_url','offer_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
+    if(['source_url','audio_url','reference_url','offer_url','primary_url','supporting_url','clinical_url','safety_url'].includes(k)&&!allowedUrl(txt))throw new Error('Only HTTPS source URLs are allowed');
     if(['slug','journey_id','source_id','entry_id','article_id','target_article_id','citation_id','linked_article_id'].includes(k)&&txt&&!validId(txt))throw new Error('Invalid identifier');
     output[k]=txt;
   }
@@ -224,6 +227,17 @@ async function adminApi(request,env,url,identity){
   // A commercial listing may be public only after explicit independent
   // verification and only for a seller-eligible ingredient—not for procedures
   // or devotional practices. The public API applies the same filter.
+  if(entity==='tibb_use_guides'){
+    const old=request.method==='POST'?null:await env.DB.prepare('SELECT entry_id,status,primary_url FROM tibb_use_guides WHERE id=?').bind(id).first();
+    const entryId=values.entry_id||old?.entry_id;
+    const parent=entryId?await env.DB.prepare('SELECT status FROM tibb_entries WHERE id=?').bind(entryId).first():null;
+    if(!parent)return invalid('Select a valid Tibb record for the practical guide');
+    if(old?.entry_id&&values.entry_id&&values.entry_id!==old.entry_id)return invalid('A guide cannot be moved to an unrelated Tibb record');
+    if((values.status||old?.status)==='published'){
+      if(parent.status!=='published')return invalid('The linked Tibb record must be published first');
+      if(!(values.primary_url||old?.primary_url))return invalid('Published practical guidance must cite an original source');
+    }
+  }
   if(entity==='tibb_offers'){
     const previous=request.method==='POST'?null:await env.DB.prepare('SELECT entry_id,verification_status,status FROM tibb_offers WHERE id=?').bind(id).first();
     const targetEntry=values.entry_id||previous?.entry_id;
@@ -276,7 +290,7 @@ async function adminApi(request,env,url,identity){
       if(!route[1])return invalid('Record ID required');
       const before=await env.DB.prepare(`SELECT id FROM ${entity} WHERE id=?`).bind(id).first();
       if(!before)return json({error:'Record not found'},404);
-      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_offers','encyclopedia_articles'].includes(entity);
+      const hasUpdated=['sources','journeys','evidence','tibb_entries','tibb_use_guides','tibb_offers','encyclopedia_articles'].includes(entity);
       await env.DB.prepare(`UPDATE ${entity} SET ${fields.map(k=>k+'=?').join(',')}${hasUpdated?",updated_at=datetime('now')":''} WHERE id=?`).bind(...vals,id).run();
       await audit(env.DB,identity.email,'update',entity,id);
     }
@@ -551,7 +565,8 @@ async function publicApi(request,env,url){
     if(!validId(slug))return invalid('Invalid entry slug');
     const entry=await env.DB.prepare("SELECT * FROM tibb_entries WHERE slug=? AND status='published'").bind(slug).first();
     if(!entry)return json({error:'Not found'},404);
-    return json({entry,notice:'Religious source and contemporary clinical evidence are separate. Educational content is not individual medical advice.'});
+    const guide=await env.DB.prepare("SELECT daily_life_use,reported_method,method_attribution,schedule_or_dose,medical_evidence,safety_boundaries,primary_url,supporting_url,clinical_url,safety_url,religious_review,medical_review,review_note FROM tibb_use_guides WHERE entry_id=? AND status='published'").bind(entry.id).first();
+    return json({entry,guide:guide||null,notice:'Religious source and contemporary clinical evidence are separate. Educational content is not individual medical advice.'});
   }
   if(pathname==='/api/sources'){
     return json({sources:(await env.DB.prepare('SELECT id,title,organization,source_url,source_type,use_policy,review_status FROM sources ORDER BY title').all()).results});
