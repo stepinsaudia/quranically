@@ -645,3 +645,49 @@ body[data-qst-page=reader] .qrLearningItem h4{font:600 16px/1.4 Georgia,serif;co
 body[data-qst-page=reader] .qrLearningItem a{color:#186450;text-decoration:underline;text-underline-offset:3px}
 body[data-qst-page=reader] .qrLearningItem small{color:#806b50;font-size:10px}
 @media(max-width:720px){body[data-qst-page=reader] .qrLearning{grid-template-columns:1fr;padding:16px}body[data-qst-page=reader] .qrLearningResults{grid-column:1}}
+
+
+/* BUGFIX — full-width source answers after a discipline-specific query.
+   Previous !important two-column discipline grid survived after the sidebar
+   was hidden by .qst-has-query, putting .results into a 193px first column.
+   Only the active answer-query layout is reset; browsing layout stays distinct. */
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work,
+html[data-qst-discipline]:not([data-qst-discipline=""]) body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work {
+ display:block!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ width:min(calc(100% - 44px),1320px)!important;
+ max-width:1320px!important;
+ margin-inline:auto!important;
+ padding-top:clamp(14px,2.2vw,27px)!important;
+}
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work>.subjects,
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work>.reference-rail{
+ display:none!important;
+}
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work>.results{
+ display:block!important;
+ grid-column:1/-1!important;
+ width:100%!important;
+ min-width:0!important;
+ max-width:none!important;
+}
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .inline-answer{
+ width:100%!important;
+ max-width:min(100%,1040px)!important;
+ margin-inline:auto!important;
+ padding:clamp(18px,2.8vw,36px)!important;
+ overflow-wrap:anywhere;
+}
+body[data-qst-page="encyclopedia"].qst-has-query #indexView .results-head,
+body[data-qst-page="encyclopedia"].qst-has-query #indexView #results,
+body[data-qst-page="encyclopedia"].qst-has-query #indexView #federatedResults{
+ max-width:min(100%,1040px);margin-inline:auto;
+}
+@media(max-width:690px){
+ body[data-qst-page="encyclopedia"].qst-has-query #indexView .reference-work{
+  width:calc(100% - 30px)!important;
+ }
+ body[data-qst-page="encyclopedia"].qst-has-query #indexView .inline-answer{
+  padding:17px!important;
+ }
+}
