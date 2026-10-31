@@ -8,6 +8,9 @@ on:
       - 'scripts/sync-qst-shell.mjs'
       - 'public/canonical-header.css'
       - 'public/qst-visual-system.css'
+      - 'public/study.html'
+      - 'public/reader-learning.js'
+      - 'public/discipline-learning.js'
       - 'public/admin-canonical.css'
       - 'public/admin-login-canonical.css'
       - 'scripts/admin-geometry-audit.mjs'
@@ -20,6 +23,9 @@ on:
       - 'scripts/sync-qst-shell.mjs'
       - 'src/qst-public-shell.mjs'
       - 'public/qst-visual-system.css'
+      - 'public/study.html'
+      - 'public/reader-learning.js'
+      - 'public/discipline-learning.js'
       - 'public/admin-canonical.css'
       - 'public/admin-login-canonical.css'
 permissions:
@@ -36,6 +42,12 @@ jobs:
       - run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund playwright
           npx playwright install --with-deps chromium
+      - name: Verify live learning scripts are valid before browser layout checks
+        run: |
+          node --check public/reader-learning.js
+          node --check public/discipline-learning.js
+          node --check public/encyclopedia.js
+          node --check public/answer.js
       - name: Refuse duplicate or drifted headers/footers across all five public pages
         run: node scripts/sync-qst-shell.mjs --check
       - name: Start isolated canonical local Worker
