@@ -452,7 +452,8 @@ async function publicApi(request,env,url){
         return {slug:article.slug,title:article.title,domain:article.domain,abstract:article.abstract,review_status:article.review_status,sections:sections.results,citations:citations.results};
       }catch{return null;}
     }));
-    const journeyRows=await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).then(x=>x.results).catch(()=>[]);
+    const journeyRows=!domain||domain==='living_guidance'
+      ?await Promise.resolve().then(()=>env.DB.prepare("SELECT id,slug,title,kicker,summary,tags,clinical_note FROM journeys WHERE status='published' ORDER BY title LIMIT 100").all()).then(x=>x.results).catch(()=>[]):[];
     const matches=journeyRows.map(j=>({...j,_score:subjectOverlap(q,[j.title,j.summary,j.tags].join(' '))})).filter(j=>j._score>0).sort((a,b)=>b._score-a._score).slice(0,3);
     const guidance=await Promise.all(matches.map(async({_score,...j})=>{
       const [evidence,steps]=await Promise.all([
@@ -461,13 +462,14 @@ async function publicApi(request,env,url){
       ]);
       return {slug:j.slug,title:j.title,summary:j.summary,clinical_note:j.clinical_note,evidence:evidence.results,steps:steps.results,review_policy:'Published editorial material; independent scholar review may be pending'};
     }));
-    const ingredients=await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).then(x=>x.results).catch(()=>[]);
+    const ingredients=!domain||domain==='prophetic_medicine'
+      ?await Promise.resolve().then(()=>env.DB.prepare("SELECT slug,title,arabic_name,scientific_name,category,tradition_summary,reference_label,reference_url,health_context,safety_note,review_stage FROM tibb_entries WHERE status='published' ORDER BY sort_order LIMIT 250").all()).then(x=>x.results).catch(()=>[]):[];
     const tibb=ingredients.map(x=>({...x,_score:subjectOverlap(q,[x.title,x.arabic_name,x.scientific_name,x.category,x.tradition_summary].join(' '))})).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).slice(0,5).map(({_score,...x})=>x);
     const [remote,quranFullText,hadeethEnc,biomedical]=await Promise.all([
-      liveSourceSearch(q,'').catch(()=>({results:[],providers:[],review_notice:'External indexes unavailable'})),
+      liveSourceSearch(q,domain).catch(()=>({results:[],providers:[],review_notice:'External indexes unavailable'})),
       searchQuran(q).catch(()=>({status:'temporarily_unavailable',mode:'translation_keyword',searched:'',results:[]})),
-      searchHadeethEnc(q).catch(()=>({status:'temporarily_unavailable',results:[],publisher:'HadeethEnc.com'})),
-      searchBiomedicalEvidence(q,{ingredients:tibb,domain}).catch(()=>({status:'temporarily_unavailable',results:[],provider:'Europe PMC'}))
+      (domain==='quranic_themes'?Promise.resolve({status:'not_applicable',results:[],publisher:'HadeethEnc.com'}):searchHadeethEnc(q)).catch(()=>({status:'temporarily_unavailable',results:[],publisher:'HadeethEnc.com'})),
+      ((!domain||domain==='prophetic_medicine')?searchBiomedicalEvidence(q,{ingredients:tibb,domain}):Promise.resolve({status:'not_applicable',results:[],provider:'Europe PMC'})).catch(()=>({status:'temporarily_unavailable',results:[],provider:'Europe PMC'}))
     ]);
     const ranked=(remote.results||[]).map(x=>{
       const score=subjectOverlap(q,[x.title,x.excerpt,x.reference].join(' '));
