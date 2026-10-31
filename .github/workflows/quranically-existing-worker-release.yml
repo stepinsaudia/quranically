@@ -6,6 +6,11 @@ on:
         description: 'Type DEPLOY EXISTING QURANICALLY to authorize the live update'
         required: true
         type: string
+  push:
+    branches:
+      - fix/relevant-source-search-20261029
+    paths:
+      - 'release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt'
 permissions:
   contents: read
 concurrency:
@@ -13,12 +18,21 @@ concurrency:
   cancel-in-progress: false
 jobs:
   existing-worker-only:
-    if: ${{ github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' && github.ref_name == 'fix/relevant-source-search-20261029' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' && github.ref_name == 'fix/relevant-source-search-20261029') || (github.event_name == 'push' && github.ref_name == 'fix/relevant-source-search-20261029' && github.event.head_commit.message == 'AUTHORIZE QURANICALLY LIVE WORKER RELEASE 2026-10-31') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Check out approved Quranically development branch ONLY
         uses: actions/checkout@v4
+      - name: Validate explicit one-time authorization and frozen source candidate
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          set -euo pipefail
+          test "$(cat release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt)" = 'Approved by Quranically owner in chat on 2026-10-31: deploy the existing Worker with guarded D1 migrations only.'
+          test "$(git rev-parse HEAD~2)" = 'c3cd1ae2f9e9daa43cef3f102ae29aa99bf6c1c4' || { echo 'Source candidate has changed. Refusing release.'; exit 1; }
+          changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          test "$changed" = 'release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt' || { echo 'Release marker must be the only changed file.'; exit 1; }
+          echo 'Explicit one-time approval and frozen candidate verified.'
       - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
@@ -132,7 +146,7 @@ jobs:
             test -s /tmp/quranically-pre-tibb-backup.sql || { echo 'Practical Tibb backup failed'; exit 1; }
             npx wrangler d1 execute qst-knowledge-v1-db --remote --file=migrations/0020_tibb_use_guides.sql --yes
           fi
-          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM tibb_use_guides WHERE id='black-seed-use' AND entry_id='black-seed' AND status='published' AND religious_review='pending' AND medical_review='pending' AND LENGTH(primary_url)>10 AND LENGTH(safety_boundaries)>50;" > /tmp/qst-tibb-verified.json /tmp/quranically-pre-discipline-backup.sql /tmp/qst-discipline-schema.json /tmp/qst-discipline-verified.json
+          npx wrangler d1 execute qst-knowledge-v1-db --remote --json --command="SELECT COUNT(*) AS n FROM tibb_use_guides WHERE id='black-seed-use' AND entry_id='black-seed' AND status='published' AND religious_review='pending' AND medical_review='pending' AND LENGTH(primary_url)>10 AND LENGTH(safety_boundaries)>50;" > /tmp/qst-tibb-verified.json
           node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("/tmp/qst-tibb-verified.json","utf8"));if(Number(r?.[0]?.results?.[0]?.n)!==1)throw Error("Tibb source integrity check failed; Worker deploy blocked");console.log("Verified one safe, provenance-labelled practical black seed guide");'
       - name: Safely stage four canonical discipline learning guides in EXISTING D1
         env:
@@ -175,7 +189,7 @@ jobs:
           '
       - name: Remove temporary release backup from runner
         if: always()
-        run: rm -f /tmp/quranically-private-pre-release.sql /tmp/quranically-pre-tibb-backup.sql /tmp/qst-tibb-schema-check.json /tmp/qst-tibb-verified.json /tmp/quranically-schema-check.json /tmp/quranically-research-count.json /tmp/quranically-research-ready.json /tmp/qst-release-readonly.json
+        run: rm -f /tmp/quranically-private-pre-release.sql /tmp/quranically-pre-tibb-backup.sql /tmp/qst-tibb-schema-check.json /tmp/qst-tibb-verified.json /tmp/quranically-schema-check.json /tmp/quranically-research-count.json /tmp/quranically-research-ready.json /tmp/qst-release-readonly.json /tmp/quranically-pre-discipline-backup.sql /tmp/qst-discipline-schema.json /tmp/qst-discipline-verified.json
       - name: Record release for review
         run: |
           echo '### Quranically — existing Worker release' >> "$GITHUB_STEP_SUMMARY"
