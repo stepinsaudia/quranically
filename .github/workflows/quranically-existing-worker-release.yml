@@ -6,11 +6,6 @@ on:
         description: 'Type DEPLOY EXISTING QURANICALLY to authorize the live update'
         required: true
         type: string
-  push:
-    branches:
-      - fix/relevant-source-search-20261029
-    paths:
-      - 'release/QURANICALLY_RELEASE_AUTHORIZED_2026-10-31.txt'
 permissions:
   contents: read
 concurrency:
