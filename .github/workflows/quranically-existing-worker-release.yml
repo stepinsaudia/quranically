@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   existing-worker-only:
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' && github.ref_name == 'fix/relevant-source-search-20261029') || (github.event_name == 'push' && github.ref_name == 'fix/relevant-source-search-20261029' && github.event.head_commit.message == 'AUTHORIZE QURANICALLY LIVE WORKER RELEASE 2026-10-31') }}
+    if: ${{ github.event.inputs.confirmation == 'DEPLOY EXISTING QURANICALLY' && github.ref_name == 'fix/relevant-source-search-20261029' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
