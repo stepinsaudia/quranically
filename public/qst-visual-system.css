@@ -559,3 +559,43 @@ body[data-qst-page=encyclopedia] .subject-controls .qst-subject-native:hover{
 body[data-qst-page=encyclopedia] .subject-controls .qst-subject-native b{
  font-size:10px;color:#a18473;font-weight:700;
 }
+
+/* Practical Prophetic Medicine — first actionable content, separate from historical source reports. */
+body[data-qst-page=tibb] .tibb-practical{
+ margin:18px 0 24px;padding:clamp(20px,3vw,29px);
+ background:#fffaf0;border:1px solid #d9bd83;border-left:5px solid #9a7848;
+ border-radius:10px;box-shadow:0 9px 20px rgba(35,33,25,.05);
+}
+body[data-qst-page=tibb] .tibb-practical h3{
+ font:600 clamp(23px,2.4vw,31px)/1.25 'Playfair Display',Georgia,serif!important;
+ margin:8px 0 10px!important;
+}
+body[data-qst-page=tibb] .tibb-practical h4{
+ font:800 12px/1.6 Manrope,sans-serif!important;
+ margin:18px 0 5px;color:#2f4b3d!important;
+}
+body[data-qst-page=tibb] .tibb-practical p{
+ font-size:13px!important;line-height:1.8!important;color:#453f37!important;margin:0 0 9px!important;
+}
+body[data-qst-page=tibb] .tibb-practical .minor{font-size:11px!important;color:#75695c!important}
+body[data-qst-page=tibb] .tibb-practical-review{
+ display:inline-flex;background:#efe8d8;border-radius:6px;
+ padding:7px 10px;margin-bottom:5px;color:#73553d;font-size:10px;font-weight:700;line-height:1.5;
+}
+body[data-qst-page=tibb] .tibb-practical-references{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;
+ border-top:1px solid #e4d4ae;margin:18px 0 13px;padding:12px 0 0;
+}
+body[data-qst-page=tibb] .tibb-practical-references strong{
+ width:100%;font-size:11px;color:#3f392e;
+}
+body[data-qst-page=tibb] .tibb-practical-references a{
+ display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;
+ color:#1a5e5a;text-decoration:underline;text-underline-offset:3px;
+}
+body[data-qst-page=tibb] .tibb-practical-references svg{width:13px;height:13px}
+body[data-qst-page=tibb] .tibb-practical-pending{background:#fcfaf6;border-color:#e5ddd1}
+@media(max-width:580px){
+ body[data-qst-page=tibb] .tibb-practical{padding:17px}
+ body[data-qst-page=tibb] .tibb-practical-review{display:block}
+}
