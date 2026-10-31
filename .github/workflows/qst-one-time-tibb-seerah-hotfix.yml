@@ -1,9 +1,6 @@
 name: QURANICALLY — One-time Tibb redirect and Seerah answer hotfix
 on:
-  push:
-    branches: [fix/relevant-source-search-20261029]
-    paths:
-      - 'release/QST_TIBB_SEERAH_HOTFIX_20261031.txt'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
