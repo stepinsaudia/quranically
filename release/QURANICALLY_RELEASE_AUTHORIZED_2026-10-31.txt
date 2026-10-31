@@ -1,0 +1,1 @@
+Approved by Quranically owner in chat on 2026-10-31: deploy the existing Worker with guarded D1 migrations only.
