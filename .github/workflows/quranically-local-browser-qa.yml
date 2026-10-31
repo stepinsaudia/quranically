@@ -9,6 +9,11 @@ on:
       - 'public/encyclopedia.js'
       - 'public/answer.js'
       - 'src/index.mjs'
+      - 'src/source-discovery.mjs'
+      - 'public/study.html'
+      - 'public/discipline-learning.js'
+      - 'public/reader-learning.js'
+      - 'migrations/0021_discipline_learning_guides.sql'
       - 'public/tibb.js'
       - 'public/admin.js'
       - 'public/admin.html'
@@ -24,6 +29,12 @@ on:
       - 'public/encyclopedia.js'
       - 'public/answer.js'
       - 'src/index.mjs'
+      - 'src/source-discovery.mjs'
+      - 'public/study.html'
+      - 'public/discipline-learning.js'
+      - 'public/reader-learning.js'
+      - 'migrations/0021_discipline_learning_guides.sql'
+      - 'tests/worker.test.mjs'
 permissions:
   contents: read
 jobs:
@@ -43,6 +54,11 @@ jobs:
         run: |
           node --check src/index.mjs
           node --check public/tibb.js
+          node --check public/discipline-learning.js
+          node --check public/reader-learning.js
+          node --check public/encyclopedia.js
+          node --check public/answer.js
+          node --check src/source-discovery.mjs
           node --check public/admin.js
           npm test
       - name: Run local Worker with canonical D1 seed records (no production writes)
