@@ -45,4 +45,6 @@ jobs:
               console.log('TARGET_RECORD_CHECK',JSON.stringify({http:records.http,success:records.success,count:Array.isArray(records.result)?records.result.length:0,types:Array.isArray(records.result)?records.result.map(e=>e.type):[]}));
             }
           }else console.log('DOMAIN_NOT_ACTIVE_IN_SAME_ACCOUNT_OR_ZONE_READ_DENIED');
+          const pages=await read(base+'/accounts/'+account+'/pages/projects?per_page=20');
+          console.log('PAGES_ACCOUNT_ACCESS',JSON.stringify({http:pages.http,success:pages.success,projects:Array.isArray(pages.result)?pages.result.map(x=>({name:x.name,subdomain:x.subdomain})):[],count:Array.isArray(pages.result)?pages.result.length:0,errors:pages.errors}));
           JS
