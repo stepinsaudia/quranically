@@ -691,3 +691,31 @@ body[data-qst-page="encyclopedia"].qst-has-query #indexView #federatedResults{
   padding:17px!important;
  }
 }
+
+
+/* Prophetic Medicine: live, discipline-scoped source answer appears ABOVE the
+   small browsable ingredient catalogue. No empty 8-item dead-end for questions. */
+body[data-qst-page=tibb] .tibb-answer-shell[hidden]{display:none!important}
+body[data-qst-page=tibb] .tibb-answer-shell{
+ padding:clamp(20px,3vw,42px) 0 0;
+}
+body[data-qst-page=tibb] .tibb-answer-shell .inline-answer{
+ max-width:min(100%,1050px);width:100%;margin:0 auto;
+ border-radius:13px;border-top:4px solid #957647;
+ box-shadow:0 18px 42px rgba(39,28,22,.08);
+ overflow-wrap:anywhere;
+}
+body[data-qst-page=tibb] .tibb-answer-shell .qa-part p{
+ font-size:13px;line-height:1.86;max-width:78ch;
+}
+body[data-qst-page=tibb] .tibb-answer-shell .qa-summary{
+ font-size:clamp(15px,1.5vw,18px);
+ line-height:1.82;max-width:78ch;
+}
+body[data-qst-page=tibb] .tibb-answer-shell .qa-bibliography li{
+ min-width:0;
+}
+@media(max-width:690px){
+ body[data-qst-page=tibb] .tibb-answer-shell{padding-top:18px}
+ body[data-qst-page=tibb] .tibb-answer-shell .inline-answer{padding:18px}
+}
