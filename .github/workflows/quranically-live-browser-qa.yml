@@ -5,6 +5,9 @@ on:
     paths:
       - .github/workflows/quranically-live-browser-qa.yml
       - scripts/local-search-visual-qa.mjs
+      - scripts/tibb-seerah-real-user-qa.mjs
+      - public/qst-visual-system.css
+      - public/tibb.js
       - scripts/canonical-release-smoke.mjs
   push:
     branches: [fix/relevant-source-search-20261029]
@@ -32,6 +35,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify real public screenshots, sources, links and responsive answers on existing Worker
         run: node scripts/local-search-visual-qa.mjs
+      - name: Reproduce actual Tibb browsing, black seed details and full-width Seerah Hijrah answer
+        run: node scripts/tibb-seerah-real-user-qa.mjs
       - name: Preserve genuine LIVE site screenshots as review evidence
         if: always()
         uses: actions/upload-artifact@v4
