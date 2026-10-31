@@ -697,3 +697,36 @@ test('discipline index cards expose real D1 references without inventing grading
   }
  }
 });
+
+test('practical black seed use keeps companion action separate from Prophetic statement and medical advice',async()=>{
+ const env=fixture();
+ const resp=await get(env,'/api/tibb/black-seed');
+ assert.equal(resp.status,200);
+ const data=await resp.json();
+ const g=data.guide;
+ assert.equal(data.entry.scientific_name,'Nigella sativa');
+ assert(g&&g.daily_life_use.includes('ordinary meals'),'Everyday culinary usage must be present');
+ assert(g.reported_method.includes('Ibn Abi Atiq'),'Historical narrated use must identify the adviser');
+ assert(g.method_attribution.includes('not'), 'Method must distinguish the Companion from a universal command');
+ assert(g.schedule_or_dose.includes('No established universal Sunnah dose'),'No invented daily seven-seed prescription');
+ assert(g.safety_boundaries.includes('lipoid pneumonia'),'Unsafe intranasal oils must be clearly discouraged');
+ assert.equal(g.religious_review,'pending');
+ assert.equal(g.medical_review,'pending');
+ assert.equal(g.primary_url,'https://sunnah.com/bukhari/76/10');
+ const list=await (await get(env,'/api/tibb?q=black')).json();
+ assert(list.entries.some(x=>x.slug==='black-seed'&&Number(x.practical_guide_available)===1));
+ for(const other of ['honey','talbina']){
+  const doc=await (await get(env,'/api/tibb/'+other)).json();
+  assert.equal(doc.guide,null,'Unreviewed/unwritten practical usage must not be fabricated: '+other);
+ }
+ // Draft material cannot leak to public APIs even when it exists in the database.
+ env.DB.prepare("UPDATE tibb_use_guides SET status='draft' WHERE id='black-seed-use'").run();
+ assert.equal((await (await get(env,'/api/tibb/black-seed')).json()).guide,null);
+});
+test('practical Tibb guide API cannot publish unreviewed records without authenticated Admin',async()=>{
+ const env=fixture();
+ const res=await get(env,'/api/admin/tibb_use_guides',{method:'POST',headers:{origin:'https://test.local','content-type':'application/json'},body:JSON.stringify({entry_id:'black-seed',daily_life_use:'A dubious cure',status:'published'})});
+ assert.equal(res.status,503);
+ const state=await (await get(env,'/api/tibb/black-seed')).json();
+ assert(state.guide?.daily_life_use.includes('food-grade'));
+});
