@@ -14,6 +14,19 @@ Cloudflare reference: https://developers.cloudflare.com/pages/functions/bindings
 ## Safe implementation
 `dist/_worker.js` is a thin proxy using `env.QURANICALLY_ORIGIN.fetch(request)`, never a client-side redirect and never a reimplementation of Quranically. The exact Worker `qst-living-knowledge-v1` remains sole source of code, Admin, Quran search and D1. The binding is declared in this folder's `wrangler.jsonc`.
 
+## Recommended easiest method: Cloudflare Pages dashboard upload (no token or card)
+Cloudflare Pages' official Direct Upload documentation confirms that **`_worker.js` is supported via dashboard drag-and-drop**. Download the prepared file `quranically-bridge-upload.zip` from this ChatGPT conversation.
+
+1. In Cloudflare: **Workers & Pages → Create application → Pages → Drag and drop your files**.
+2. Project name: `quranically-bridge`. Upload the ZIP containing `_worker.js` and `index.html` at its root.
+3. After the project exists, go to **Settings → Bindings → Add → Service binding**. Variable name `QURANICALLY_ORIGIN`, service `qst-living-knowledge-v1`, save and **Redeploy**.
+4. Test `quranically-bridge.pages.dev/api/health` and `/tibb`. The gateway must pass original Worker responses, not a 503.
+5. Go to Pages **Custom domains → Set up a domain → quranically.businessinsaudi.com**.
+6. At GoDaddy (only if authoritative DNS is actually managed there), add `CNAME quranically → quranically-bridge.pages.dev`. Never change nameservers, `@`, `www`, MX, SPF, DKIM or DMARC.
+7. Verify HTTPS and real homepage, Reader, Seerah, Tibb and Admin flows on the final domain.
+
+Sources: https://developers.cloudflare.com/pages/get-started/direct-upload/ and https://developers.cloudflare.com/pages/functions/bindings/#service-bindings
+
 ## Deployment once authorized Cloudflare Pages credentials are available
 1. In Cloudflare **Workers & Pages**, create a **Pages** project named **quranically-bridge** on **Free**. Do NOT add `businessinsaudi.com` as a DNS zone.
 2. For a GitHub-connected Pages build: repository `stepinsaudia/quranically`, production branch `fix/relevant-source-search-20261029` (until the canonical release branch is promoted), root directory `quranically-domain-bridge`, output directory `dist`, build command empty or `true`.
