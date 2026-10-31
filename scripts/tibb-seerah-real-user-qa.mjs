@@ -57,7 +57,7 @@ try{
 
   // This is the user's screenshot: Seerah answer must not be placed in 193px left grid column.
   await page.goto(base+'/encyclopedia?domain=seerah&q=Hijrah',{waitUntil:'domcontentloaded',timeout:30000});
-  await page.locator('#inlineAnswer:not([hidden]) h3').waitFor({timeout:20000});
+  await page.locator('#inlineAnswer:not([hidden]) h3').first().waitFor({timeout:20000});
   const layout=await page.evaluate(()=>{
    const answer=document.querySelector('#inlineAnswer').getBoundingClientRect(),
    content=document.querySelector('.results').getBoundingClientRect(),
