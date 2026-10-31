@@ -21,10 +21,12 @@ try{
   await page.screenshot({path:'artifacts/qst-tibb-catalog-'+vp.name+'.png',fullPage:true});
   checks++;console.log('PASS '+vp.name+' Tibb catalog '+total+' entries; header, cards and complete page');
   await page.locator('#filters button[data-category="food"]').click();
+  await page.waitForFunction(max=>document.querySelectorAll('#entryGrid .entry').length<max,total,{timeout:15000});
   const food=await page.locator('#entryGrid .entry').count();
   if(food<1||food>=total)throw Error(vp.name+' Tibb category filter failed '+food);
   checks++;console.log('PASS '+vp.name+' Tibb category filter '+food);
   await page.locator('#filters button[data-category=""]').click();
+  await page.waitForFunction(expected=>document.querySelectorAll('#entryGrid .entry').length===expected,total,{timeout:15000});
   await page.locator('#searchInput').fill('black seed');
   await page.locator('#searchForm button[type="submit"]').click();
   await page.locator('#entryGrid .entry').first().waitFor({timeout:18000});
@@ -44,6 +46,14 @@ try{
   await page.goto(base+'/tibb?entry=black-seed',{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('#detailBody .tibb-practical h3').waitFor({timeout:15000});
   checks++;console.log('PASS '+vp.name+' deep-linked practical Tibb record');
+  await page.goto(base+'/tibb?q=I%20have%20diabetes%20and%20need%20Prophetic%20Medicine',{waitUntil:'domcontentloaded',timeout:30000});
+  await page.locator('#tibbAnswerShell:not([hidden]) .inline-answer .qa-bibliography li').first().waitFor({timeout:23000});
+  const healthAnswer=await page.locator('#tibbAnswerShell .inline-answer h3').first().innerText();
+  if(!/diabetes/i.test(healthAnswer))throw Error('Tibb free-text question failed to return sourced full answer: '+healthAnswer);
+  const answerWidth=await page.locator('#tibbAnswerShell .inline-answer').evaluate(el=>el.getBoundingClientRect().width);
+  if(vp.name==='desktop'&&answerWidth<600)throw Error('Tibb complete answer too narrow '+answerWidth);
+  await page.screenshot({path:'artifacts/qst-tibb-diabetes-answer-'+vp.name+'.png',fullPage:false});
+  checks++;console.log('PASS '+vp.name+' Tibb natural-language question with cited answer on page');
 
   // This is the user's screenshot: Seerah answer must not be placed in 193px left grid column.
   await page.goto(base+'/encyclopedia?domain=seerah&q=Hijrah',{waitUntil:'domcontentloaded',timeout:30000});
